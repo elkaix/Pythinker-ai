@@ -20,7 +20,11 @@ from pythinker.providers.factory import (
     build_provider_snapshot,
     provider_signature,
 )
-from pythinker.providers.fallback_provider import FallbackProvider
+from pythinker.providers.fallback_provider import (
+    FallbackProvider,
+    reset_failover_callback,
+    set_failover_callback,
+)
 
 
 def _make_response(
@@ -617,3 +621,72 @@ async def test_circuit_breaker_resets_on_primary_success() -> None:
     result = await fb.chat(messages=[{"role": "user", "content": "hi"}])
     assert result.content == "fallback ok"
     assert len(primary.chat_calls) == 1
+
+
+@pytest.mark.asyncio
+async def test_emits_provider_failover_event_via_contextvar() -> None:
+    primary = _FakeProvider("primary", _error_response("rate limited"))
+    primary._response.error_kind = "rate_limit"
+    fallback = _FakeProvider("fallback", _make_response("fallback ok"))
+    factory = MagicMock(return_value=fallback)
+    fb = FallbackProvider(
+        primary=primary,
+        fallback_presets=[_fallback("fallback-a")],
+        provider_factory=factory,
+    )
+
+    received: list[dict[str, Any]] = []
+
+    async def _callback(payload: dict[str, Any]) -> None:
+        received.append(payload)
+
+    token = set_failover_callback(_callback)
+    try:
+        result = await fb.chat(messages=[{"role": "user", "content": "hi"}])
+    finally:
+        reset_failover_callback(token)
+    assert result.content == "fallback ok"
+    assert len(received) == 1
+    event = received[0]
+    assert event["version"] == 1
+    assert event["fallback"] == "fallback-a"
+    assert event["reason"] == "rate_limit"
+
+
+@pytest.mark.asyncio
+async def test_failover_event_skipped_when_no_callback_bound() -> None:
+    # No callback bound: the emit path must be a silent no-op.
+    primary = _FakeProvider("primary", _error_response())
+    fallback = _FakeProvider("fallback", _make_response("fallback ok"))
+    factory = MagicMock(return_value=fallback)
+    fb = FallbackProvider(
+        primary=primary,
+        fallback_presets=[_fallback("fallback-a")],
+        provider_factory=factory,
+    )
+
+    result = await fb.chat(messages=[{"role": "user", "content": "hi"}])
+    assert result.content == "fallback ok"  # no exception, no event consumer
+
+
+@pytest.mark.asyncio
+async def test_failover_event_emitter_failure_does_not_break_failover() -> None:
+    primary = _FakeProvider("primary", _error_response())
+    fallback = _FakeProvider("fallback", _make_response("fallback ok"))
+    factory = MagicMock(return_value=fallback)
+    fb = FallbackProvider(
+        primary=primary,
+        fallback_presets=[_fallback("fallback-a")],
+        provider_factory=factory,
+    )
+
+    async def _broken(_payload: dict[str, Any]) -> None:
+        raise RuntimeError("emitter exploded")
+
+    token = set_failover_callback(_broken)
+    try:
+        result = await fb.chat(messages=[{"role": "user", "content": "hi"}])
+    finally:
+        reset_failover_callback(token)
+    # The fallback still wins; the broken emitter is swallowed.
+    assert result.content == "fallback ok"

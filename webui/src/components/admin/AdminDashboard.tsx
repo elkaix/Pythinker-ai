@@ -301,6 +301,9 @@ function OverviewView({ data }: { data: AdminSurfaces }) {
               ["Version", data.overview.version],
               ["Config", data.overview.config_path],
               ["Provider", data.overview.agent.provider],
+              ...(data.overview.agent.fallback_chain && data.overview.agent.fallback_chain.length > 0
+                ? [["Fallbacks", data.overview.agent.fallback_chain.join(" → ")] as [string, string]]
+                : []),
               ["WebSocket", `${data.overview.websocket.host}:${data.overview.websocket.port}${data.overview.websocket.path}`],
             ]}
           />

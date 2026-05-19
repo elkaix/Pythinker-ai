@@ -1780,6 +1780,20 @@ class WebSocketChannel(BaseChannel):
             for connection in conns:
                 await self._safe_send_to(connection, raw, label=" file ")
             return
+        # Provider failover notice (FallbackProvider swapped primary -> fallback
+        # mid-turn). Surfaced as a one-shot info event so the WebUI can show
+        # a dismissible toast.
+        if msg.metadata.get("_provider_failover"):
+            failover_payload = msg.metadata.get("payload") or {}
+            body = {
+                "event": "provider_failover",
+                "chat_id": msg.chat_id,
+                "info": failover_payload,
+            }
+            raw = json.dumps(body, ensure_ascii=False)
+            for connection in conns:
+                await self._safe_send_to(connection, raw, label=" failover ")
+            return
         payload: dict[str, Any] = {
             "event": "message",
             "chat_id": msg.chat_id,

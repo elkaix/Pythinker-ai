@@ -1395,28 +1395,50 @@ class AgentLoop:
                 )
             )
 
+        async def _bus_provider_failover(payload: dict[str, Any]) -> None:
+            meta = dict(msg.metadata or {})
+            meta["_provider_failover"] = True
+            meta["payload"] = payload
+            await self.bus.publish_outbound(
+                OutboundMessage(
+                    channel=msg.channel,
+                    chat_id=msg.chat_id,
+                    content="",
+                    metadata=meta,
+                )
+            )
+
         # Persist the triggering user message up front so a mid-turn crash
         # doesn't silently lose the prompt on recovery. ``media`` rides along
         # as raw on-disk paths — sanitized image blocks are stripped from
         # JSONL, and webui replay needs the paths to mint signed URLs.
         user_persisted_early = self.turn_writer.persist_user_message_early(msg, session)
 
-        t_wall = time.time()
-        final_content, _, all_msgs, stop_reason, had_injections = await self._run_agent_loop(
-            initial_messages,
-            on_progress=on_progress or _bus_progress,
-            on_stream=on_stream,
-            on_stream_end=on_stream_end,
-            on_tool_event=on_tool_event,
-            on_retry_wait=_on_retry_wait,
-            on_file_activity=_bus_file_activity,
-            session=session,
-            channel=msg.channel,
-            chat_id=msg.chat_id,
-            message_id=msg.metadata.get("message_id"),
-            pending_queue=pending_queue,
-            msg=msg,
+        from pythinker.providers.fallback_provider import (
+            reset_failover_callback,
+            set_failover_callback,
         )
+
+        t_wall = time.time()
+        failover_token = set_failover_callback(_bus_provider_failover)
+        try:
+            final_content, _, all_msgs, stop_reason, had_injections = await self._run_agent_loop(
+                initial_messages,
+                on_progress=on_progress or _bus_progress,
+                on_stream=on_stream,
+                on_stream_end=on_stream_end,
+                on_tool_event=on_tool_event,
+                on_retry_wait=_on_retry_wait,
+                on_file_activity=_bus_file_activity,
+                session=session,
+                channel=msg.channel,
+                chat_id=msg.chat_id,
+                message_id=msg.metadata.get("message_id"),
+                pending_queue=pending_queue,
+                msg=msg,
+            )
+        finally:
+            reset_failover_callback(failover_token)
         turn_latency_ms = max(0, int((time.time() - t_wall) * 1000))
 
         if final_content is None or not final_content.strip():
