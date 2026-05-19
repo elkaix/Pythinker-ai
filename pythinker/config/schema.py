@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, model_validator
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
 
@@ -65,10 +65,36 @@ class DreamConfig(Base):
         return f"every {hours}h"
 
 
+class InlineFallbackConfig(Base):
+    """One inline fallback model configuration."""
+
+    model: str
+    provider: str
+    max_tokens: int | None = None
+    context_window_tokens: int | None = None
+    temperature: float | None = None
+    reasoning_effort: str | None = None
+
+
+FallbackCandidate = str | InlineFallbackConfig
+
+
+class ModelPresetConfig(Base):
+    """A named set of model + generation parameters for quick switching."""
+
+    model: str
+    provider: str = "auto"
+    max_tokens: int = 8192
+    context_window_tokens: int = 65_536
+    temperature: float = 0.1
+    reasoning_effort: str | None = None
+
+
 class AgentDefaults(Base):
     """Default agent configuration."""
 
     workspace: str = "~/.pythinker/workspace"
+    model_preset: str | None = None  # Active preset name — takes precedence over fields below
     model: str = "openai-codex/gpt-5.5"
     alternate_models: list[str] = Field(
         default_factory=list
@@ -87,6 +113,7 @@ class AgentDefaults(Base):
     timezone: str = "UTC"  # IANA timezone, e.g. "Asia/Shanghai", "America/New_York"
     unified_session: bool = False  # Share one session across all channels (single-user multi-device)
     disabled_skills: list[str] = Field(default_factory=list)  # Skill names to exclude from loading (e.g. ["summarize", "skill-creator"])
+    fallback_models: list[FallbackCandidate] = Field(default_factory=list)  # Ordered fallback list (preset names or inline configs)
     session_ttl_minutes: int = Field(
         default=0,
         ge=0,
@@ -452,6 +479,43 @@ class Config(BaseSettings):
     updates: UpdatesConfig = Field(default_factory=UpdatesConfig)
     logging: LoggingConfig = Field(default_factory=LoggingConfig)
     cli: CliConfig = Field(default_factory=CliConfig)
+    model_presets: dict[str, ModelPresetConfig] = Field(
+        default_factory=dict,
+        validation_alias=AliasChoices("modelPresets", "model_presets"),
+    )
+
+    @model_validator(mode="after")
+    def _validate_model_preset(self) -> "Config":
+        if "default" in self.model_presets:
+            raise ValueError("model_preset name 'default' is reserved for agents.defaults")
+        name = self.agents.defaults.model_preset
+        if name and name != "default" and name not in self.model_presets:
+            raise ValueError(f"model_preset {name!r} not found in model_presets")
+        for fallback in self.agents.defaults.fallback_models:
+            if isinstance(fallback, str) and fallback not in self.model_presets:
+                raise ValueError(f"fallback_models entry {fallback!r} not found in model_presets")
+        return self
+
+    def resolve_default_preset(self) -> ModelPresetConfig:
+        """Return the implicit ``default`` preset built from agents.defaults fields."""
+        d = self.agents.defaults
+        return ModelPresetConfig(
+            model=d.model,
+            provider=d.provider,
+            max_tokens=d.max_tokens,
+            context_window_tokens=d.context_window_tokens or 65_536,
+            temperature=d.temperature,
+            reasoning_effort=d.reasoning_effort,
+        )
+
+    def resolve_preset(self, name: str | None = None) -> ModelPresetConfig:
+        """Return effective model params from a named preset or the implicit default."""
+        name = self.agents.defaults.model_preset if name is None else name
+        if not name or name == "default":
+            return self.resolve_default_preset()
+        if name not in self.model_presets:
+            raise KeyError(f"model_preset {name!r} not found in model_presets")
+        return self.model_presets[name]
 
     @property
     def workspace_path(self) -> Path:
