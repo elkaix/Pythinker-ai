@@ -25,6 +25,7 @@ from pythinker.agent.tools.filesystem import (
     ReadFileTool,
     WriteFileTool,
 )
+from pythinker.agent.tools.image_generation import ImageGenerationTool
 from pythinker.agent.tools.message import MessageTool
 from pythinker.agent.tools.notebook import NotebookEditTool
 from pythinker.agent.tools.pdf import MakePdfTool
@@ -110,6 +111,15 @@ def register_default_tools(loop: "AgentLoop") -> None:
         loop._register_browser_tool(loop.web_config.browser)
     loop.tools.register(MessageTool(send_callback=loop.bus.publish_outbound))
     loop.tools.register(SpawnTool(manager=loop.subagents))
+    image_gen_cfg = loop.tools_config.image_generation
+    if image_gen_cfg.enabled:
+        loop.tools.register(
+            ImageGenerationTool(
+                workspace=loop.workspace,
+                config=image_gen_cfg,
+                provider_configs=loop.image_gen_provider_configs,
+            )
+        )
     if loop.cron_service:
         loop.tools.register(
             CronTool(loop.cron_service, default_timezone=loop.context.timezone or "UTC")

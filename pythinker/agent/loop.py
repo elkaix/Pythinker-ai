@@ -214,6 +214,7 @@ class AgentLoop:
         unified_session: bool = False,
         disabled_skills: list[str] | None = None,
         tools_config: ToolsConfig | None = None,
+        image_gen_provider_configs: dict | None = None,
         provider_snapshot_loader: Callable[[], "ProviderSnapshot"] | None = None,
         provider_signature: tuple[object, ...] | None = None,
         browser_config_loader: Callable[[], "BrowserConfig"] | None = None,
@@ -229,6 +230,8 @@ class AgentLoop:
         )
 
         _tc = tools_config or ToolsConfig()
+        self.tools_config = _tc
+        self.image_gen_provider_configs: dict = dict(image_gen_provider_configs or {})
         self._runtime_config = runtime_config or RuntimeConfig()
         self._session_cache_max = session_cache_max  # consumed by Task 11 in SessionManager construction
         self.agent_registry = None  # Set later by Task 10b wiring (load_dir)
