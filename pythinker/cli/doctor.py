@@ -11,6 +11,7 @@ import asyncio
 import importlib.util
 import shutil
 import sys
+from importlib import resources
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Iterable
@@ -443,11 +444,59 @@ def _check_updates() -> CheckResult:
     return CheckResult("ok", "Updates", f"{info.current} (up to date)")
 
 
+def _check_webui_dist_freshness() -> CheckResult:
+    """Detect a WebUI dist that's out of sync with the bundled sources.
+
+    Build-time CI catches source-changed-without-rebuild via
+    ``scripts/webui_hash.py --check``. The same script writes
+    ``pythinker/web/dist/source-hash.txt`` at build time; an installed wheel
+    that doesn't carry a fresh hash file is the symptom of a broken release.
+
+    This is informational only — wheels built from source trees without the
+    ``webui/`` checkout (e.g. installed via ``pip install``) won't have the
+    sources to recompute the hash, so we only flag when the dist *file* is
+    present but the marker is missing/empty.
+    """
+    try:
+        dist_root = resources.files("pythinker.web") / "dist"
+    except Exception:  # noqa: BLE001 — surfacing any resolution error is the point
+        return CheckResult("warn", "WebUI dist", "(skipped — cannot locate pythinker.web.dist)")
+
+    index = dist_root / "index.html"
+    if not index.is_file():
+        return CheckResult(
+            "warn",
+            "WebUI dist",
+            "no bundled WebUI",
+            fix="Rebuild from a source checkout: cd webui && bun run build.",
+        )
+
+    hash_file = dist_root / "source-hash.txt"
+    if not hash_file.is_file():
+        return CheckResult(
+            "warn",
+            "WebUI dist",
+            "missing source-hash.txt (bundled before freshness guard landed)",
+            fix="Rebuild from a source checkout: cd webui && bun run build.",
+        )
+
+    digest = hash_file.read_text().strip()
+    if not digest:
+        return CheckResult(
+            "warn",
+            "WebUI dist",
+            "source-hash.txt is empty",
+            fix="Rebuild from a source checkout: cd webui && bun run build.",
+        )
+
+    return CheckResult("ok", "WebUI dist", f"source-hash {digest[:12]}…")
+
+
 _SECTIONS: list[tuple[str, Iterable[Callable[[], CheckResult | list[CheckResult]]]]] = [
     ("Environment", (_check_python_version, _check_install_location)),
     ("Configuration", (_check_config, _check_workspace, _check_default_model, _check_model_context_window)),
     ("Providers", (_check_default_provider_auth,)),
-    ("Tools", (_check_browser,)),
+    ("Tools", (_check_browser, _check_webui_dist_freshness)),
     ("Updates", (_check_updates,)),
 ]
 
