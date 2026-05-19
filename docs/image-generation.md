@@ -26,7 +26,7 @@ The feature is disabled by default. Enable it in `~/.pythinker/config.json`, con
 }
 ```
 
-See [Provider Notes](#provider-notes) for AIHubMix, MiniMax, and Gemini configuration examples.
+See [Provider Notes](#provider-notes) for AIHubMix, MiniMax, Gemini, and StepFun configuration examples.
 
 > [!TIP]
 > Prefer environment variables for API keys. pythinker resolves `${VAR_NAME}` values from the environment at startup.
@@ -49,7 +49,7 @@ The WebUI hides provider storage details from the user. The agent sees the saved
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `tools.imageGeneration.enabled` | boolean | `false` | Register the `generate_image` tool |
-| `tools.imageGeneration.provider` | string | `"openrouter"` | Image provider name. Supported values: `openrouter`, `aihubmix`, `minimax`, `gemini` |
+| `tools.imageGeneration.provider` | string | `"openrouter"` | Image provider name. Supported values: `openrouter`, `aihubmix`, `minimax`, `gemini`, `stepfun` |
 | `tools.imageGeneration.model` | string | `"openai/gpt-5.4-image-2"` | Provider model name |
 | `tools.imageGeneration.defaultAspectRatio` | string | `"1:1"` | Default ratio when the prompt/tool call does not specify one |
 | `tools.imageGeneration.defaultImageSize` | string | `"1K"` | Default size hint, for example `1K`, `2K`, `4K`, or `1024x1024` |
@@ -171,6 +171,62 @@ For reference-image edits, use a Gemini Flash image model:
 
 Imagen 4 supports the aspect ratios `1:1`, `9:16`, `16:9`, `3:4`, and `4:3`. Unsupported ratios are ignored and the model uses its default. The `defaultImageSize` setting has no effect on Gemini models; sizing is controlled by `defaultAspectRatio` only. Reference images passed with an Imagen model are ignored (with a warning logged).
 
+### StepFun
+
+StepFun's `step-image-edit-2` model supports text-to-image generation. The `step-1x-medium` variant additionally supports **style-reference** image edits, where a reference image guides the visual style of the output.
+
+```json
+{
+  "providers": {
+    "stepfun": {
+      "apiKey": "${STEPFUN_API_KEY}"
+    }
+  },
+  "tools": {
+    "imageGeneration": {
+      "enabled": true,
+      "provider": "stepfun",
+      "model": "step-image-edit-2"
+    }
+  }
+}
+```
+
+> The StepFun image-gen provider reuses the existing `providers.stepfun` config block (the same one used for StepFun's LLM API). Set `providers.stepfun.apiKey` once and it is shared between text and image generation.
+
+Supported aspect ratios map to the following StepFun sizes (StepFun uses `WIDTHxHEIGHT` ordering):
+
+| Aspect ratio | Size |
+|-------------|------|
+| `1:1` | `1024x1024` |
+| `16:9` | `1280x800` |
+| `9:16` | `800x1280` |
+| `3:4` | `768x1360` |
+| `4:3` | `1360x768` |
+
+The default size is `1024x1024`. To request a specific size that is not in the table above, set `defaultImageSize` to a `WIDTHxHEIGHT` string and StepFun will pass it through unchanged.
+
+**StepPlan tier**: StepPlan is StepFun's subscription tier and uses a different API base URL. The image-generation endpoint path is the same — just override `apiBase`:
+
+```json
+{
+  "providers": {
+    "stepfun": {
+      "apiKey": "${STEPFUN_API_KEY}",
+      "apiBase": "https://api.stepfun.com/step_plan/v1"
+    }
+  },
+  "tools": {
+    "imageGeneration": {
+      "enabled": true,
+      "provider": "stepfun"
+    }
+  }
+}
+```
+
+`apiBase` takes precedence over the registry default, so with the StepPlan base URL configured, image requests are sent to `https://api.stepfun.com/step_plan/v1/images/generations`. The API key is shared with the standard StepFun provider.
+
 ## Artifacts
 
 Generated images are stored under the active pythinker instance's media directory:
@@ -225,7 +281,7 @@ Use the reference image. Keep the same robot and composition, change the palette
 |---------|-------|
 | `generate_image` is not available | Set `tools.imageGeneration.enabled` to `true` and restart the gateway |
 | Missing API key error | Configure `providers.<provider>.apiKey`; if using `${VAR_NAME}`, confirm the environment variable is visible to the gateway process |
-| `unsupported image generation provider` | Use `openrouter`, `aihubmix`, `minimax`, or `gemini` |
+| `unsupported image generation provider` | Use `openrouter`, `aihubmix`, `minimax`, `gemini`, or `stepfun` |
 | AIHubMix says `Incorrect model ID` | Use `model: "gpt-image-2-free"`; pythinker expands it to the required `openai/gpt-image-2-free` model path internally |
 | Generation times out | Try a smaller/default image size, set AIHubMix `extraBody.quality` to `"low"`, or retry later |
 | Reference image rejected | Reference image paths must be inside the workspace or pythinker media directory and must be valid image files |
