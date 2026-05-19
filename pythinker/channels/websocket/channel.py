@@ -1389,6 +1389,9 @@ class WebSocketChannel(BaseChannel):
         if t in {"webui_sidebar_state.get", "webui_sidebar_state.set"}:
             await self._handle_sidebar_state_envelope(connection, envelope)
             return
+        if t == "webui_file_read.get":
+            await self._handle_file_read_envelope(connection, envelope)
+            return
         await self._send_event(connection, "error", detail=f"unknown type: {t!r}")
 
     async def _handle_sidebar_state_envelope(
@@ -1455,6 +1458,112 @@ class WebSocketChannel(BaseChannel):
             "webui_sidebar_state",
             request_id=request_id,
             state=state,
+        )
+
+    async def _handle_file_read_envelope(
+        self,
+        connection: Any,
+        envelope: dict[str, Any],
+    ) -> None:
+        """Return the on-disk content of a workspace file for the WebUI panel.
+
+        Admin-only. The requested ``path`` must be workspace-relative; we
+        resolve it (following symlinks) and refuse any result that escapes
+        the workspace root. Files are capped at ``MAX_FILE_READ_BYTES``;
+        beyond that we return only the truncated head with ``truncated=true``.
+        Binary content (detected by null-byte scan over the first 8 KiB)
+        returns ``binary=true`` and no ``content``.
+        """
+        from pathlib import Path
+
+        MAX_FILE_READ_BYTES = 1_048_576  # 1 MiB
+        BINARY_PROBE_BYTES = 8192
+
+        request_id = envelope.get("request_id")
+
+        async def _error(detail: str) -> None:
+            await self._send_event(
+                connection,
+                "webui_file_read_error",
+                request_id=request_id,
+                detail=detail,
+            )
+
+        if connection not in self._admin_connections:
+            await _error("admin token required")
+            return
+        if self._admin_service is None:
+            await _error("admin service unavailable")
+            return
+
+        raw = envelope.get("path")
+        if not isinstance(raw, str) or not raw:
+            await _error("path is required")
+            return
+
+        workspace = Path(self._admin_service.config.workspace_path).resolve()
+        candidate = Path(raw)
+        if candidate.is_absolute():
+            absolute = candidate.resolve()
+        else:
+            absolute = (workspace / candidate).resolve()
+        try:
+            absolute.relative_to(workspace)
+        except ValueError:
+            await _error("path escapes workspace")
+            return
+        if not absolute.is_file():
+            await _error("not a regular file")
+            return
+
+        try:
+            size = absolute.stat().st_size
+            with open(absolute, "rb") as handle:
+                head = handle.read(min(size, BINARY_PROBE_BYTES))
+                binary = b"\x00" in head
+                if binary:
+                    await self._send_event(
+                        connection,
+                        "webui_file_read",
+                        request_id=request_id,
+                        path=str(absolute.relative_to(workspace)),
+                        binary=True,
+                        size=size,
+                        truncated=False,
+                        content="",
+                    )
+                    return
+                content_bytes = head + handle.read(MAX_FILE_READ_BYTES - len(head))
+        except OSError as exc:
+            await _error(f"read failed: {exc}")
+            return
+
+        truncated = size > MAX_FILE_READ_BYTES
+        try:
+            content = content_bytes.decode("utf-8")
+        except UnicodeDecodeError:
+            # Treat undecodable text as binary so the panel doesn't render mojibake.
+            await self._send_event(
+                connection,
+                "webui_file_read",
+                request_id=request_id,
+                path=str(absolute.relative_to(workspace)),
+                binary=True,
+                size=size,
+                truncated=truncated,
+                content="",
+            )
+            return
+
+        await self._send_event(
+            connection,
+            "webui_file_read",
+            request_id=request_id,
+            path=str(absolute.relative_to(workspace)),
+            binary=False,
+            size=size,
+            truncated=truncated,
+            content=content,
         )
 
     async def _handle_admin_config_envelope(

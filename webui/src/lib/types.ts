@@ -2,7 +2,26 @@ export type Role = "user" | "assistant" | "tool" | "system";
 
 /** "trace" rows are intermediate agent breadcrumbs (tool-call hints,
  * progress pings) that should not be rendered as conversational replies. */
-export type MessageKind = "message" | "trace";
+export type MessageKind = "message" | "trace" | "file_activity_cluster";
+
+/** One per-call file-edit event from the agent runner; the cluster on
+ * a ``UIMessage`` accumulates these by ``call_id`` and renders them as
+ * chips. ``phase`` is the latest delivered for that call. */
+export interface FileEditActivity {
+  call_id: string;
+  tool: string;
+  path: string;
+  phase: "start" | "end" | "error";
+  status: "editing" | "done" | "error";
+  added: number;
+  deleted: number;
+  approximate: boolean;
+  binary: boolean;
+  error?: string;
+  /** ``Date.now()`` from when this activity was last updated. Drives the
+   * pulse anim and lets a frozen cluster keep its sort order. */
+  updatedAt: number;
+}
 
 /** One image attached to a UIMessage.
  *
@@ -38,6 +57,10 @@ export interface UIMessage {
    * assistant placeholder until the first delta arrives. Cleared once the
    * stream begins so the bubble can render its content cleanly. */
   latencyMs?: number;
+  /** File-edit cluster: present only on ``kind = "file_activity_cluster"``
+   * rows. The collector folds activity events by ``call_id`` so the chip
+   * cluster never renders duplicates. */
+  activities?: FileEditActivity[];
 }
 
 export interface ChatSummary {
@@ -208,7 +231,42 @@ export type InboundEvent =
       chat_id?: string;
       info: ProviderFailoverInfo;
     }
+  | {
+      event: "file_activity";
+      chat_id: string;
+      activity: FileActivityPayload;
+    }
+  | {
+      event: "webui_file_read";
+      request_id?: string;
+      path: string;
+      binary: boolean;
+      content: string;
+      size: number;
+      truncated: boolean;
+    }
+  | {
+      event: "webui_file_read_error";
+      request_id?: string;
+      detail?: string;
+    }
   | { event: "error"; chat_id?: string; detail?: string; request_id?: string };
+
+/** Wire shape emitted by ``runner.py`` for each file-edit phase. The hook
+ * normalizes this into a ``FileEditActivity`` keyed by ``call_id``. */
+export interface FileActivityPayload {
+  version: 1;
+  call_id: string;
+  tool: string;
+  path: string;
+  phase: "start" | "end" | "error";
+  status: "editing" | "done" | "error";
+  added: number;
+  deleted: number;
+  approximate: boolean;
+  binary: boolean;
+  error?: string;
+}
 
 /** One-shot notice emitted by ``FallbackProvider`` when a primary model
  * failed mid-turn and a fallback took over. Surfaced as a dismissible
@@ -327,4 +385,9 @@ export type Outbound =
       type: "webui_sidebar_state.set";
       request_id: string;
       state: WebUISidebarState;
+    }
+  | {
+      type: "webui_file_read.get";
+      request_id: string;
+      path: string;
     };

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { InChatSearch } from "@/components/InChatSearch";
 import { ThreadSearchProvider } from "@/components/ThreadSearchProvider";
+import { FileReadPanel } from "@/components/thread/FileReadPanel";
 import { ProviderFailoverToasts } from "@/components/thread/ProviderFailoverToasts";
 import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { ThreadHeader } from "@/components/thread/ThreadHeader";
@@ -98,6 +99,7 @@ export function ThreadShell({
   const onStop = onStopOverride ?? liveStop;
   const showHeroComposer = messages.length === 0 && !loading;
   const [searchOpen, setSearchOpen] = useState(false);
+  const [filePanelPath, setFilePanelPath] = useState<string | null>(null);
 
   // Staged image state lives here so users can drop files anywhere on the
   // chat surface (including the message viewport, header gutter, etc.) and
@@ -232,6 +234,7 @@ export function ThreadShell({
           emptyState={emptyState}
           onRegenerate={regenerate}
           onEdit={editMessage}
+          onOpenFile={setFilePanelPath}
           scrollTarget={scrollTarget ?? null}
           composer={
             <>
@@ -282,6 +285,10 @@ export function ThreadShell({
           }
         />
       </section>
+      <FileReadPanel
+        path={filePanelPath}
+        onOpenChange={(open) => (open ? null : setFilePanelPath(null))}
+      />
     </ThreadSearchProvider>
   );
 }
