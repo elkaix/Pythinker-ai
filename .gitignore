@@ -10,7 +10,7 @@
 .omx
 blackbox/
 docs/superpowers/
-docs/upstream-upstream-audit.md
+sync/
 
 # webui (monorepo frontend)
 webui/node_modules/
