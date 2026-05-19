@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
 import { CodeBlock } from "@/components/CodeBlock";
+import { FileReferenceChip, isLikelyFilePath } from "@/components/FileReferenceChip";
 import { HighlightedText } from "@/components/HighlightedText";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { cn } from "@/lib/utils";
@@ -147,6 +148,10 @@ export default function MarkdownTextRenderer({
             void _node;
             const match = /language-(\w+)/.exec(cls || "");
             if (!match) {
+              const raw = String(kids).replace(/\n$/, "");
+              if (isLikelyFilePath(raw)) {
+                return <FileReferenceChip path={raw} />;
+              }
               return (
                 <code
                   className={cn(
