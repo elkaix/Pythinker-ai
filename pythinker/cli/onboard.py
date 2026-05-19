@@ -249,8 +249,12 @@ from pythinker.cli.onboard_steps.default_model import (  # noqa: F401, E402
     _step_default_model,
     _step_workspace,
 )
+from pythinker.cli.onboard_steps.model_presets import (  # noqa: F401, E402
+    _step_model_presets,
+)
 
 _WIZARD_STEPS.append(_step_default_model)
+_WIZARD_STEPS.append(_step_model_presets)
 _WIZARD_STEPS.append(_step_workspace)
 
 
