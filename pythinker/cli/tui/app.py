@@ -31,6 +31,7 @@ from pythinker.cli.tui.panes.waiting_spinner import WaitingSpinner
 from pythinker.cli.tui.streaming import AssistantStreamHandle
 from pythinker.cli.tui.theme import THEMES, TuiTheme
 from pythinker.config.paths import get_logs_dir
+from pythinker.providers.image_generation import image_gen_provider_configs
 from pythinker.providers.local_models import list_local_models
 from pythinker.providers.registry import find_by_name
 
@@ -302,6 +303,7 @@ async def _build_app(
         disabled_skills=config.agents.defaults.disabled_skills,
         session_ttl_minutes=config.agents.defaults.session_ttl_minutes,
         tools_config=config.tools,
+        image_gen_provider_configs=image_gen_provider_configs(config),
         browser_config_loader=_load_browser_config,
     )
 

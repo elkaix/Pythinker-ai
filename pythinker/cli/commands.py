@@ -397,6 +397,7 @@ def serve(
     from pythinker.agent.loop import AgentLoop
     from pythinker.api.server import create_app
     from pythinker.bus.queue import MessageBus
+    from pythinker.providers.image_generation import image_gen_provider_configs
     from pythinker.session.manager import SessionManager
     from pythinker.utils.log import configure_logging
 
@@ -445,6 +446,7 @@ def serve(
         disabled_skills=runtime_config.agents.defaults.disabled_skills,
         session_ttl_minutes=runtime_config.agents.defaults.session_ttl_minutes,
         tools_config=runtime_config.tools,
+        image_gen_provider_configs=image_gen_provider_configs(runtime_config),
         runtime_config=runtime_config.runtime,
         policy=policy,
         browser_config_loader=_load_browser_config,
@@ -516,6 +518,7 @@ def _run_gateway(
     from pythinker.cron.service import CronService
     from pythinker.cron.types import CronJob
     from pythinker.heartbeat.service import HeartbeatService
+    from pythinker.providers.image_generation import image_gen_provider_configs
     from pythinker.session.manager import SessionManager
 
     port = port if port is not None else config.gateway.port
@@ -571,6 +574,7 @@ def _run_gateway(
         disabled_skills=config.agents.defaults.disabled_skills,
         session_ttl_minutes=config.agents.defaults.session_ttl_minutes,
         tools_config=config.tools,
+        image_gen_provider_configs=image_gen_provider_configs(config),
         policy=policy,
         runtime_config=config.runtime,
         browser_config_loader=_load_browser_config,
@@ -907,6 +911,7 @@ def agent(
     from pythinker.agent.loop import AgentLoop
     from pythinker.bus.queue import MessageBus
     from pythinker.cron.service import CronService
+    from pythinker.providers.image_generation import image_gen_provider_configs
     from pythinker.utils.log import configure_logging
 
     config = _load_runtime_config(config, workspace)
@@ -957,6 +962,7 @@ def agent(
         disabled_skills=config.agents.defaults.disabled_skills,
         session_ttl_minutes=config.agents.defaults.session_ttl_minutes,
         tools_config=config.tools,
+        image_gen_provider_configs=image_gen_provider_configs(config),
         runtime_config=config.runtime,
         policy=policy,
         browser_config_loader=_load_browser_config,

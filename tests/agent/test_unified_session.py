@@ -387,6 +387,9 @@ class TestConsolidationUnaffectedByUnifiedSession:
         session = Session(key="unified:default")
         session.messages = [{"role": "user", "content": "msg"}]
 
+        # The session-refresh guard re-reads via sessions.get_or_create; return
+        # the same real Session so the in-test object stays in play.
+        sessions.get_or_create = MagicMock(return_value=session)
         # Simulate over-budget: estimated > budget
         consolidator.estimate_session_prompt_tokens = MagicMock(return_value=(950, "tiktoken"))
         # No strict user boundary found → relaxed fallback archives the tail.
