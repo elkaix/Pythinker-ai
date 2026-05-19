@@ -17,6 +17,9 @@ interface ThreadViewportProps {
   onRegenerate?: () => void;
   /** Rewrite a user bubble in place and resubmit from there. */
   onEdit?: (messageId: string, newContent: string) => void;
+  /** Open the read-only file-content panel when a chip in the activity
+   * cluster is clicked. */
+  onOpenFile?: (path: string) => void;
   /** One-shot scroll target — when set, scroll the bubble at
    * ``messageIndex`` into view. ``token`` is bumped each time the same
    * target is re-requested so the effect refires on repeat clicks. */
@@ -30,6 +33,7 @@ export function ThreadViewport({
   emptyState,
   onRegenerate,
   onEdit,
+  onOpenFile,
   scrollTarget,
 }: ThreadViewportProps) {
   const { t } = useTranslation();
@@ -103,6 +107,7 @@ export function ThreadViewport({
                   messages={messages}
                   onRegenerate={onRegenerate}
                   onEdit={onEdit}
+                  onOpenFile={onOpenFile}
                 />
               </div>
 

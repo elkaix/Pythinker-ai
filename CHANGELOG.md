@@ -8,6 +8,14 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ### Added
 
+- The runtime's per-tool `file_activity` events (shipped in 44f917ea) now drive a live "files being
+  edited" cluster above the assistant bubble in the WebUI. Each cluster is a collapsed one-line
+  summary ("3 files edited (+45 −12)") that expands to a row of `FileEditChip`s; chips animate while
+  editing, show a check + diff stats on completion, and a red alert on error. Clicking a chip opens a
+  read-only side panel that fetches the file via the new admin-only `webui_file_read.get` envelope
+  (workspace-relative paths only; resolved paths are checked against the workspace root, content is
+  capped at 1 MiB with a "truncated" notice, binary files surface a placeholder instead of mojibake).
+  Clusters freeze on the turn boundary so subsequent turns get their own cluster.
 - WebUI Config Workbench now renders the masked preview hint that the admin endpoint returns for each
   configured secret (e.g. `sk-1••••cdef`) instead of a static "Secret value hidden" label, and
   the restart banner is now driven by the live `requires_restart` flag — it appears immediately when

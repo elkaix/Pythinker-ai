@@ -11,6 +11,17 @@ import type {
   WebUISidebarState,
 } from "./types";
 
+/** Resolved by ``getFileContent``: server-resolved workspace-relative
+ * ``path``, ``binary`` for non-UTF-8 / null-byte content (panel shows a
+ * placeholder), ``truncated`` when the file exceeded the 1 MiB cap. */
+export interface WebUIFileReadResult {
+  path: string;
+  binary: boolean;
+  content: string;
+  size: number;
+  truncated: boolean;
+}
+
 /** WebSocket readyState constants, referenced by value to stay portable
  * across runtimes that don't expose a global ``WebSocket`` (tests, SSR). */
 const WS_OPEN = 1;
@@ -360,6 +371,16 @@ export class PythinkerClient {
     );
   }
 
+  getFileContent(
+    path: string,
+    timeoutMs: number = 5_000,
+  ): Promise<WebUIFileReadResult> {
+    return this.sendAdminRequest<WebUIFileReadResult>(
+      { type: "webui_file_read.get", path },
+      timeoutMs,
+    );
+  }
+
   // -- internals ---------------------------------------------------------
 
   private requestId(): string {
@@ -390,7 +411,8 @@ export class PythinkerClient {
       | { type: "admin_mcp_probe"; server: string }
       | { type: "admin_browser_probe" }
       | { type: "webui_sidebar_state.get" }
-      | { type: "webui_sidebar_state.set"; state: WebUISidebarState },
+      | { type: "webui_sidebar_state.set"; state: WebUISidebarState }
+      | { type: "webui_file_read.get"; path: string },
     timeoutMs: number,
   ): Promise<T> {
     const requestId = this.requestId();
@@ -467,7 +489,9 @@ export class PythinkerClient {
       parsed.event === "admin_mcp_probe_result" ||
       parsed.event === "admin_browser_probe_result" ||
       parsed.event === "webui_sidebar_state" ||
-      parsed.event === "webui_sidebar_state_error"
+      parsed.event === "webui_sidebar_state_error" ||
+      parsed.event === "webui_file_read" ||
+      parsed.event === "webui_file_read_error"
     ) {
       this.dispatchAdminConfig(parsed);
       return;
@@ -501,7 +525,9 @@ export class PythinkerClient {
       ev.event !== "admin_mcp_probe_result" &&
       ev.event !== "admin_browser_probe_result" &&
       ev.event !== "webui_sidebar_state" &&
-      ev.event !== "webui_sidebar_state_error"
+      ev.event !== "webui_sidebar_state_error" &&
+      ev.event !== "webui_file_read" &&
+      ev.event !== "webui_file_read_error"
     ) {
       return;
     }
@@ -519,6 +545,10 @@ export class PythinkerClient {
       pending.reject(new Error(ev.detail ?? "sidebar state request failed"));
       return;
     }
+    if (ev.event === "webui_file_read_error") {
+      pending.reject(new Error(ev.detail ?? "file read request failed"));
+      return;
+    }
     if (ev.event === "admin_config_saved") {
       pending.resolve({
         path: ev.path,
@@ -528,6 +558,16 @@ export class PythinkerClient {
     }
     if (ev.event === "webui_sidebar_state") {
       pending.resolve(ev.state);
+      return;
+    }
+    if (ev.event === "webui_file_read") {
+      pending.resolve({
+        path: ev.path,
+        binary: ev.binary,
+        content: ev.content,
+        size: ev.size,
+        truncated: ev.truncated,
+      });
       return;
     }
     pending.resolve(ev.result);

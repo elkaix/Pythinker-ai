@@ -1,6 +1,7 @@
 import { MessageBubble } from "@/components/MessageBubble";
+import { AgentActivityCluster } from "@/components/thread/AgentActivityCluster";
 import { extractThinkBlocks } from "@/lib/extractThinkBlocks";
-import type { UIMessage } from "@/lib/types";
+import type { FileEditActivity, UIMessage } from "@/lib/types";
 
 interface ThreadMessagesProps {
   messages: UIMessage[];
@@ -8,6 +9,8 @@ interface ThreadMessagesProps {
   onRegenerate?: () => void;
   /** Rewrite a user bubble in place and resubmit from there. */
   onEdit?: (messageId: string, newContent: string) => void;
+  /** Open the read-only side panel when a file chip is clicked. */
+  onOpenFile?: (path: string) => void;
 }
 
 /**
@@ -19,6 +22,9 @@ interface ThreadMessagesProps {
  * here so the layout never even allocates a row.
  */
 function isRenderable(message: UIMessage): boolean {
+  if (message.kind === "file_activity_cluster") {
+    return (message.activities ?? []).length > 0;
+  }
   if (message.role !== "assistant" || message.kind === "trace") return true;
   if (message.isStreaming) return true;
   const visible = extractThinkBlocks(message.content).visible.trim();
@@ -29,6 +35,7 @@ export function ThreadMessages({
   messages,
   onRegenerate,
   onEdit,
+  onOpenFile,
 }: ThreadMessagesProps) {
   const renderable = messages.filter(isRenderable);
   return (
@@ -39,11 +46,19 @@ export function ThreadMessages({
           data-message-index={index}
           className="rounded-md"
         >
-          <MessageBubble
-            message={message}
-            onRegenerate={onRegenerate}
-            onEdit={onEdit}
-          />
+          {message.kind === "file_activity_cluster" ? (
+            <AgentActivityCluster
+              activities={message.activities as FileEditActivity[]}
+              isStreaming={!!message.isStreaming}
+              onChipClick={(a) => onOpenFile?.(a.path)}
+            />
+          ) : (
+            <MessageBubble
+              message={message}
+              onRegenerate={onRegenerate}
+              onEdit={onEdit}
+            />
+          )}
         </div>
       ))}
     </div>

@@ -4,6 +4,7 @@ import { useClient } from "@/providers/ClientProvider";
 import { extractThinkBlocks } from "@/lib/extractThinkBlocks";
 import type { StreamError } from "@/lib/pythinker-client";
 import type {
+  FileEditActivity,
   InboundEvent,
   OutboundMedia,
   UIImage,
@@ -95,6 +96,14 @@ export function usePythinkerStream(
    * user starts a new turn (send/regenerate/edit). Within the same turn,
    * repeated failover events from the same swap collapse to one toast. */
   const failoverSeen = useRef<Map<string, number>>(new Map());
+  /** Per-turn file-edit cluster. ``messageId`` points at the cluster row in
+   * ``messages``; ``activities`` is the latest phase per ``call_id`` (so a
+   * late ``start`` after ``end`` / ``error`` is ignored). Cleared on each
+   * fresh turn so a new cluster appears for the next assistant bubble. */
+  const cluster = useRef<{
+    messageId: string;
+    activities: Map<string, FileEditActivity>;
+  } | null>(null);
   const buffer = useRef<StreamBuffer | null>(null);
   const latency = useRef<LatencyTracker | null>(null);
   // rAF coalescer: bursty WS frames (5-10 small deltas in the same frame) used
@@ -196,6 +205,8 @@ export function usePythinkerStream(
     setStreamError(null);
     cancelFlush();
     buffer.current = null;
+    cluster.current = null;
+    failoverSeen.current.clear();
     if (latency.current) {
       clearInterval(latency.current.intervalId);
       latency.current = null;
@@ -233,6 +244,18 @@ export function usePythinkerStream(
       }
 
       if (ev.event === "stream_end") {
+        if (!ev.resuming && cluster.current) {
+          // Freeze the per-turn cluster: clear isStreaming so chip pulses
+          // stop, but keep the row in the thread so the user sees what
+          // was edited. ``activities`` is preserved as-is.
+          const frozenId = cluster.current.messageId;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === frozenId ? { ...m, isStreaming: false } : m,
+            ),
+          );
+          cluster.current = null;
+        }
         if (!buffer.current) {
           if (!ev.resuming) setIsStreaming(false);
           return;
@@ -355,6 +378,66 @@ export function usePythinkerStream(
         });
         return;
       }
+      if (ev.event === "file_activity") {
+        const a = ev.activity;
+        if (!a || !a.call_id) return;
+        const current = cluster.current;
+        const prevEntry = current?.activities.get(a.call_id);
+        // Phase state machine: once end/error has landed, ignore a late
+        // ``start`` for that call (e.g. out-of-order delivery).
+        if (prevEntry && prevEntry.phase !== "start" && a.phase === "start") {
+          return;
+        }
+        const merged: FileEditActivity = {
+          call_id: a.call_id,
+          tool: a.tool,
+          path: a.path,
+          phase: a.phase,
+          status: a.status,
+          added: typeof a.added === "number" ? a.added : 0,
+          deleted: typeof a.deleted === "number" ? a.deleted : 0,
+          approximate: !!a.approximate,
+          binary: !!a.binary,
+          error: a.error,
+          updatedAt: Date.now(),
+        };
+        const placeholderId = buffer.current?.messageId;
+        if (!current) {
+          // First activity of this turn: spawn the cluster row immediately
+          // before the assistant placeholder (or at the end if none yet).
+          const newId = crypto.randomUUID();
+          const activities = new Map<string, FileEditActivity>();
+          activities.set(a.call_id, merged);
+          cluster.current = { messageId: newId, activities };
+          const next: UIMessage = {
+            id: newId,
+            role: "tool",
+            content: "",
+            kind: "file_activity_cluster",
+            isStreaming: true,
+            createdAt: Date.now(),
+            activities: Array.from(activities.values()),
+          };
+          setMessages((prev) => {
+            const idx = placeholderId
+              ? prev.findIndex((m) => m.id === placeholderId)
+              : -1;
+            if (idx < 0) return [...prev, next];
+            return [...prev.slice(0, idx), next, ...prev.slice(idx)];
+          });
+          return;
+        }
+        current.activities.set(a.call_id, merged);
+        const frozen = Array.from(current.activities.values());
+        const clusterId = current.messageId;
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === clusterId ? { ...m, activities: frozen } : m,
+          ),
+        );
+        return;
+      }
+
       if (ev.event === "provider_failover") {
         const info = ev.info;
         if (!info || !info.primary || !info.fallback) return;
@@ -445,6 +528,7 @@ export function usePythinkerStream(
       // Fresh user turn re-enables the failover dedupe set so the same
       // primary->fallback swap can surface again on the next attempt.
       failoverSeen.current.clear();
+      cluster.current = null;
       const wireMedia = hasImages ? images!.map((i) => i.media) : undefined;
       client.sendMessage(chatId, content, wireMedia);
     },
@@ -514,6 +598,7 @@ export function usePythinkerStream(
     setIsStreaming(true);
     startLatency(placeholderId);
     failoverSeen.current.clear();
+    cluster.current = null;
     client.regenerate(chatId);
   }, [chatId, client, startLatency, cancelFlush]);
 
@@ -558,6 +643,7 @@ export function usePythinkerStream(
       setIsStreaming(true);
       startLatency(placeholderId);
       failoverSeen.current.clear();
+      cluster.current = null;
       client.editAndResend(chatId, userMsgIndex, newContent);
     },
     [chatId, client, messages, startLatency, cancelFlush],
