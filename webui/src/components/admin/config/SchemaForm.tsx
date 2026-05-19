@@ -22,6 +22,7 @@ export type SchemaFormProps = {
   secretPaths: string[];
   envReferences?: Record<string, { env_var: string; is_secret: boolean }>;
   fieldDefaults?: Record<string, unknown>;
+  secretHints?: Record<string, string>;
   onStage: FieldChange;
   onReplaceSecret: (canonicalPath: string) => void;
 };
@@ -101,6 +102,7 @@ export function SchemaForm({
   secretPaths,
   envReferences = {},
   fieldDefaults = {},
+  secretHints = {},
   onStage,
   onReplaceSecret,
 }: SchemaFormProps) {
@@ -120,7 +122,12 @@ export function SchemaForm({
   if (secretPaths.includes(canonicalPath)) {
     return (
       <FieldShell label={label} path={canonicalPath} description={node.description} badges={badges}>
-        <SecretField canonicalPath={canonicalPath} label={label} onReplaceSecret={onReplaceSecret} />
+        <SecretField
+          canonicalPath={canonicalPath}
+          hint={secretHints[canonicalPath]}
+          label={label}
+          onReplaceSecret={onReplaceSecret}
+        />
       </FieldShell>
     );
   }
@@ -145,6 +152,7 @@ export function SchemaForm({
             envReferences={envReferences}
             fieldDefaults={fieldDefaults}
             schemaNode={child}
+            secretHints={secretHints}
             secretPaths={secretPaths}
             value={record[key]}
           />
