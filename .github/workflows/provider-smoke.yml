@@ -1,0 +1,104 @@
+name: Provider Smoke
+
+# Weekly drift check against each provider's list-models endpoint.
+#
+# Opt-in: only runs when repository variable `PROVIDER_SMOKE_ENABLED == '1'`.
+# On forks, the variable is unset, so the job is a no-op (does not consume
+# API keys).  Each provider is independently skipped if its secret is unset.
+
+on:
+  schedule:
+    # Mondays 07:15 UTC — after Renovate's 06:00 window.
+    - cron: "15 7 * * 1"
+  workflow_dispatch:
+    inputs:
+      write_snapshot:
+        description: "Overwrite snapshots with fresh data (manual refresh)"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: provider-smoke
+  cancel-in-progress: false
+
+jobs:
+  drift:
+    if: vars.PROVIDER_SMOKE_ENABLED == '1'
+    runs-on: ubuntu-latest
+
+    env:
+      WRITE_SNAPSHOT: ${{ inputs.write_snapshot == true }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install httpx
+        run: pip install "httpx>=0.28,<1.0"
+
+      - name: Run drift check
+        id: drift
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set +e
+          if [[ "$WRITE_SNAPSHOT" == "true" ]]; then
+            python scripts/provider_drift.py --write | tee drift-summary.json
+            echo "drift_exit=0" >> "$GITHUB_OUTPUT"
+          else
+            python scripts/provider_drift.py --check | tee drift-summary.json
+            echo "drift_exit=$?" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-drift-summary
+          path: drift-summary.json
+          if-no-files-found: ignore
+
+      - name: Open / update drift issue
+        if: steps.drift.outputs.drift_exit != '0' && env.WRITE_SNAPSHOT != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TITLE="provider-smoke: model catalog drift detected"
+          BODY_FILE=$(mktemp)
+          {
+            echo "Drift detected by \`scripts/provider_drift.py --check\` on $(date -u +%Y-%m-%dT%H:%M:%SZ)."
+            echo
+            echo '```json'
+            cat drift-summary.json
+            echo '```'
+            echo
+            echo "Refresh snapshots locally with:"
+            echo
+            echo '```bash'
+            echo "OPENAI_API_KEY=... ANTHROPIC_API_KEY=... python scripts/provider_drift.py --write"
+            echo '```'
+            echo
+            echo "Or via this workflow's manual dispatch with \`write_snapshot=true\`."
+          } > "$BODY_FILE"
+
+          EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
+          if [[ -n "$EXISTING" ]]; then
+            gh issue comment "$EXISTING" --body-file "$BODY_FILE"
+          else
+            gh issue create --title "$TITLE" --body-file "$BODY_FILE" --label "deps"
+          fi
+
+      - name: Fail job on drift
+        if: steps.drift.outputs.drift_exit != '0' && env.WRITE_SNAPSHOT != 'true'
+        run: exit 1
