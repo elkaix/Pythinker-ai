@@ -69,9 +69,7 @@
     {
       "matchUpdateTypes": ["patch"],
       "matchCurrentVersion": "!/^0/",
-      "automerge": true,
-      "automergeType": "branch",
-      "platformAutomerge": true
+      "automerge": false
     }
   ],
   "vulnerabilityAlerts": {

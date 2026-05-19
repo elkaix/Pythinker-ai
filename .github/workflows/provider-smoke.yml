@@ -52,12 +52,15 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
           set +e
+          set -o pipefail
           if [[ "$WRITE_SNAPSHOT" == "true" ]]; then
             python scripts/provider_drift.py --write | tee drift-summary.json
-            echo "drift_exit=0" >> "$GITHUB_OUTPUT"
+            status=${PIPESTATUS[0]}
+            echo "drift_exit=$status" >> "$GITHUB_OUTPUT"
           else
             python scripts/provider_drift.py --check | tee drift-summary.json
-            echo "drift_exit=$?" >> "$GITHUB_OUTPUT"
+            status=${PIPESTATUS[0]}
+            echo "drift_exit=$status" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload summary
@@ -66,6 +69,14 @@ jobs:
         with:
           name: provider-drift-summary
           path: drift-summary.json
+          if-no-files-found: ignore
+
+      - name: Upload refreshed snapshots
+        if: always() && env.WRITE_SNAPSHOT == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: provider-model-snapshots
+          path: tests/snapshots/provider-models/*.json
           if-no-files-found: ignore
 
       - name: Open / update drift issue
@@ -89,7 +100,7 @@ jobs:
             echo "OPENAI_API_KEY=... ANTHROPIC_API_KEY=... python scripts/provider_drift.py --write"
             echo '```'
             echo
-            echo "Or via this workflow's manual dispatch with \`write_snapshot=true\`."
+            echo "Or via this workflow's manual dispatch with \`write_snapshot=true\`, then download and commit the \`provider-model-snapshots\` artifact."
           } > "$BODY_FILE"
 
           EXISTING=$(gh issue list --state open --search "$TITLE in:title" --json number --jq '.[0].number // empty')
@@ -99,6 +110,6 @@ jobs:
             gh issue create --title "$TITLE" --body-file "$BODY_FILE" --label "deps"
           fi
 
-      - name: Fail job on drift
-        if: steps.drift.outputs.drift_exit != '0' && env.WRITE_SNAPSHOT != 'true'
+      - name: Fail job on drift or provider error
+        if: steps.drift.outputs.drift_exit != '0'
         run: exit 1
