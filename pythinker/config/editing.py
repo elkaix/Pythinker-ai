@@ -25,6 +25,24 @@ _SECRET_NAME_RE = re.compile(r"(api[_-]?key|token|secret|password|credential|oau
 _ENV_REF_RE = re.compile(r"^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$")
 
 
+def mask_secret_hint(secret: str | None) -> str | None:
+    """Return a tail-revealing hint for *secret*.
+
+    Used so the WebUI can distinguish two configured keys (e.g. ``sk-or-...abcd``
+    vs ``sk-or-...efgh``) without exposing the full value. ``None``/empty
+    secrets and environment-variable references (``${VAR}``) return ``None``;
+    short secrets (<= 8 chars) collapse to a bullet placeholder so the hint
+    never reveals the full value.
+    """
+    if not isinstance(secret, str) or not secret:
+        return None
+    if _ENV_REF_RE.match(secret):
+        return None
+    if len(secret) <= 8:
+        return "••••"
+    return f"{secret[:4]}••••{secret[-4:]}"
+
+
 class ConfigEditError(ValueError):
     """Raised when a config path cannot be safely read or edited."""
 
@@ -211,6 +229,43 @@ def redacted_config(config: Config) -> dict[str, Any]:
         return value
 
     return {"config": visit(data, []), "secret_paths": sorted(set(secret_paths))}
+
+
+def collect_secret_hints(
+    config: Config,
+    secret_paths: set[str],
+) -> dict[str, str]:
+    """Return ``{secret_path: hint}`` for every set secret in *config*.
+
+    The hints are derived from the *resolved* (env-expanded) config so an
+    ``${OPENAI_API_KEY}`` value still produces a hint based on the resolved
+    secret. Paths whose value is None, empty, or an unresolved env reference
+    are omitted.
+    """
+    data = config.model_dump(mode="json", by_alias=True)
+    hints: dict[str, str] = {}
+    snake_paths = {_canonical_path(p) for p in secret_paths}
+
+    def visit(value: Any, parts: list[str]) -> None:
+        canonical = ".".join(_camel_to_snake(part) for part in parts)
+        if parts and canonical in snake_paths:
+            hint = mask_secret_hint(value if isinstance(value, str) else None)
+            if hint is not None:
+                hints[canonical] = hint
+            return
+        if isinstance(value, dict):
+            for key, child in value.items():
+                visit(child, [*parts, key])
+        elif isinstance(value, list):
+            for i, child in enumerate(value):
+                visit(child, [*parts, str(i)])
+
+    visit(data, [])
+    return hints
+
+
+def _canonical_path(path: str) -> str:
+    return ".".join(_camel_to_snake(part) for part in path.split("."))
 
 
 def collect_env_references(

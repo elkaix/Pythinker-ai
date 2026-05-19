@@ -29,6 +29,7 @@ from pythinker.config.editing import (
     ConfigEditError,
     collect_env_references,
     collect_field_defaults,
+    collect_secret_hints,
     list_config_backups,
     read_config_value,
     redacted_config,
@@ -130,6 +131,10 @@ class AdminService:
         self.agent_loop = agent_loop
         self.channel_manager = channel_manager
         self._browser_status_provider: Callable[[], object | None] | None = None
+        # Top-level config sections (e.g. "providers", "agents", "channels") edited
+        # since process start; the WebUI reads ``pending_restart_sections`` to
+        # show a "Restart required" banner. Process restart implicitly clears.
+        self._pending_restart_sections: set[str] = set()
 
     def overview(self) -> dict[str, Any]:
         start_time = float(getattr(self.agent_loop, "_start_time", time.time()))
@@ -537,10 +542,15 @@ class AdminService:
 
     def config_payload(self) -> dict[str, Any]:
         raw = self._raw_disk_config()
-        payload = redacted_config(self._disk_config())
-        payload["env_references"] = collect_env_references(raw, set(payload["secret_paths"]))
+        disk = self._disk_config()
+        payload = redacted_config(disk)
+        secret_paths = set(payload["secret_paths"])
+        payload["env_references"] = collect_env_references(raw, secret_paths)
+        payload["secret_hints"] = collect_secret_hints(disk, secret_paths)
         payload["field_defaults"] = _config_field_defaults()
         payload["restart_required_paths"] = ["*"]
+        payload["pending_restart_sections"] = sorted(self._pending_restart_sections)
+        payload["requires_restart"] = bool(self._pending_restart_sections)
         return payload
 
     def config_schema(self) -> dict[str, Any]:
@@ -560,12 +570,14 @@ class AdminService:
         set_config_value(config, path, value)
         save_config_with_backup(config, self.config_path)
         self._mirror_runtime_edit(path, value)
+        self._mark_restart_required(path)
 
     def unset_config(self, path: str) -> None:
         config = self._disk_config()
         unset_config_value(config, path)
         save_config_with_backup(config, self.config_path)
         self._mirror_runtime_unset(path)
+        self._mark_restart_required(path)
 
     def replace_secret(self, path: str, value: Any) -> None:
         if not isinstance(value, str) or not value:
@@ -578,7 +590,13 @@ class AdminService:
     def restore_config_backup(self, backup_id: str) -> dict[str, object]:
         restore_config_backup(self.config_path, backup_id)
         self.config = self._disk_config()
+        # Restoring touches every section by definition.
+        self._pending_restart_sections.add("*")
         return {"ok": True, "restart_required": True}
+
+    def _mark_restart_required(self, path: str) -> None:
+        section = path.split(".", 1)[0] if path else "*"
+        self._pending_restart_sections.add(section or "*")
 
     def _disk_config(self) -> Config:
         return load_config(self.config_path)
