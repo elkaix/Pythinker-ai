@@ -126,7 +126,10 @@ def test_build_provider_snapshot_carries_provider_and_signature():
         snap = build_provider_snapshot(cfg)
     assert isinstance(snap, ProviderSnapshot)
     assert snap.model == "openai/gpt-4.1"
-    assert snap.context_window_tokens == cfg.agents.defaults.context_window_tokens
+    # Resolved snapshot now carries the effective preset window (concrete int),
+    # not the optional raw defaults.context_window_tokens — which still may be
+    # None when not explicitly configured.
+    assert snap.context_window_tokens == cfg.resolve_preset().context_window_tokens
     assert snap.signature == provider_signature(cfg)
     assert snap.provider.__class__.__name__ == "OpenAICompatProvider"
 

@@ -33,9 +33,18 @@ def make_provider(config: Config) -> LLMProvider:
     validation (missing key, missing Azure base) raise `ValueError` so callers
     can decide how to surface them — the CLI translates these into
     `console.print` + `typer.Exit(1)`; the SDK lets them propagate.
+
+    If ``agents.defaults.model_preset`` is set, the preset's model/provider/
+    generation params take precedence over the inline ``defaults`` fields.
     """
-    model = config.agents.defaults.model
+    preset = config.resolve_preset()
+    model = preset.model
+    # Provider resolution still goes through Config.get_provider_* which reads
+    # defaults.provider for the "auto" fallback heuristic. When the preset
+    # forces a non-auto provider, that wins via get_provider_name.
     provider_name = config.get_provider_name(model)
+    if preset.provider != "auto":
+        provider_name = preset.provider
     p = config.get_provider(model)
     spec = find_by_name(provider_name) if provider_name else None
     backend = spec.backend if spec else "openai_compat"
@@ -88,11 +97,10 @@ def make_provider(config: Config) -> LLMProvider:
             extra_body=p.extra_body if p else None,
         )
 
-    defaults = config.agents.defaults
     provider.generation = GenerationSettings(
-        temperature=defaults.temperature,
-        max_tokens=defaults.max_tokens,
-        reasoning_effort=defaults.reasoning_effort,
+        temperature=preset.temperature,
+        max_tokens=preset.max_tokens,
+        reasoning_effort=preset.reasoning_effort,
     )
     return provider
 
@@ -104,8 +112,8 @@ def provider_signature(config: Config) -> tuple[object, ...]:
     different provider — useful for hot-reload paths that want to skip
     rebuilding when nothing material changed.
     """
-    model = config.agents.defaults.model
-    defaults = config.agents.defaults
+    preset = config.resolve_preset()
+    model = preset.model
     p = config.get_provider(model)
     extra_body_sig = (
         json.dumps(p.extra_body, sort_keys=True) if p and p.extra_body else None
@@ -114,15 +122,16 @@ def provider_signature(config: Config) -> tuple[object, ...]:
         json.dumps(sorted(p.extra_headers.items())) if p and p.extra_headers else None
     )
     return (
+        config.agents.defaults.model_preset or "default",
         model,
-        defaults.provider,
+        preset.provider,
         config.get_provider_name(model),
         config.get_api_key(model),
         config.get_api_base(model),
-        defaults.max_tokens,
-        defaults.temperature,
-        defaults.reasoning_effort,
-        defaults.context_window_tokens,
+        preset.max_tokens,
+        preset.temperature,
+        preset.reasoning_effort,
+        preset.context_window_tokens,
         extra_body_sig,
         extra_headers_sig,
     )
@@ -130,10 +139,11 @@ def provider_signature(config: Config) -> tuple[object, ...]:
 
 def build_provider_snapshot(config: Config) -> ProviderSnapshot:
     """Build a snapshot capturing both the provider and the inputs that made it."""
+    preset = config.resolve_preset()
     return ProviderSnapshot(
         provider=make_provider(config),
-        model=config.agents.defaults.model,
-        context_window_tokens=config.agents.defaults.context_window_tokens,
+        model=preset.model,
+        context_window_tokens=preset.context_window_tokens,
         signature=provider_signature(config),
     )
 
