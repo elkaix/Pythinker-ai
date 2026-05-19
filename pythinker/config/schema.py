@@ -164,6 +164,7 @@ class ProvidersConfig(Base):
     ant_ling: ProviderConfig = Field(default_factory=ProviderConfig)  # Ant Ling
     aihubmix: ProviderConfig = Field(default_factory=ProviderConfig)  # AiHubMix API gateway
     huggingface: ProviderConfig = Field(default_factory=ProviderConfig)  # Hugging Face Inference Providers (HF_TOKEN, hf_...)
+    skywork: ProviderConfig = Field(default_factory=ProviderConfig)  # Skywork / APIFree gateway
     siliconflow: ProviderConfig = Field(default_factory=ProviderConfig)  # SiliconFlow
     volcengine: ProviderConfig = Field(default_factory=ProviderConfig)  # VolcEngine
     volcengine_coding_plan: ProviderConfig = Field(default_factory=ProviderConfig)  # VolcEngine Coding Plan
