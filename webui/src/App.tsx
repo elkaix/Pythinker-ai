@@ -24,6 +24,7 @@ type BootState =
       status: "ready";
       client: PythinkerClient;
       token: string;
+      tokenExpiresAt: number;
       modelName: string | null;
       voiceEnabled: boolean;
     };
@@ -34,6 +35,23 @@ const SIDEBAR_STORAGE_KEY = "pythinker-webui.sidebar";
 // thread. Mobile sheet keeps its own width below.
 const SIDEBAR_WIDTH = 288;
 const SIDEBAR_WIDTH_XL = 312;
+// Proactively refresh the bootstrap token a little before it expires
+// so a long-idle tab does not hit a 401 on its next outbound frame.
+const TOKEN_REFRESH_MARGIN_MS = 30_000;
+const TOKEN_REFRESH_MIN_DELAY_MS = 5_000;
+
+function bootstrapTokenExpiresAt(expiresInSeconds: number): number {
+  return Date.now() + Math.max(0, expiresInSeconds) * 1000;
+}
+
+function tokenRefreshDelayMs(expiresAt: number): number {
+  const remaining = Math.max(0, expiresAt - Date.now());
+  const margin = Math.min(
+    TOKEN_REFRESH_MARGIN_MS,
+    Math.max(1_000, remaining / 2),
+  );
+  return Math.max(TOKEN_REFRESH_MIN_DELAY_MS, remaining - margin);
+}
 
 function readSidebarOpen(): boolean {
   if (typeof window === "undefined") return true;
@@ -57,12 +75,25 @@ export default function App() {
         const boot = await fetchBootstrap();
         if (cancelled) return;
         const url = deriveWsUrl(boot.ws_path, boot.token);
-        const client = new PythinkerClient({
+        let client: PythinkerClient;
+        client = new PythinkerClient({
           url,
           onReauth: async () => {
             try {
               const refreshed = await fetchBootstrap();
-              return deriveWsUrl(refreshed.ws_path, refreshed.token);
+              const refreshedUrl = deriveWsUrl(refreshed.ws_path, refreshed.token);
+              const tokenExpiresAt = bootstrapTokenExpiresAt(refreshed.expires_in);
+              setState((current) =>
+                current.status === "ready" && current.client === client
+                  ? {
+                      ...current,
+                      token: refreshed.token,
+                      tokenExpiresAt,
+                      modelName: refreshed.model_name ?? current.modelName,
+                    }
+                  : current,
+              );
+              return refreshedUrl;
             } catch {
               return null;
             }
@@ -73,6 +104,7 @@ export default function App() {
           status: "ready",
           client,
           token: boot.token,
+          tokenExpiresAt: bootstrapTokenExpiresAt(boot.expires_in),
           modelName: boot.model_name ?? null,
           voiceEnabled: boot.voice_enabled ?? false,
         });
@@ -85,6 +117,35 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    const client = state.client;
+    const timer = window.setTimeout(async () => {
+      try {
+        const boot = await fetchBootstrap();
+        const url = deriveWsUrl(boot.ws_path, boot.token);
+        const tokenExpiresAt = bootstrapTokenExpiresAt(boot.expires_in);
+        client.updateUrl(url);
+        setState((current) =>
+          current.status === "ready" && current.client === client
+            ? {
+                ...current,
+                token: boot.token,
+                tokenExpiresAt,
+                modelName: boot.model_name ?? current.modelName,
+              }
+            : current,
+        );
+      } catch (e) {
+        const msg = (e as Error).message;
+        if (msg.includes("HTTP 401") || msg.includes("HTTP 403")) {
+          setState({ status: "error", message: msg });
+        }
+      }
+    }, tokenRefreshDelayMs(state.tokenExpiresAt));
+    return () => window.clearTimeout(timer);
+  }, [state]);
 
   if (state.status === "loading") {
     return (
