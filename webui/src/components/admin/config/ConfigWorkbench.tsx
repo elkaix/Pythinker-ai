@@ -203,10 +203,23 @@ export function ConfigWorkbench({ token, surfaces, onRefresh }: ConfigWorkbenchP
   const [backups, setBackups] = useState<AdminConfigBackup[]>([]);
   const [restoreBackup, setRestoreBackup] = useState<AdminConfigBackup | null>(null);
   const [unsetPath, setUnsetPath] = useState<string | null>(null);
-  const [restartRequired, setRestartRequired] = useState(false);
-  const [applying, setApplying] = useState(false);
   const configMeta = surfaces.config as AdminConfigPayload;
   const restartPaths = configMeta.restart_required_paths ?? [];
+  const secretHints = configMeta.secret_hints ?? {};
+  const initialPendingSections = configMeta.pending_restart_sections ?? [];
+  const [restartRequired, setRestartRequired] = useState<boolean>(
+    Boolean(configMeta.requires_restart),
+  );
+  const [pendingRestartSections, setPendingRestartSections] = useState<string[]>(
+    initialPendingSections,
+  );
+  const [restartCopied, setRestartCopied] = useState(false);
+  const [applying, setApplying] = useState(false);
+
+  useEffect(() => {
+    setRestartRequired(Boolean(configMeta.requires_restart));
+    setPendingRestartSections(configMeta.pending_restart_sections ?? []);
+  }, [configMeta.requires_restart, configMeta.pending_restart_sections]);
 
   useEffect(() => {
     let cancelled = false;
@@ -513,9 +526,44 @@ export function ConfigWorkbench({ token, surfaces, onRefresh }: ConfigWorkbenchP
               </div>
             ) : null}
             {restartRequired ? (
-              <div className="flex items-start gap-2 rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-600">
+              <div
+                className="flex items-start gap-2 rounded-xl border border-amber-400/40 bg-amber-500/10 p-3 text-sm text-amber-600"
+                data-testid="restart-banner"
+                role="status"
+              >
                 <AlertTriangle className="mt-0.5 h-4 w-4" />
-                <span>Saved changes require a gateway restart before they fully take effect.</span>
+                <div className="flex-1 space-y-1">
+                  <p>
+                    Saved changes require a gateway restart before they fully take effect.
+                    {pendingRestartSections.length > 0 ? (
+                      <>
+                        {" "}
+                        Edited:{" "}
+                        <span className="font-mono">
+                          {pendingRestartSections.filter((s) => s !== "*").join(", ") || "all"}
+                        </span>
+                        .
+                      </>
+                    ) : null}
+                  </p>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText("pythinker restart");
+                          setRestartCopied(true);
+                          window.setTimeout(() => setRestartCopied(false), 1500);
+                        } catch {
+                          setMessage("Run `pythinker restart` in your terminal.");
+                        }
+                      }}
+                    >
+                      {restartCopied ? "Copied" : "Copy restart command"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             ) : null}
             {mode === "guided" ? (
@@ -540,6 +588,7 @@ export function ConfigWorkbench({ token, surfaces, onRefresh }: ConfigWorkbenchP
                       envReferences={configMeta.env_references}
                       fieldDefaults={configMeta.field_defaults}
                       schemaNode={activeSchema}
+                      secretHints={secretHints}
                       secretPaths={secretPaths}
                       value={asRecord(effectiveConfig)[activeRoot]}
                     />

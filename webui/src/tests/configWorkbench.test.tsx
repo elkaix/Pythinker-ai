@@ -223,4 +223,54 @@ describe("ConfigWorkbench", () => {
     expect(screen.queryByText("placeholder-new-secret")).not.toBeInTheDocument();
     expect(client.replaceAdminSecret).toHaveBeenCalledWith("providers.openai.api_key", "placeholder-new-secret");
   });
+
+  it("renders a masked hint preview from secret_hints", async () => {
+    const hintedSurfaces = {
+      ...surfaces,
+      config: {
+        ...surfaces.config,
+        secret_paths: ["providers.openai.api_key"],
+        secret_hints: { "providers.openai.api_key": "sk-1••••cdef" },
+      },
+    };
+    render(
+      <ClientProvider client={client as unknown as PythinkerClient} token="admin-token">
+        <ConfigWorkbench token="admin-token" surfaces={hintedSurfaces as never} onRefresh={vi.fn()} />
+      </ClientProvider>,
+    );
+
+    await userEvent.click(await screen.findByRole("button", { name: /providers/i }));
+    const hint = await screen.findByTestId("secret-hint");
+    expect(hint.textContent).toBe("sk-1••••cdef");
+    expect(screen.queryByText(/secret value hidden/i)).not.toBeInTheDocument();
+  });
+
+  it("shows the restart banner when payload reports requires_restart", async () => {
+    const restartSurfaces = {
+      ...surfaces,
+      config: {
+        ...surfaces.config,
+        requires_restart: true,
+        pending_restart_sections: ["providers", "agents"],
+      },
+    };
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(
+      <ClientProvider client={client as unknown as PythinkerClient} token="admin-token">
+        <ConfigWorkbench token="admin-token" surfaces={restartSurfaces as never} onRefresh={vi.fn()} />
+      </ClientProvider>,
+    );
+
+    const banner = await screen.findByTestId("restart-banner");
+    expect(banner).toHaveTextContent(/saved changes require a gateway restart/i);
+    expect(banner).toHaveTextContent(/providers, agents/);
+
+    await userEvent.click(screen.getByRole("button", { name: /copy restart command/i }));
+    expect(writeText).toHaveBeenCalledWith("pythinker restart");
+  });
 });

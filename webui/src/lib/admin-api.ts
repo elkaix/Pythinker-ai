@@ -92,6 +92,9 @@ export interface AdminConfigPayload {
   env_references?: Record<string, { env_var: string; is_secret: boolean }>;
   field_defaults?: Record<string, unknown>;
   restart_required_paths: string[];
+  secret_hints?: Record<string, string>;
+  pending_restart_sections?: string[];
+  requires_restart?: boolean;
 }
 
 export type JsonSchemaNode = {

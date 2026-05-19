@@ -8,6 +8,11 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ### Added
 
+- WebUI Config Workbench now renders the masked preview hint that the admin endpoint returns for each
+  configured secret (e.g. `sk-1••••cdef`) instead of a static "Secret value hidden" label, and
+  the restart banner is now driven by the live `requires_restart` flag — it appears immediately when
+  pending sections exist (carried across reloads), lists which top-level sections changed, and offers a
+  "Copy restart command" button that puts `pythinker restart` on the clipboard.
 - `agents.defaults.fallbackModels` now drives a runtime failover chain: when the primary model
   returns a transient error (timeout, rate-limit, 5xx, overloaded) and nothing has been streamed
   yet, the runtime tries each fallback model in order. Entries can reference an existing
