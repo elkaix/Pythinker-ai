@@ -1766,6 +1766,20 @@ class WebSocketChannel(BaseChannel):
         if not conns:
             logger.warning("websocket: no active subscribers for chat_id={}", msg.chat_id)
             return
+        # File-edit activity is a typed event, not a chat row: surface the
+        # structured payload so the WebUI can render a progress chip without
+        # confusing it for an assistant message.
+        if msg.metadata.get("_file_activity"):
+            file_payload = msg.metadata.get("payload") or {}
+            body: dict[str, Any] = {
+                "event": "file_activity",
+                "chat_id": msg.chat_id,
+                "activity": file_payload,
+            }
+            raw = json.dumps(body, ensure_ascii=False)
+            for connection in conns:
+                await self._safe_send_to(connection, raw, label=" file ")
+            return
         payload: dict[str, Any] = {
             "event": "message",
             "chat_id": msg.chat_id,

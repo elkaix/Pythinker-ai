@@ -15,6 +15,14 @@ from pythinker.agent.budget import BudgetPolicy
 from pythinker.agent.hook import AgentHook, AgentHookContext
 from pythinker.agent.tools.registry import ToolRegistry
 from pythinker.providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from pythinker.utils.file_edit_events import (
+    FileEditTracker,
+    build_file_edit_end_event,
+    build_file_edit_error_event,
+    build_file_edit_start_event,
+    is_file_edit_tool,
+    prepare_file_edit_tracker,
+)
 from pythinker.utils.helpers import (
     build_assistant_message,
     estimate_message_tokens,
@@ -104,6 +112,10 @@ class AgentRunSpec:
     retry_wait_callback: Any | None = None
     checkpoint_callback: Any | None = None
     injection_callback: Any | None = None
+    # Awaitable invoked with each ``dict`` produced by
+    # ``pythinker.utils.file_edit_events`` when a filesystem tool starts,
+    # completes, or fails. None disables emission.
+    file_activity_callback: Any | None = None
     llm_timeout_s: float | None = None
     # Governed-execution wiring. When `egress` is set, _run_tool uses
     # `egress.execute(request_context, name, params)` instead of
@@ -901,6 +913,46 @@ class AgentRunner:
                 "detail": prep_error.split(": ", 1)[-1][:120],
             }
             return prep_error + hint, event, RuntimeError(prep_error) if spec.fail_on_tool_error else None
+
+        tracker: FileEditTracker | None = None
+        if spec.file_activity_callback is not None and is_file_edit_tool(tool_call.name):
+            resolver_tool = tool
+            if resolver_tool is None and hasattr(spec.tools, "get"):
+                try:
+                    resolver_tool = spec.tools.get(tool_call.name)
+                except Exception:
+                    resolver_tool = None
+            tracker = prepare_file_edit_tracker(
+                call_id=tool_call.id,
+                tool_name=tool_call.name,
+                tool=resolver_tool,
+                workspace=spec.workspace,
+                params=params if isinstance(params, dict) else tool_call.arguments,
+            )
+            if tracker is not None:
+                try:
+                    await spec.file_activity_callback(build_file_edit_start_event(tracker))
+                except Exception:
+                    logger.debug("file_activity_callback start failed", exc_info=True)
+
+        async def _emit_end() -> None:
+            if tracker is None or spec.file_activity_callback is None:
+                return
+            try:
+                await spec.file_activity_callback(build_file_edit_end_event(tracker))
+            except Exception:
+                logger.debug("file_activity_callback end failed", exc_info=True)
+
+        async def _emit_error(error: str | None) -> None:
+            if tracker is None or spec.file_activity_callback is None:
+                return
+            try:
+                await spec.file_activity_callback(
+                    build_file_edit_error_event(tracker, error)
+                )
+            except Exception:
+                logger.debug("file_activity_callback error failed", exc_info=True)
+
         try:
             if spec.egress is not None and spec.request_context is not None:
                 # Egress is the single chokepoint. Pass raw args; ToolRegistry.execute()
@@ -921,6 +973,7 @@ class AgentRunner:
                 "status": "error",
                 "detail": str(exc),
             }
+            await _emit_error(str(exc))
             if spec.fail_on_tool_error:
                 return f"Error: {type(exc).__name__}: {exc}", event, exc
             return f"Error: {type(exc).__name__}: {exc}", event, None
@@ -931,6 +984,7 @@ class AgentRunner:
                 "status": "error",
                 "detail": result.replace("\n", " ").strip()[:120],
             }
+            await _emit_error(result)
             if spec.fail_on_tool_error:
                 return result + hint, event, RuntimeError(result)
             return result + hint, event, None
@@ -941,6 +995,7 @@ class AgentRunner:
             detail = "(empty)"
         elif len(detail) > 120:
             detail = detail[:120] + "..."
+        await _emit_end()
         return result, {"name": tool_call.name, "status": "ok", "detail": detail}, None
 
     async def _emit_checkpoint(

@@ -748,6 +748,7 @@ class AgentLoop:
         on_stream_end: Callable[..., Awaitable[None]] | None = None,
         on_tool_event: Callable[[ToolEvent], Awaitable[None]] | None = None,
         on_retry_wait: Callable[[str], Awaitable[None]] | None = None,
+        on_file_activity: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
         *,
         session: Session | None = None,
         channel: str = "cli",
@@ -894,6 +895,7 @@ class AgentLoop:
             retry_wait_callback=on_retry_wait,
             checkpoint_callback=_checkpoint,
             injection_callback=_drain_pending,
+            file_activity_callback=on_file_activity,
             egress=self.egress if ctx_for_run is not None else None,
             request_context=ctx_for_run,
         ))
@@ -1380,6 +1382,19 @@ class AgentLoop:
                 )
             )
 
+        async def _bus_file_activity(payload: dict[str, Any]) -> None:
+            meta = dict(msg.metadata or {})
+            meta["_file_activity"] = True
+            meta["payload"] = payload
+            await self.bus.publish_outbound(
+                OutboundMessage(
+                    channel=msg.channel,
+                    chat_id=msg.chat_id,
+                    content="",
+                    metadata=meta,
+                )
+            )
+
         # Persist the triggering user message up front so a mid-turn crash
         # doesn't silently lose the prompt on recovery. ``media`` rides along
         # as raw on-disk paths — sanitized image blocks are stripped from
@@ -1394,6 +1409,7 @@ class AgentLoop:
             on_stream_end=on_stream_end,
             on_tool_event=on_tool_event,
             on_retry_wait=_on_retry_wait,
+            on_file_activity=_bus_file_activity,
             session=session,
             channel=msg.channel,
             chat_id=msg.chat_id,
