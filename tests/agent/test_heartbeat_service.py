@@ -287,3 +287,66 @@ async def test_decide_prompt_includes_current_time(tmp_path) -> None:
     assert user_msg["role"] == "user"
     assert "Current Time:" in user_msg["content"]
 
+
+
+async def test_heartbeat_resolves_runtime_per_call(tmp_path):
+    """llm_runtime resolver is called on each decide so swapped providers take effect."""
+    from pythinker.utils.llm_runtime import LLMRuntime
+
+    call_count = 0
+    providers_seen: list[str] = []
+
+    class PA(LLMProvider):
+        async def chat(self, *, messages=None, **kwargs) -> LLMResponse:
+            providers_seen.append("A")
+            return LLMResponse(
+                content="",
+                tool_calls=[
+                    ToolCallRequest(id="x", name="heartbeat", arguments={"action": "skip"})
+                ],
+            )
+
+        def get_default_model(self) -> str:
+            return "model-a"
+
+    class PB(LLMProvider):
+        async def chat(self, *, messages=None, **kwargs) -> LLMResponse:
+            providers_seen.append("B")
+            return LLMResponse(
+                content="",
+                tool_calls=[
+                    ToolCallRequest(id="x", name="heartbeat", arguments={"action": "skip"})
+                ],
+            )
+
+        def get_default_model(self) -> str:
+            return "model-b"
+
+    runtimes = [
+        LLMRuntime(provider=PA(), model="model-a"),
+        LLMRuntime(provider=PB(), model="model-b"),
+    ]
+
+    def resolver():
+        nonlocal call_count
+        rt = runtimes[min(call_count, len(runtimes) - 1)]
+        call_count += 1
+        return rt
+
+    service = HeartbeatService(
+        workspace=tmp_path,
+        llm_runtime=resolver,
+    )
+
+    await service._decide("first")
+    await service._decide("second")
+
+    assert providers_seen == ["A", "B"]
+
+
+async def test_heartbeat_requires_provider_or_runtime(tmp_path):
+    """Constructor must reject the case where neither resolver nor provider+model is given."""
+    import pytest
+
+    with pytest.raises(ValueError):
+        HeartbeatService(workspace=tmp_path)
