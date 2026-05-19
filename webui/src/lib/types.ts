@@ -203,7 +203,22 @@ export type InboundEvent =
       request_id?: string;
       detail?: string;
     }
+  | {
+      event: "provider_failover";
+      chat_id?: string;
+      info: ProviderFailoverInfo;
+    }
   | { event: "error"; chat_id?: string; detail?: string; request_id?: string };
+
+/** One-shot notice emitted by ``FallbackProvider`` when a primary model
+ * failed mid-turn and a fallback took over. Surfaced as a dismissible
+ * toast in the WebUI. */
+export interface ProviderFailoverInfo {
+  version: 1;
+  primary: string;
+  fallback: string;
+  reason: string;
+}
 
 export type WebUISidebarDensity = "comfortable" | "compact";
 export type WebUISidebarSort = "updated_desc" | "created_desc" | "title_asc";

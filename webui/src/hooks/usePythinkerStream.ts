@@ -43,6 +43,23 @@ export interface SendImage {
   preview: UIImage;
 }
 
+/** One-shot failover-toast row: the agent silently swapped the primary model
+ * for a fallback. ``key`` dedupes within a turn (same ``primary -> fallback``
+ * pair only surfaces once). */
+export interface FailoverNotice {
+  id: string;
+  primary: string;
+  fallback: string;
+  reason: string;
+  receivedAt: number;
+}
+
+/** Turn-scoped dedupe window: a primary->fallback pair only generates one
+ * toast per turn, but a fresh turn re-enables the same pair if it failovers
+ * again. The hook clears the set on user ``send`` / ``regenerate`` /
+ * ``editMessage``. */
+const FAILOVER_DEDUPE_WINDOW_MS = 60_000;
+
 export function usePythinkerStream(
   chatId: string | null,
   initialMessages: UIMessage[] = [],
@@ -63,11 +80,21 @@ export function usePythinkerStream(
   /** Clear the current ``streamError`` (e.g. after the user dismisses the
    * notification or starts a fresh action). */
   dismissStreamError: () => void;
+  /** Open ``provider_failover`` notices for the current chat, deduped per
+   * turn so a single failover yields exactly one visible toast. */
+  failoverNotices: FailoverNotice[];
+  /** Drop a notice once the user dismisses it. */
+  dismissFailoverNotice: (id: string) => void;
 } {
   const { client } = useClient();
   const [messages, setMessages] = useState<UIMessage[]>(initialMessages);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState<StreamError | null>(null);
+  const [failoverNotices, setFailoverNotices] = useState<FailoverNotice[]>([]);
+  /** Per-turn dedupe of ``primary->fallback`` keys: cleared whenever the
+   * user starts a new turn (send/regenerate/edit). Within the same turn,
+   * repeated failover events from the same swap collapse to one toast. */
+  const failoverSeen = useRef<Map<string, number>>(new Map());
   const buffer = useRef<StreamBuffer | null>(null);
   const latency = useRef<LatencyTracker | null>(null);
   // rAF coalescer: bursty WS frames (5-10 small deltas in the same frame) used
@@ -328,6 +355,26 @@ export function usePythinkerStream(
         });
         return;
       }
+      if (ev.event === "provider_failover") {
+        const info = ev.info;
+        if (!info || !info.primary || !info.fallback) return;
+        const key = `${info.primary}->${info.fallback}`;
+        const now = Date.now();
+        const lastSeen = failoverSeen.current.get(key);
+        if (lastSeen && now - lastSeen < FAILOVER_DEDUPE_WINDOW_MS) return;
+        failoverSeen.current.set(key, now);
+        setFailoverNotices((prev) => [
+          ...prev,
+          {
+            id: crypto.randomUUID(),
+            primary: info.primary,
+            fallback: info.fallback,
+            reason: info.reason,
+            receivedAt: now,
+          },
+        ]);
+        return;
+      }
       if (ev.event === "error") {
         // Server rejected the request — clear the typing-dots placeholder so
         // the user isn't stuck staring at it. The dedicated error UI is driven
@@ -395,11 +442,18 @@ export function usePythinkerStream(
       buffer.current = { messageId: placeholderId, parts: [] };
       setIsStreaming(true);
       startLatency(placeholderId);
+      // Fresh user turn re-enables the failover dedupe set so the same
+      // primary->fallback swap can surface again on the next attempt.
+      failoverSeen.current.clear();
       const wireMedia = hasImages ? images!.map((i) => i.media) : undefined;
       client.sendMessage(chatId, content, wireMedia);
     },
     [chatId, client, startLatency],
   );
+
+  const dismissFailoverNotice = useCallback((id: string) => {
+    setFailoverNotices((prev) => prev.filter((n) => n.id !== id));
+  }, []);
 
   const stop = useCallback(() => {
     if (!chatId) return;
@@ -459,6 +513,7 @@ export function usePythinkerStream(
     buffer.current = { messageId: placeholderId, parts: [] };
     setIsStreaming(true);
     startLatency(placeholderId);
+    failoverSeen.current.clear();
     client.regenerate(chatId);
   }, [chatId, client, startLatency, cancelFlush]);
 
@@ -502,6 +557,7 @@ export function usePythinkerStream(
       buffer.current = { messageId: placeholderId, parts: [] };
       setIsStreaming(true);
       startLatency(placeholderId);
+      failoverSeen.current.clear();
       client.editAndResend(chatId, userMsgIndex, newContent);
     },
     [chatId, client, messages, startLatency, cancelFlush],
@@ -517,5 +573,7 @@ export function usePythinkerStream(
     setMessages,
     streamError,
     dismissStreamError,
+    failoverNotices,
+    dismissFailoverNotice,
   };
 }

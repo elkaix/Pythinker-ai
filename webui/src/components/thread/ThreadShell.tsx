@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { InChatSearch } from "@/components/InChatSearch";
 import { ThreadSearchProvider } from "@/components/ThreadSearchProvider";
+import { ProviderFailoverToasts } from "@/components/thread/ProviderFailoverToasts";
 import { ThreadComposer } from "@/components/thread/ThreadComposer";
 import { ThreadHeader } from "@/components/thread/ThreadHeader";
 import { StreamErrorNotice } from "@/components/thread/StreamErrorNotice";
@@ -90,6 +91,8 @@ export function ThreadShell({
     setMessages,
     streamError,
     dismissStreamError,
+    failoverNotices,
+    dismissFailoverNotice,
   } = usePythinkerStream(chatId, initial);
   const isStreaming = isStreamingOverride ?? liveIsStreaming;
   const onStop = onStopOverride ?? liveStop;
@@ -238,6 +241,10 @@ export function ThreadShell({
                   onDismiss={dismissStreamError}
                 />
               ) : null}
+              <ProviderFailoverToasts
+                notices={failoverNotices}
+                onDismiss={dismissFailoverNotice}
+              />
               {session ? (
                 <ThreadComposer
                   onSend={send}

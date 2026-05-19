@@ -157,6 +157,7 @@ class AdminService:
                 "provider": self.config.get_provider_name(),
                 "model": getattr(self.agent_loop, "model", self.config.agents.defaults.model),
                 "configured_model": self.config.agents.defaults.model,
+                "fallback_chain": self._fallback_chain(),
             },
             "channels": [
                 {"name": name, "enabled": True}
@@ -164,6 +165,24 @@ class AdminService:
             ],
             "local_admin": True,
         }
+
+    def _fallback_chain(self) -> list[str]:
+        """Resolved fallback model names from the active provider.
+
+        Returns an empty list when no fallbacks are configured or the active
+        provider isn't a :class:`FallbackProvider`; the WebUI renders nothing
+        in that case rather than a misleading "primary only" row.
+        """
+        provider = getattr(self.agent_loop, "provider", None)
+        presets = getattr(provider, "_fallback_presets", None)
+        if not presets:
+            return []
+        chain: list[str] = []
+        for preset in presets:
+            model = getattr(preset, "model", None)
+            if isinstance(model, str) and model:
+                chain.append(model)
+        return chain
 
     def _websocket_config(self) -> dict[str, Any]:
         section = getattr(self.config.channels, "websocket", None)

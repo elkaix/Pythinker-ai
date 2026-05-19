@@ -13,6 +13,12 @@ All notable user-visible changes to Pythinker land here. The project follows
   the restart banner is now driven by the live `requires_restart` flag — it appears immediately when
   pending sections exist (carried across reloads), lists which top-level sections changed, and offers a
   "Copy restart command" button that puts `pythinker restart` on the clipboard.
+- The admin overview now lists the resolved fallback chain (e.g. `anthropic/claude → openai/gpt-mini`)
+  next to the active provider, and a dismissible amber toast surfaces above the thread composer whenever
+  the runtime transparently fails over to a backup model. The toast is deduped per turn so a single swap
+  surfaces once even when the WebUI replays multiple delivery attempts; starting a new turn re-enables
+  notices for the same pair. Backend-wise, `FallbackProvider` now emits a `provider_failover` bus event
+  through a contextvar-bound callback that the agent loop installs around `_run_agent_loop`.
 - The WebUI sidebar now consumes the `webui_sidebar_state.get` / `.set` envelopes that the gateway has
   shipped since 21c331ce: a new "View options" dropdown next to the sidebar's theme toggle lets the
   admin switch the chat-list density between Comfortable and Compact and toggle "Show archived". The

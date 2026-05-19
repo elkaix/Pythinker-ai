@@ -37,6 +37,9 @@ export interface AdminOverview {
     provider: string;
     model: string;
     configured_model: string;
+    /** Resolved fallback model names (in order) when ``FallbackProvider`` is
+     * active. Empty when no fallbacks are configured. */
+    fallback_chain?: string[];
   };
   channels: Array<{ name: string; enabled: boolean }>;
   local_admin: boolean;

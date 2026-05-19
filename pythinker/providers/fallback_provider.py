@@ -4,11 +4,32 @@ from __future__ import annotations
 
 import time
 from collections.abc import Awaitable, Callable
+from contextvars import ContextVar
 from typing import Any
 
 from loguru import logger
 
 from pythinker.providers.base import LLMProvider, LLMResponse
+
+FailoverCallback = Callable[[dict[str, Any]], Awaitable[None]]
+_FAILOVER_CALLBACK: ContextVar[FailoverCallback | None] = ContextVar(
+    "_fallback_provider_failover_callback", default=None
+)
+
+
+def set_failover_callback(callback: FailoverCallback | None) -> object:
+    """Bind *callback* for the current async context; pass the returned token
+    to :func:`reset_failover_callback` to restore the previous binding.
+
+    The agent loop calls this once per turn so :class:`FallbackProvider` can
+    emit a ``provider_failover`` bus event without being coupled to the
+    channel layer.
+    """
+    return _FAILOVER_CALLBACK.set(callback)
+
+
+def reset_failover_callback(token: object) -> None:
+    _FAILOVER_CALLBACK.reset(token)  # type: ignore[arg-type]
 
 # Circuit breaker tuned to match OpenAICompatProvider's Responses API breaker.
 _PRIMARY_FAILURE_THRESHOLD = 3
@@ -145,6 +166,7 @@ class FallbackProvider(LLMProvider):
         has_streamed: list[bool] | None,
     ) -> LLMResponse:
         primary_model = kwargs.get("model") or self._primary.get_default_model()
+        primary_response: LLMResponse | None = None
 
         if self._primary_available():
             response = await call(self._primary, args, kwargs)
@@ -152,6 +174,7 @@ class FallbackProvider(LLMProvider):
                 self._primary_failures = 0
                 self._primary_tripped_at = None
                 return response
+            primary_response = response
 
             if has_streamed is not None and has_streamed[0]:
                 logger.warning(
@@ -231,6 +254,7 @@ class FallbackProvider(LLMProvider):
                     "Fallback '{}' succeeded after primary '{}' failed",
                     fallback_model, primary_model,
                 )
+                await self._emit_failover(primary_model, fallback_model, primary_response)
                 return fallback_response
 
             last_response = fallback_response
@@ -250,6 +274,29 @@ class FallbackProvider(LLMProvider):
             content=f"Primary model '{primary_model}' circuit open and no fallbacks available",
             finish_reason="error",
         )
+
+    async def _emit_failover(
+        self,
+        primary_model: str,
+        fallback_model: str,
+        primary_response: LLMResponse | None,
+    ) -> None:
+        callback = _FAILOVER_CALLBACK.get()
+        if callback is None:
+            return
+        reason = ""
+        if primary_response is not None:
+            reason = (primary_response.error_kind or "").lower()
+        payload: dict[str, Any] = {
+            "version": 1,
+            "primary": primary_model,
+            "fallback": fallback_model,
+            "reason": reason,
+        }
+        try:
+            await callback(payload)
+        except Exception as exc:  # noqa: BLE001 — never let the emitter break failover
+            logger.warning("provider_failover emitter raised: {}", exc)
 
     @staticmethod
     def _should_fallback(response: LLMResponse) -> bool:
