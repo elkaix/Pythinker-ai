@@ -68,6 +68,38 @@ def _run_doctor() -> tuple[int, str]:
 # ---------------------------------------------------------------------------
 
 
+def test_check_webui_dist_freshness_warns_when_marker_missing(tmp_path, monkeypatch):
+    """Wheel built before the hash guard landed lacks source-hash.txt."""
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<html></html>", encoding="utf-8")
+
+    monkeypatch.setattr(doctor_module.resources, "files", lambda _pkg: tmp_path)
+    r = doctor_module._check_webui_dist_freshness()
+    assert r.status == "warn"
+    assert "source-hash.txt" in r.detail
+    assert "bun run build" in r.fix
+
+
+def test_check_webui_dist_freshness_warns_when_dist_absent(tmp_path, monkeypatch):
+    monkeypatch.setattr(doctor_module.resources, "files", lambda _pkg: tmp_path)
+    r = doctor_module._check_webui_dist_freshness()
+    assert r.status == "warn"
+    assert "no bundled WebUI" in r.detail
+
+
+def test_check_webui_dist_freshness_ok_when_marker_present(tmp_path, monkeypatch):
+    dist = tmp_path / "dist"
+    dist.mkdir()
+    (dist / "index.html").write_text("<html></html>", encoding="utf-8")
+    (dist / "source-hash.txt").write_text("a" * 64 + "\n", encoding="utf-8")
+
+    monkeypatch.setattr(doctor_module.resources, "files", lambda _pkg: tmp_path)
+    r = doctor_module._check_webui_dist_freshness()
+    assert r.status == "ok"
+    assert "source-hash" in r.detail
+
+
 def test_check_python_version_ok_on_current_interpreter():
     r = doctor_module._check_python_version()
     assert r.status == "ok"
