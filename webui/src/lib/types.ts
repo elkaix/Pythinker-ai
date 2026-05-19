@@ -193,7 +193,42 @@ export type InboundEvent =
       request_id?: string;
       result: AdminBrowserProbeResult;
     }
+  | {
+      event: "webui_sidebar_state";
+      request_id?: string;
+      state: WebUISidebarState;
+    }
+  | {
+      event: "webui_sidebar_state_error";
+      request_id?: string;
+      detail?: string;
+    }
   | { event: "error"; chat_id?: string; detail?: string; request_id?: string };
+
+export type WebUISidebarDensity = "comfortable" | "compact";
+export type WebUISidebarSort = "updated_desc" | "created_desc" | "title_asc";
+
+/** Schema-v1 of the WebUI sidebar state delivered by the
+ * ``webui_sidebar_state.get`` / ``.set`` envelopes (see
+ * ``pythinker/webui/sidebar_state.py``). Pin/archive state lives in
+ * per-session sidecars and is intentionally *not* consumed from this
+ * payload here — sidecars remain the source of truth for those flags. */
+export interface WebUISidebarState {
+  schema_version: 1;
+  pinned_keys: string[];
+  archived_keys: string[];
+  title_overrides: Record<string, string>;
+  tags_by_key: Record<string, string[]>;
+  collapsed_groups: Record<string, boolean>;
+  view: {
+    density: WebUISidebarDensity;
+    show_previews: boolean;
+    show_timestamps: boolean;
+    show_archived: boolean;
+    sort: WebUISidebarSort;
+  };
+  updated_at: string | null;
+}
 
 /** Base64-encoded image attached to an outbound ``message`` envelope.
  *
@@ -268,4 +303,13 @@ export type Outbound =
       audio_base64: string;
       format: string;
       request_id: string;
+    }
+  | {
+      type: "webui_sidebar_state.get";
+      request_id: string;
+    }
+  | {
+      type: "webui_sidebar_state.set";
+      request_id: string;
+      state: WebUISidebarState;
     };

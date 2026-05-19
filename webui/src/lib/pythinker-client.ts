@@ -8,6 +8,7 @@ import type {
   InboundEvent,
   Outbound,
   OutboundMedia,
+  WebUISidebarState,
 } from "./types";
 
 /** WebSocket readyState constants, referenced by value to stay portable
@@ -342,6 +343,23 @@ export class PythinkerClient {
     );
   }
 
+  getSidebarState(timeoutMs: number = 5_000): Promise<WebUISidebarState> {
+    return this.sendAdminRequest<WebUISidebarState>(
+      { type: "webui_sidebar_state.get" },
+      timeoutMs,
+    );
+  }
+
+  setSidebarState(
+    state: WebUISidebarState,
+    timeoutMs: number = 5_000,
+  ): Promise<WebUISidebarState> {
+    return this.sendAdminRequest<WebUISidebarState>(
+      { type: "webui_sidebar_state.set", state },
+      timeoutMs,
+    );
+  }
+
   // -- internals ---------------------------------------------------------
 
   private requestId(): string {
@@ -370,7 +388,9 @@ export class PythinkerClient {
       | { type: "admin_test_bind"; host: string; port: number }
       | { type: "admin_test_channel"; name: string }
       | { type: "admin_mcp_probe"; server: string }
-      | { type: "admin_browser_probe" },
+      | { type: "admin_browser_probe" }
+      | { type: "webui_sidebar_state.get" }
+      | { type: "webui_sidebar_state.set"; state: WebUISidebarState },
     timeoutMs: number,
   ): Promise<T> {
     const requestId = this.requestId();
@@ -445,7 +465,9 @@ export class PythinkerClient {
       parsed.event === "admin_test_bind_result" ||
       parsed.event === "admin_test_channel_result" ||
       parsed.event === "admin_mcp_probe_result" ||
-      parsed.event === "admin_browser_probe_result"
+      parsed.event === "admin_browser_probe_result" ||
+      parsed.event === "webui_sidebar_state" ||
+      parsed.event === "webui_sidebar_state_error"
     ) {
       this.dispatchAdminConfig(parsed);
       return;
@@ -477,7 +499,9 @@ export class PythinkerClient {
       ev.event !== "admin_test_bind_result" &&
       ev.event !== "admin_test_channel_result" &&
       ev.event !== "admin_mcp_probe_result" &&
-      ev.event !== "admin_browser_probe_result"
+      ev.event !== "admin_browser_probe_result" &&
+      ev.event !== "webui_sidebar_state" &&
+      ev.event !== "webui_sidebar_state_error"
     ) {
       return;
     }
@@ -491,11 +515,19 @@ export class PythinkerClient {
       pending.reject(new Error(ev.detail ?? "admin config request failed"));
       return;
     }
+    if (ev.event === "webui_sidebar_state_error") {
+      pending.reject(new Error(ev.detail ?? "sidebar state request failed"));
+      return;
+    }
     if (ev.event === "admin_config_saved") {
       pending.resolve({
         path: ev.path,
         restartRequired: !!ev.restart_required,
       });
+      return;
+    }
+    if (ev.event === "webui_sidebar_state") {
+      pending.resolve(ev.state);
       return;
     }
     pending.resolve(ev.result);

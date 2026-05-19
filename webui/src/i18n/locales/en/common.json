@@ -34,6 +34,12 @@
     "archived": "Archived",
     "showArchived": "Show archived",
     "hideArchived": "Hide archived",
+    "viewOptions": "View options",
+    "density": {
+      "label": "Density",
+      "comfortable": "Comfortable",
+      "compact": "Compact"
+    },
     "refreshSessions": "Refresh sessions",
     "language": {
       "label": "Language",

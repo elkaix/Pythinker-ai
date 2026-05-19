@@ -13,6 +13,13 @@ All notable user-visible changes to Pythinker land here. The project follows
   the restart banner is now driven by the live `requires_restart` flag — it appears immediately when
   pending sections exist (carried across reloads), lists which top-level sections changed, and offers a
   "Copy restart command" button that puts `pythinker restart` on the clipboard.
+- The WebUI sidebar now consumes the `webui_sidebar_state.get` / `.set` envelopes that the gateway has
+  shipped since 21c331ce: a new "View options" dropdown next to the sidebar's theme toggle lets the
+  admin switch the chat-list density between Comfortable and Compact and toggle "Show archived". The
+  Pinned / Recent / Archived collapse state is now persisted too, so a reload restores exactly what
+  was on screen. Writes are debounced to 500 ms; non-admin connections fall back to in-memory state so
+  the UI keeps working but warns nothing has been persisted. Pin / archive themselves continue to live
+  in per-session sidecars — the new typed state stores view preferences only.
 - `agents.defaults.fallbackModels` now drives a runtime failover chain: when the primary model
   returns a transient error (timeout, rate-limit, 5xx, overloaded) and nothing has been streamed
   yet, the runtime tries each fallback model in order. Entries can reference an existing
