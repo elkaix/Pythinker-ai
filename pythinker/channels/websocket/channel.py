@@ -1386,7 +1386,76 @@ class WebSocketChannel(BaseChannel):
         if t == "transcribe":
             await self._handle_transcribe_envelope(connection, envelope)
             return
+        if t in {"webui_sidebar_state.get", "webui_sidebar_state.set"}:
+            await self._handle_sidebar_state_envelope(connection, envelope)
+            return
         await self._send_event(connection, "error", detail=f"unknown type: {t!r}")
+
+    async def _handle_sidebar_state_envelope(
+        self,
+        connection: Any,
+        envelope: dict[str, Any],
+    ) -> None:
+        """Read or write the WebUI-only sidebar state JSON.
+
+        WebUI-only metadata (pinned/archived overrides, view preferences) lives
+        outside agent sessions. Both envelopes are gated to localhost-only
+        connections via the WebUI bootstrap admin path; non-admin clients get
+        the read-only default state and writes are refused.
+        """
+        from pythinker.webui.sidebar_state import (
+            default_webui_sidebar_state,
+            read_webui_sidebar_state,
+            write_webui_sidebar_state,
+        )
+
+        t = envelope.get("type")
+        request_id = envelope.get("request_id")
+
+        async def _error(detail: str) -> None:
+            await self._send_event(
+                connection,
+                "webui_sidebar_state_error",
+                request_id=request_id,
+                detail=detail,
+            )
+
+        if t == "webui_sidebar_state.get":
+            try:
+                state = read_webui_sidebar_state()
+            except Exception as exc:  # noqa: BLE001
+                await _error(str(exc))
+                return
+            await self._send_event(
+                connection,
+                "webui_sidebar_state",
+                request_id=request_id,
+                state=state,
+            )
+            return
+
+        # ``webui_sidebar_state.set`` requires the admin connection because it
+        # writes to the instance data directory.
+        if connection not in self._admin_connections:
+            await _error("admin token required")
+            return
+        payload = envelope.get("state")
+        if not isinstance(payload, dict):
+            payload = default_webui_sidebar_state()
+        try:
+            state = write_webui_sidebar_state(payload)
+        except ValueError as exc:
+            await _error(str(exc))
+            return
+        except OSError as exc:
+            await _error(f"persist failed: {exc}")
+            return
+        await self._send_event(
+            connection,
+            "webui_sidebar_state",
+            request_id=request_id,
+            state=state,
+        )
 
     async def _handle_admin_config_envelope(
         self,
