@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import weakref
+from datetime import datetime
 from typing import TYPE_CHECKING, Any, Callable
 
 from loguru import logger
@@ -254,11 +255,19 @@ class Consolidator:
         The budget reserves space for completion tokens and a safety buffer
         so the LLM request never exceeds the context window.
         """
-        if not session.messages or self.context_window_tokens <= 0:
+        if self.context_window_tokens <= 0:
             return
 
         lock = self.get_lock(session.key)
         async with lock:
+            # Refresh session reference: AutoCompact.compact_idle_session may
+            # have replaced messages on disk while this call was waiting on
+            # the lock. Re-read so we don't archive a stale tail.
+            fresh = self.sessions.get_or_create(session.key)
+            if fresh is not session:
+                session = fresh
+            if not session.messages:
+                return
             policy = self.policy
             budget = policy.soft
             target = policy.target
@@ -354,3 +363,75 @@ class Consolidator:
                     "last_active": session.updated_at.isoformat(),
                 }
                 self.sessions.save(session)
+
+    async def compact_idle_session(
+        self,
+        session_key: str,
+        max_suffix: int = 8,
+    ) -> str | None:
+        """Hard-truncate an idle session under the consolidation lock.
+
+        Single lock-protected path used by AutoCompact so background token
+        consolidation and idle TTL compaction can't race on the same session.
+
+        Returns the summary text on success, ``None`` if the LLM failed
+        (``archive()`` fell back to raw_archive), or ``""`` if there was
+        nothing to archive.
+        """
+        from pythinker.session.manager import Session
+
+        lock = self.get_lock(session_key)
+        async with lock:
+            self.sessions.invalidate(session_key)
+            session = self.sessions.get_or_create(session_key)
+
+            tail = list(session.messages[session.last_consolidated:])
+            if not tail:
+                session.updated_at = datetime.now()
+                self.sessions.save(session)
+                return ""
+
+            probe = Session(
+                key=session.key,
+                messages=tail.copy(),
+                created_at=session.created_at,
+                updated_at=session.updated_at,
+                metadata={},
+                last_consolidated=0,
+            )
+            probe.retain_recent_legal_suffix(max_suffix)
+            kept = probe.messages
+            cut = len(tail) - len(kept)
+            archive_msgs = tail[:cut]
+
+            if not archive_msgs and not kept:
+                session.updated_at = datetime.now()
+                self.sessions.save(session)
+                return ""
+
+            last_active = session.updated_at
+            summary: str | None = ""
+            if archive_msgs:
+                summary = await self.archive(archive_msgs)
+
+            if summary and summary != "(nothing)":
+                session.metadata["_last_summary"] = {
+                    "text": summary,
+                    "last_active": last_active.isoformat(),
+                }
+
+            session.messages = kept
+            session.last_consolidated = 0
+            session.updated_at = datetime.now()
+            self.sessions.save(session)
+
+            if archive_msgs:
+                logger.info(
+                    "Idle-session compact for {}: archived={}, kept={}, summary={}",
+                    session_key,
+                    len(archive_msgs),
+                    len(kept),
+                    bool(summary),
+                )
+
+            return summary

@@ -1,5 +1,6 @@
 """Tests for the lightweight Consolidator — append-only to HISTORY.md."""
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -156,6 +157,9 @@ class TestConsolidatorTokenBudget:
             }
             for i in range(70)
         ]
+        # New session-refresh guard re-reads via get_or_create; return the same
+        # session so the test continues to operate on the in-test MagicMock.
+        consolidator.sessions.get_or_create = MagicMock(return_value=session)
         consolidator.estimate_session_prompt_tokens = MagicMock(
             side_effect=[(1200, "tiktoken"), (400, "tiktoken")]
         )
@@ -183,6 +187,7 @@ class TestConsolidatorTokenBudget:
             }
             for i in range(70)
         ]
+        consolidator.sessions.get_or_create = MagicMock(return_value=session)
         consolidator.estimate_session_prompt_tokens = MagicMock(return_value=(1200, "tiktoken"))
         consolidator.pick_consolidation_boundary = MagicMock(return_value=(61, 999))
         consolidator.archive = AsyncMock(return_value=True)
@@ -246,3 +251,162 @@ def test_probe_includes_current_message():
 
     assert calls[0] == "[token-probe]"
     assert calls[1] == big
+
+
+# ---------------------------------------------------------------------------
+# compact_idle_session — lock-protected idle truncation path used by AutoCompact
+# ---------------------------------------------------------------------------
+
+
+class TestCompactIdleSession:
+    @pytest.fixture
+    def real_session_consolidator(self, tmp_path, mock_provider):
+        """Consolidator backed by a real SessionManager so compact_idle_session
+        round-trips through invalidate/get_or_create/save."""
+        from pythinker.agent.memory.consolidator import Consolidator
+        from pythinker.agent.memory.store import MemoryStore
+        from pythinker.session.manager import SessionManager
+
+        sessions = SessionManager(tmp_path / "sessions")
+        return Consolidator(
+            store=MemoryStore(tmp_path / "memory"),
+            provider=mock_provider,
+            model="test-model",
+            sessions=sessions,
+            context_window_tokens=5100,
+            build_messages=MagicMock(return_value=[]),
+            get_tool_definitions=MagicMock(return_value=[]),
+            max_completion_tokens=100,
+        ), sessions
+
+    async def test_compact_archives_prefix_keeps_suffix(self, real_session_consolidator, mock_provider):
+        """compact_idle_session archives old messages and retains a recent suffix."""
+        c, sessions = real_session_consolidator
+        session = sessions.get_or_create("test:idle")
+        session.messages = [
+            {"role": "user" if i % 2 == 0 else "assistant", "content": f"m{i}"}
+            for i in range(20)
+        ]
+        sessions.save(session)
+        mock_provider.chat_with_retry.return_value = MagicMock(
+            content="summary text", finish_reason="stop",
+        )
+
+        summary = await c.compact_idle_session("test:idle", max_suffix=4)
+
+        assert summary == "summary text"
+        refreshed = sessions.get_or_create("test:idle")
+        assert len(refreshed.messages) <= 20
+        assert refreshed.last_consolidated == 0
+        # Summary persisted in metadata for prepare_session() pickup
+        assert refreshed.metadata.get("_last_summary", {}).get("text") == "summary text"
+
+    async def test_compact_empty_session_just_touches_timestamp(self, real_session_consolidator):
+        """No tail to archive: bump updated_at and return ''."""
+        c, sessions = real_session_consolidator
+        session = sessions.get_or_create("test:empty")
+        sessions.save(session)
+
+        summary = await c.compact_idle_session("test:empty")
+        assert summary == ""
+
+    async def test_compact_skips_nothing_summary(self, real_session_consolidator, mock_provider):
+        """Archive returning '(nothing)' should not persist a summary marker."""
+        c, sessions = real_session_consolidator
+        session = sessions.get_or_create("test:nothing")
+        session.messages = [
+            {"role": "user", "content": "a"},
+            {"role": "assistant", "content": "b"},
+            {"role": "user", "content": "c"},
+            {"role": "assistant", "content": "d"},
+            {"role": "user", "content": "e"},
+            {"role": "assistant", "content": "f"},
+        ]
+        sessions.save(session)
+        mock_provider.chat_with_retry.return_value = MagicMock(
+            content="(nothing)", finish_reason="stop",
+        )
+
+        summary = await c.compact_idle_session("test:nothing", max_suffix=2)
+        assert summary == "(nothing)"
+        refreshed = sessions.get_or_create("test:nothing")
+        assert "_last_summary" not in refreshed.metadata
+
+    async def test_compact_llm_failure_returns_none(self, real_session_consolidator, mock_provider):
+        """LLM error path: archive() returns None, compact returns None too."""
+        c, sessions = real_session_consolidator
+        session = sessions.get_or_create("test:fail")
+        session.messages = [
+            {"role": "user", "content": f"m{i}"} for i in range(6)
+        ]
+        sessions.save(session)
+        mock_provider.chat_with_retry.side_effect = Exception("LLM down")
+
+        summary = await c.compact_idle_session("test:fail", max_suffix=2)
+        assert summary is None  # archive falls back to raw_archive
+
+    async def test_compact_uses_session_lock(self, real_session_consolidator):
+        """compact_idle_session must acquire Consolidator.get_lock(key)."""
+        c, sessions = real_session_consolidator
+        session = sessions.get_or_create("test:lock")
+        sessions.save(session)
+
+        lock = c.get_lock("test:lock")
+        await lock.acquire()
+        try:
+            done = asyncio.Event()
+
+            async def compact_call():
+                await c.compact_idle_session("test:lock")
+                done.set()
+
+            task = asyncio.create_task(compact_call())
+            await asyncio.sleep(0.01)
+            assert not done.is_set(), "compact should block on the per-session lock"
+        finally:
+            lock.release()
+        await asyncio.wait_for(task, timeout=1.0)
+
+
+class TestMaybeConsolidateRefreshGuard:
+    async def test_refresh_swaps_session_when_replaced(self, consolidator):
+        """If sessions.get_or_create returns a different session, swap in the fresh one."""
+        stale = MagicMock()
+        stale.key = "test:race"
+        stale.last_consolidated = 0
+        stale.messages = [{"role": "user", "content": "old"}]
+
+        fresh = MagicMock()
+        fresh.key = "test:race"
+        fresh.last_consolidated = 0
+        fresh.messages = [{"role": "user", "content": "new"}]
+
+        consolidator.sessions.get_or_create = MagicMock(return_value=fresh)
+        consolidator.estimate_session_prompt_tokens = MagicMock(return_value=(100, "tiktoken"))
+        consolidator.archive = AsyncMock(return_value="ok")
+
+        await consolidator.maybe_consolidate_by_tokens(stale)
+
+        # Refresh swap returned early on the fresh session (under budget),
+        # so archive must not have been called against either reference.
+        consolidator.archive.assert_not_awaited()
+        consolidator.sessions.get_or_create.assert_called_once_with("test:race")
+
+    async def test_empty_guard_skips_after_refresh(self, consolidator):
+        """If the refreshed session has no messages, return without archiving."""
+        stale = MagicMock()
+        stale.key = "test:empty"
+        stale.last_consolidated = 0
+        stale.messages = [{"role": "user", "content": "stale"}]
+
+        fresh = MagicMock()
+        fresh.key = "test:empty"
+        fresh.messages = []  # truthiness check should short-circuit
+
+        consolidator.sessions.get_or_create = MagicMock(return_value=fresh)
+        consolidator.estimate_session_prompt_tokens = MagicMock(return_value=(999_999, "tiktoken"))
+        consolidator.archive = AsyncMock(return_value="ok")
+
+        await consolidator.maybe_consolidate_by_tokens(stale)
+
+        consolidator.archive.assert_not_awaited()

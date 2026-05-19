@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Collection
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Callable, Coroutine
+from typing import TYPE_CHECKING, Callable, Coroutine
 
 from loguru import logger
 
@@ -30,6 +30,9 @@ class AutoCompact:
         self.sessions = sessions
         self.consolidator = consolidator
         self._ttl = session_ttl_minutes
+        # Retained for backward compat with existing call sites; the
+        # consolidator now owns the per-session lock via compact_idle_session,
+        # so this provider is unused. Drop the parameter in a future cleanup.
         self._lock_provider = lock_provider
         self._archiving: set[str] = set()
         self._summaries: dict[str, tuple[str, datetime]] = {}
@@ -47,27 +50,6 @@ class AutoCompact:
         idle_min = int((datetime.now() - last_active).total_seconds() / 60)
         return f"Inactive for {idle_min} minutes.\nPrevious conversation summary: {text}"
 
-    def _split_unconsolidated(
-        self, session: Session,
-    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-        """Split live session tail into archiveable prefix and retained recent suffix."""
-        tail = list(session.messages[session.last_consolidated:])
-        if not tail:
-            return [], []
-
-        probe = Session(
-            key=session.key,
-            messages=tail.copy(),
-            created_at=session.created_at,
-            updated_at=session.updated_at,
-            metadata={},
-            last_consolidated=0,
-        )
-        probe.retain_recent_legal_suffix(self._RECENT_SUFFIX_MESSAGES)
-        kept = probe.messages
-        cut = len(tail) - len(kept)
-        return tail[:cut], kept
-
     def check_expired(self, schedule_background: Callable[[Coroutine], None],
                       active_session_keys: Collection[str] = ()) -> None:
         """Schedule archival for idle sessions, skipping those with in-flight agent tasks."""
@@ -83,41 +65,24 @@ class AutoCompact:
                 schedule_background(self._archive(key))
 
     async def _archive(self, key: str) -> None:
-        if self._lock_provider is not None:
-            async with self._lock_provider(key):
-                await self._archive_inner(key)
-            return
-        await self._archive_inner(key)
+        """Delegate to Consolidator.compact_idle_session under its per-session lock.
 
-    async def _archive_inner(self, key: str) -> None:
+        Mirroring the consolidator's lock-protected truncation path eliminates
+        the race between background token consolidation and idle TTL compaction
+        that the old direct-mutation implementation had.
+        """
         try:
-            self.sessions.invalidate(key)
-            session = self.sessions.get_or_create(key)
-            archive_msgs, kept_msgs = self._split_unconsolidated(session)
-            if not archive_msgs and not kept_msgs:
-                session.updated_at = datetime.now()
-                self.sessions.save(session)
-                return
-
-            last_active = session.updated_at
-            summary = ""
-            if archive_msgs:
-                summary = await self.consolidator.archive(archive_msgs) or ""
+            summary = await self.consolidator.compact_idle_session(
+                key, self._RECENT_SUFFIX_MESSAGES,
+            )
             if summary and summary != "(nothing)":
-                self._summaries[key] = (summary, last_active)
-                session.metadata["_last_summary"] = {"text": summary, "last_active": last_active.isoformat()}
-            session.messages = kept_msgs
-            session.last_consolidated = 0
-            session.updated_at = datetime.now()
-            self.sessions.save(session)
-            if archive_msgs:
-                logger.info(
-                    "Auto-compact: archived {} (archived={}, kept={}, summary={})",
-                    key,
-                    len(archive_msgs),
-                    len(kept_msgs),
-                    bool(summary),
-                )
+                session = self.sessions.get_or_create(key)
+                meta = session.metadata.get("_last_summary")
+                if isinstance(meta, dict):
+                    self._summaries[key] = (
+                        meta["text"],
+                        datetime.fromisoformat(meta["last_active"]),
+                    )
         except Exception:
             logger.exception("Auto-compact: failed for {}", key)
         finally:
