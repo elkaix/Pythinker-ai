@@ -39,13 +39,11 @@ def make_provider(config: Config) -> LLMProvider:
     """
     preset = config.resolve_preset()
     model = preset.model
-    # Provider resolution still goes through Config.get_provider_* which reads
-    # defaults.provider for the "auto" fallback heuristic. When the preset
-    # forces a non-auto provider, that wins via get_provider_name.
-    provider_name = config.get_provider_name(model)
-    if preset.provider != "auto":
-        provider_name = preset.provider
-    p = config.get_provider(model)
+    # Thread the preset through provider lookup so a preset that forces a
+    # non-default provider gets that provider's credentials/api_base — not the
+    # model-name heuristic's pick.
+    provider_name = config.get_provider_name(model, preset=preset)
+    p = config.get_provider(model, preset=preset)
     spec = find_by_name(provider_name) if provider_name else None
     backend = spec.backend if spec else "openai_compat"
 
@@ -81,7 +79,7 @@ def make_provider(config: Config) -> LLMProvider:
 
         provider = AnthropicProvider(
             api_key=p.api_key if p else None,
-            api_base=config.get_api_base(model),
+            api_base=config.get_api_base(model, preset=preset),
             default_model=model,
             extra_headers=p.extra_headers if p else None,
         )
@@ -90,7 +88,7 @@ def make_provider(config: Config) -> LLMProvider:
 
         provider = OpenAICompatProvider(
             api_key=p.api_key if p else None,
-            api_base=config.get_api_base(model),
+            api_base=config.get_api_base(model, preset=preset),
             default_model=model,
             extra_headers=p.extra_headers if p else None,
             spec=spec,
@@ -114,7 +112,7 @@ def provider_signature(config: Config) -> tuple[object, ...]:
     """
     preset = config.resolve_preset()
     model = preset.model
-    p = config.get_provider(model)
+    p = config.get_provider(model, preset=preset)
     extra_body_sig = (
         json.dumps(p.extra_body, sort_keys=True) if p and p.extra_body else None
     )
@@ -125,9 +123,9 @@ def provider_signature(config: Config) -> tuple[object, ...]:
         config.agents.defaults.model_preset or "default",
         model,
         preset.provider,
-        config.get_provider_name(model),
-        config.get_api_key(model),
-        config.get_api_base(model),
+        config.get_provider_name(model, preset=preset),
+        config.get_api_key(model, preset=preset),
+        config.get_api_base(model, preset=preset),
         preset.max_tokens,
         preset.temperature,
         preset.reasoning_effort,

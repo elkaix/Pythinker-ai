@@ -78,6 +78,40 @@ def test_make_provider_skips_key_check_for_oauth_providers():
     assert provider is not None
 
 
+def test_preset_forced_provider_uses_forced_credentials():
+    """A preset that pins ``provider:`` must source credentials from that provider.
+
+    Regression: previously, ``factory.make_provider`` looked up the spec by the
+    preset's forced provider but fetched the ``ProviderConfig`` (api_key /
+    api_base / extra_headers) via the model-name heuristic, so the resulting
+    provider was instantiated with the wrong credentials.
+    """
+    from pythinker.config.schema import ModelPresetConfig
+
+    cfg = Config()
+    # Inline defaults look like an openrouter-routed model so the heuristic
+    # would prefer openrouter credentials.
+    cfg.agents.defaults.model = "openrouter/openai/gpt-4o"
+    cfg.providers.openrouter.api_key = "sk-or-wrong"
+    cfg.providers.openai.api_key = "sk-openai-right"
+
+    # Preset forces the call onto plain openai despite the openrouter-shaped model.
+    cfg.model_presets["pinned"] = ModelPresetConfig(
+        model="openrouter/openai/gpt-4o",
+        provider="openai",
+    )
+    cfg.agents.defaults.model_preset = "pinned"
+
+    with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI") as mock_oai:
+        make_provider(cfg)
+
+    api_key = mock_oai.call_args.kwargs["api_key"]
+    assert api_key == "sk-openai-right", (
+        "preset.provider='openai' must pin credentials to providers.openai, "
+        f"not the model heuristic. Got {api_key!r}."
+    )
+
+
 def test_provider_signature_changes_when_model_changes():
     base = _config("openai/gpt-4.1", openai={"apiKey": "sk"})
     other = _config("openai/gpt-4o", openai={"apiKey": "sk"})
