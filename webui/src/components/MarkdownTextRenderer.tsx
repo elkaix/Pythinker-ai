@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Streamdown } from "streamdown";
 import rehypeKatex from "rehype-katex";
+import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 
@@ -139,7 +140,7 @@ export default function MarkdownTextRenderer({
               }
         }
         isAnimating={isStreaming === true && !query && !reducedMotion}
-        remarkPlugins={[remarkGfm, remarkMath]}
+        remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
         rehypePlugins={[rehypeKatex]}
         components={{
           code({ className: cls, children: kids, node: _node, ...props }) {
