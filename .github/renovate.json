@@ -1,0 +1,82 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", ":maintainLockFilesWeekly"],
+  "timezone": "Etc/UTC",
+  "schedule": ["before 06:00 on monday"],
+  "labels": ["deps"],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 8,
+  "rangeStrategy": "bump",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 06:00 on monday"]
+  },
+  "ignorePaths": [
+    "**/node_modules/**",
+    "bridge/node_modules/**",
+    "webui/node_modules/**",
+    "tests/snapshots/**"
+  ],
+  "ignoreDeps": [
+    "torch",
+    "torchvision",
+    "torchaudio",
+    "triton"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": ["pep621", "pip_requirements", "pip_setup"],
+      "addLabels": ["python"],
+      "groupName": "python dependencies (patch+minor)",
+      "matchUpdateTypes": ["patch", "minor"]
+    },
+    {
+      "matchManagers": ["pep621", "pip_requirements", "pip_setup"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "python major bumps",
+      "addLabels": ["python", "major"],
+      "automerge": false
+    },
+    {
+      "matchFileNames": ["webui/**"],
+      "addLabels": ["frontend"],
+      "groupName": "webui dependencies (patch+minor)",
+      "matchUpdateTypes": ["patch", "minor"]
+    },
+    {
+      "matchFileNames": ["webui/**"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "webui major bumps",
+      "addLabels": ["frontend", "major"],
+      "automerge": false
+    },
+    {
+      "matchFileNames": ["bridge/**"],
+      "addLabels": ["bridge"],
+      "groupName": "bridge dependencies"
+    },
+    {
+      "matchManagers": ["github-actions"],
+      "addLabels": ["ci"],
+      "groupName": "github actions",
+      "pinDigests": true
+    },
+    {
+      "matchPackageNames": ["ruff", "pytest", "pytest-asyncio", "basedpyright"],
+      "groupName": "lint and test toolchain",
+      "addLabels": ["python", "tooling"]
+    },
+    {
+      "matchUpdateTypes": ["patch"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true,
+      "automergeType": "branch",
+      "platformAutomerge": true
+    }
+  ],
+  "vulnerabilityAlerts": {
+    "enabled": true,
+    "labels": ["security", "deps"]
+  },
+  "osvVulnerabilityAlerts": true
+}
