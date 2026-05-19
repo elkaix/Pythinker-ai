@@ -426,6 +426,17 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         # currently a model landing page, used as a best-effort placeholder.
         signup_url="https://mimo.xiaomi.com/",
     ),
+    # Ant Ling: OpenAI-compatible API for the Ling / Ring model families.
+    ProviderSpec(
+        name="ant_ling",
+        keywords=("ant_ling", "ant-ling", "ling-", "ring-"),
+        env_key="ANT_LING_API_KEY",
+        display_name="Ant Ling",
+        backend="openai_compat",
+        detect_by_base_keyword="ant-ling.com",
+        default_api_base="https://api.ant-ling.com/v1",
+        signup_url="https://developer.ant-ling.com/en/docs/api-reference/openai/",
+    ),
     # === Local deployment (matched by config key, NOT by api_base) =========
     # vLLM / any OpenAI-compatible local server
     ProviderSpec(

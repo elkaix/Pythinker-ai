@@ -161,6 +161,7 @@ class ProvidersConfig(Base):
     mistral: ProviderConfig = Field(default_factory=ProviderConfig)
     stepfun: ProviderConfig = Field(default_factory=ProviderConfig)  # Step Fun
     xiaomi_mimo: ProviderConfig = Field(default_factory=ProviderConfig)  # Xiaomi MIMO
+    ant_ling: ProviderConfig = Field(default_factory=ProviderConfig)  # Ant Ling
     aihubmix: ProviderConfig = Field(default_factory=ProviderConfig)  # AiHubMix API gateway
     huggingface: ProviderConfig = Field(default_factory=ProviderConfig)  # Hugging Face Inference Providers (HF_TOKEN, hf_...)
     siliconflow: ProviderConfig = Field(default_factory=ProviderConfig)  # SiliconFlow

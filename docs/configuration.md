@@ -152,6 +152,7 @@ The Workbench also includes operational checks for local administrators:
 | `lm_studio` | LLM (local, LM Studio) | — |
 | `mistral` | LLM | [docs.mistral.ai](https://docs.mistral.ai/) |
 | `stepfun` | LLM (Step Fun) | [platform.stepfun.com](https://platform.stepfun.com) |
+| `ant_ling` | LLM (Ant Ling) | [developer.ant-ling.com](https://developer.ant-ling.com/en/docs/api-reference/openai/) |
 | `ovms` | LLM (local, OpenVINO Model Server) | [docs.openvino.ai](https://docs.openvino.ai/2026/model-server/ovms_docs_llm_quickstart.html) |
 | `vllm` | LLM (local, any OpenAI-compatible server) | — |
 | `openai_codex` | LLM (Codex, OAuth) | `pythinker provider login openai-codex` |
