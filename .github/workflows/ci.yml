@@ -73,3 +73,11 @@ jobs:
 
     - name: Verify webui dist freshness
       run: python scripts/webui_hash.py --check
+
+    - name: Build wheel
+      run: |
+        python -m pip install build
+        python -m build --wheel
+
+    - name: Verify wheel contains WebUI bundle
+      run: python scripts/check_wheel_webui.py

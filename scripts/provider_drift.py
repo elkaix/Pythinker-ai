@@ -18,6 +18,7 @@ import argparse
 import json
 import os
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -57,7 +58,7 @@ def fetch_anthropic() -> list[str] | None:
     return sorted({item["id"] for item in r.json().get("data", [])})
 
 
-PROVIDERS: dict[str, Any] = {
+PROVIDERS: dict[str, Callable[[], list[str] | None]] = {
     "openai": fetch_openai,
     "anthropic": fetch_anthropic,
 }
@@ -99,14 +100,17 @@ def main() -> int:
 
     selected = [args.provider] if args.provider else list(PROVIDERS)
     overall_drift = False
-    summary: dict[str, dict[str, list[str]]] = {}
+    overall_error = False
+    summary: dict[str, dict[str, Any]] = {}
 
     for provider in selected:
         fetcher = PROVIDERS[provider]
         try:
             current = fetcher()
         except httpx.HTTPError as exc:
-            print(f"{provider}: fetch failed ({exc!r}) — skipping", file=sys.stderr)
+            print(f"{provider}: fetch failed ({exc!r})", file=sys.stderr)
+            summary[provider] = {"added": [], "removed": [], "error": repr(exc)}
+            overall_error = True
             continue
         if current is None:
             print(f"{provider}: no credential in env — skipping", file=sys.stderr)
@@ -137,6 +141,8 @@ def main() -> int:
 
     # Emit machine-readable summary to stdout for the workflow to consume.
     print(json.dumps(summary, indent=2))
+    if overall_error:
+        return 1
     if args.check and overall_drift:
         return 1
     return 0

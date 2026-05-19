@@ -160,6 +160,35 @@ The Workbench also includes operational checks for local administrators:
 | `github_copilot` | LLM (GitHub Copilot, OAuth) | `pythinker provider login github-copilot` |
 | `qianfan` | LLM (Baidu Qianfan) | [cloud.baidu.com](https://cloud.baidu.com/doc/qianfan/s/Hmh4suq26) |
 
+<details>
+<summary><b>Skywork / APIFree</b></summary>
+
+Skywork uses the OpenAI-compatible APIFree API endpoint. Configure the provider once,
+then use Skywork model IDs such as `skywork-ai/skyclaw-v1`.
+
+```json
+{
+  "providers": {
+    "skywork": {
+      "apiKey": "${SKYWORK_API_KEY}",
+      "apiBase": "https://api.apifree.ai/v1"
+    }
+  },
+  "agents": {
+    "defaults": {
+      "provider": "skywork",
+      "model": "skywork-ai/skyclaw-v1",
+      "maxTokens": 32768,
+      "contextWindowTokens": 131072
+    }
+  }
+}
+```
+
+You can also reference `${APIFREE_API_KEY}` in `apiKey` if that is how your
+environment names the credential.
+
+</details>
 
 <details>
 <summary><b>OpenAI Codex (OAuth)</b></summary>
