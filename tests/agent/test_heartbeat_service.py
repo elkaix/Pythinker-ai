@@ -215,6 +215,74 @@ async def test_tick_suppresses_when_evaluator_says_no(tmp_path, monkeypatch) -> 
     assert notified == []
 
 
+def test_is_deliverable_unit_filters_finalization_fallback_and_leaks() -> None:
+    """``_is_deliverable`` drops canned finalization messages and leaked reasoning."""
+    deliverable = HeartbeatService._is_deliverable
+
+    assert deliverable("deployment failed on staging") is True
+    assert deliverable("everything looks fine") is True
+
+    # Runner finalization fallback (case-insensitive).
+    assert deliverable("I couldn't produce a final answer after retries.") is False
+
+    # Leaked-reasoning patterns.
+    for leak in (
+        "Looked at HEARTBEAT.md and decided",
+        "Judgment call: this is borderline",
+        "My instructions say to skip",
+        "Strict heartbeat interpretation suggests no",
+        "I am supposed to summarize.",
+        "Valid options are run or skip.",
+    ):
+        assert deliverable(leak) is False, leak
+
+
+@pytest.mark.asyncio
+async def test_tick_suppresses_non_deliverable_response(tmp_path, monkeypatch) -> None:
+    """Pre-evaluator filter drops leaked-reasoning output without calling evaluator/notify."""
+    (tmp_path / "HEARTBEAT.md").write_text("- [ ] check deployments", encoding="utf-8")
+
+    provider = DummyProvider([
+        LLMResponse(
+            content="",
+            tool_calls=[
+                ToolCallRequest(
+                    id="hb_1",
+                    name="heartbeat",
+                    arguments={"action": "run", "tasks": "check deployments"},
+                )
+            ],
+        ),
+    ])
+
+    notified: list[str] = []
+    evaluator_called: list[bool] = []
+
+    async def _on_execute(tasks: str) -> str:
+        return "I looked at HEARTBEAT.md and decided to skip this turn."
+
+    async def _on_notify(response: str) -> None:
+        notified.append(response)
+
+    service = HeartbeatService(
+        workspace=tmp_path,
+        provider=provider,
+        model="openai/gpt-4o-mini",
+        on_execute=_on_execute,
+        on_notify=_on_notify,
+    )
+
+    async def _evaluator(*a, **kw):
+        evaluator_called.append(True)
+        return True
+
+    monkeypatch.setattr("pythinker.utils.evaluator.evaluate_response", _evaluator)
+
+    await service._tick()
+    assert notified == []
+    assert evaluator_called == [], "deliverability guard must run before the evaluator"
+
+
 @pytest.mark.asyncio
 async def test_decide_retries_transient_error_then_succeeds(tmp_path, monkeypatch) -> None:
     provider = DummyProvider([
