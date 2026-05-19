@@ -67,6 +67,9 @@ class Pythinker:
             load_provider_snapshot,
             provider_signature,
         )
+        from pythinker.providers.image_generation import (
+            image_gen_provider_configs as _image_gen_provider_configs,
+        )
 
         snapshot = build_provider_snapshot(config)
         bus = MessageBus()
@@ -109,6 +112,7 @@ class Pythinker:
             disabled_skills=defaults.disabled_skills,
             session_ttl_minutes=defaults.session_ttl_minutes,
             tools_config=config.tools,
+            image_gen_provider_configs=_image_gen_provider_configs(config),
             provider_snapshot_loader=snapshot_loader,
             provider_signature=provider_signature(config),
             browser_config_loader=browser_config_loader,
