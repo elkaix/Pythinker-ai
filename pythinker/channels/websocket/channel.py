@@ -1476,8 +1476,8 @@ class WebSocketChannel(BaseChannel):
         """
         from pathlib import Path
 
-        MAX_FILE_READ_BYTES = 1_048_576  # 1 MiB
-        BINARY_PROBE_BYTES = 8192
+        max_bytes = 1_048_576  # 1 MiB
+        probe_bytes = 8192
 
         request_id = envelope.get("request_id")
 
@@ -1519,7 +1519,7 @@ class WebSocketChannel(BaseChannel):
         try:
             size = absolute.stat().st_size
             with open(absolute, "rb") as handle:
-                head = handle.read(min(size, BINARY_PROBE_BYTES))
+                head = handle.read(min(size, probe_bytes))
                 binary = b"\x00" in head
                 if binary:
                     await self._send_event(
@@ -1533,12 +1533,12 @@ class WebSocketChannel(BaseChannel):
                         content="",
                     )
                     return
-                content_bytes = head + handle.read(MAX_FILE_READ_BYTES - len(head))
+                content_bytes = head + handle.read(max_bytes - len(head))
         except OSError as exc:
             await _error(f"read failed: {exc}")
             return
 
-        truncated = size > MAX_FILE_READ_BYTES
+        truncated = size > max_bytes
         try:
             content = content_bytes.decode("utf-8")
         except UnicodeDecodeError:
