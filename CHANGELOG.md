@@ -6,6 +6,17 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+### Added
+
+- `agents.defaults.fallbackModels` now drives a runtime failover chain: when the primary model
+  returns a transient error (timeout, rate-limit, 5xx, overloaded) and nothing has been streamed
+  yet, the runtime tries each fallback model in order. Entries can reference an existing
+  `modelPresets` entry by name or inline a `{ model, provider, ... }` object that inherits
+  generation params from the primary preset. The primary is circuit-broken after 3 consecutive
+  failures (60 s cooldown) to stop wasting requests on a known-bad endpoint. Authentication,
+  permission, content-filter, context-length, and 4xx-invalid-request errors do not trigger
+  failover.
+
 ### Fixed
 
 - WhatsApp media downloads now pass Baileys' media reupload callback, retry transient fetch
