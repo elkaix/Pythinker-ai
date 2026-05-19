@@ -5,7 +5,8 @@ import { useTranslation } from "react-i18next";
 import { ChatRow } from "@/components/ChatRow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cleanChatTitle } from "@/lib/chatTitle";
-import type { ChatSummary } from "@/lib/types";
+import { cn } from "@/lib/utils";
+import type { ChatSummary, WebUISidebarDensity } from "@/lib/types";
 
 export interface ChatSection {
   id: string;
@@ -23,6 +24,11 @@ interface ChatListProps {
   sessions?: ChatSummary[];
   activeKey: string | null;
   loading?: boolean;
+  density?: WebUISidebarDensity;
+  /** When supplied, section collapse state is controlled by the parent
+   * (persisted to ``webui_sidebar_state.collapsed_groups``) rather than
+   * the per-Section local ``useState``. */
+  onToggleCollapse?: (sectionId: string, collapsed: boolean) => void;
   onSelect: (key: string) => void;
   onRequestDelete: (key: string, label: string) => void;
   onTogglePin?: (key: string) => void;
@@ -56,6 +62,8 @@ export function ChatList({
   sessions,
   activeKey,
   loading,
+  density = "comfortable",
+  onToggleCollapse,
   onSelect,
   onRequestDelete,
   onTogglePin,
@@ -88,8 +96,10 @@ export function ChatList({
             <Section
               key={sec.id}
               section={sec}
+              density={density}
               fallbackTitle={t("chat.fallbackTitle")}
               activeKey={activeKey}
+              onToggleCollapse={onToggleCollapse}
               onSelect={onSelect}
               onRequestDelete={onRequestDelete}
               onTogglePin={onTogglePin}
@@ -104,24 +114,38 @@ export function ChatList({
 
 function Section({
   section,
+  density,
   fallbackTitle,
   activeKey,
+  onToggleCollapse,
   onSelect,
   onRequestDelete,
   onTogglePin,
   onToggleArchive,
 }: {
   section: ChatSection;
+  density: WebUISidebarDensity;
   fallbackTitle: string;
   activeKey: string | null;
+  onToggleCollapse?: (sectionId: string, collapsed: boolean) => void;
   onSelect: (key: string) => void;
   onRequestDelete: (key: string, label: string) => void;
   onTogglePin?: (key: string) => void;
   onToggleArchive?: (key: string) => void;
 }) {
-  const [open, setOpen] = useState(section.defaultOpen ?? true);
+  const [localOpen, setLocalOpen] = useState(section.defaultOpen ?? true);
+  const controlled = onToggleCollapse !== undefined;
+  const open = controlled ? (section.defaultOpen ?? true) : localOpen;
   const showItems = !section.collapsible || open;
   const hasLabel = section.label.length > 0;
+  const toggle = () => {
+    if (controlled) {
+      onToggleCollapse?.(section.id, open);
+    } else {
+      setLocalOpen((v) => !v);
+    }
+  };
+  const itemSpacing = density === "compact" ? "space-y-0" : "space-y-0.5";
 
   return (
     <div>
@@ -130,7 +154,7 @@ function Section({
           {section.collapsible ? (
             <button
               type="button"
-              onClick={() => setOpen((v) => !v)}
+              onClick={toggle}
               className="inline-flex items-center gap-1 hover:text-foreground"
               aria-expanded={open}
             >
@@ -147,7 +171,7 @@ function Section({
         </div>
       ) : null}
       {showItems ? (
-        <ul className="space-y-0.5 px-2 py-1">
+        <ul className={cn(itemSpacing, "px-2 py-1")}>
           {section.items.map((s) => (
             <li key={s.key}>
               <ChatRow

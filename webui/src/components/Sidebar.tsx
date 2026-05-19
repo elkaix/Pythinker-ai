@@ -15,6 +15,7 @@ import {
   RefreshCcw,
   ScrollText,
   Settings,
+  Settings2,
   Sparkles,
   Sun,
   Zap,
@@ -27,7 +28,18 @@ import { ConnectionBadge } from "@/components/ConnectionBadge";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { SidebarSearch } from "@/components/SidebarSearch";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Separator } from "@/components/ui/separator";
+import { useSidebarState } from "@/hooks/useSidebarState";
 import {
   togglePinSession,
   toggleArchiveSession,
@@ -112,6 +124,11 @@ export function Sidebar(props: SidebarProps) {
     [onToggleArchiveProp, onRefresh, token],
   );
 
+  const { state: sidebarState, update: updateSidebarState } = useSidebarState();
+  const showArchived = sidebarState.view.show_archived;
+  const density = sidebarState.view.density;
+  const collapsedGroups = sidebarState.collapsed_groups;
+
   const { pinned, recent, archived } = useMemo(() => {
     const p: ChatSummary[] = [];
     const r: ChatSummary[] = [];
@@ -124,19 +141,40 @@ export function Sidebar(props: SidebarProps) {
     return { pinned: p, recent: r, archived: a };
   }, [props.sessions]);
 
-  const sections: ChatSection[] = useMemo(
-    () => [
-      { id: "pinned", label: t("sidebar.pinned"), items: pinned },
-      { id: "recent", label: t("sidebar.recent"), items: recent },
+  const sections: ChatSection[] = useMemo(() => {
+    const base: ChatSection[] = [
       {
+        id: "pinned",
+        label: t("sidebar.pinned"),
+        items: pinned,
+        collapsible: true,
+        defaultOpen: collapsedGroups.pinned !== true,
+      },
+      {
+        id: "recent",
+        label: t("sidebar.recent"),
+        items: recent,
+        collapsible: true,
+        defaultOpen: collapsedGroups.recent !== true,
+      },
+    ];
+    if (showArchived) {
+      base.push({
         id: "archived",
         label: t("sidebar.archived"),
         items: archived,
         collapsible: true,
-        defaultOpen: false,
-      },
-    ],
-    [pinned, recent, archived, t],
+        defaultOpen: collapsedGroups.archived === false,
+      });
+    }
+    return base;
+  }, [pinned, recent, archived, showArchived, collapsedGroups, t]);
+
+  const onToggleCollapse = useCallback(
+    (id: string, collapsed: boolean) => {
+      updateSidebarState({ collapsed_groups: { [id]: collapsed } });
+    },
+    [updateSidebarState],
   );
 
   return (
@@ -168,6 +206,46 @@ export function Sidebar(props: SidebarProps) {
         >
           <PanelLeftClose className="h-3.5 w-3.5" />
         </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label={t("sidebar.viewOptions")}
+              className="menu-green-hover h-11 w-11 rounded-lg text-muted-foreground sm:h-7 sm:w-7"
+            >
+              <Settings2 className="h-3.5 w-3.5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-52">
+            <DropdownMenuLabel>{t("sidebar.viewOptions")}</DropdownMenuLabel>
+            <DropdownMenuCheckboxItem
+              checked={showArchived}
+              onCheckedChange={(checked) =>
+                updateSidebarState({ view: { show_archived: Boolean(checked) } })
+              }
+            >
+              {t("sidebar.showArchived")}
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{t("sidebar.density.label")}</DropdownMenuLabel>
+            <DropdownMenuRadioGroup
+              value={density}
+              onValueChange={(value) =>
+                updateSidebarState({
+                  view: { density: value === "compact" ? "compact" : "comfortable" },
+                })
+              }
+            >
+              <DropdownMenuRadioItem value="comfortable">
+                {t("sidebar.density.comfortable")}
+              </DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="compact">
+                {t("sidebar.density.compact")}
+              </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button
           variant="ghost"
           size="icon"
@@ -323,6 +401,8 @@ export function Sidebar(props: SidebarProps) {
             sections={sections}
             activeKey={props.activeKey}
             loading={props.loading}
+            density={density}
+            onToggleCollapse={onToggleCollapse}
             onSelect={props.onSelect}
             onRequestDelete={props.onRequestDelete}
             onTogglePin={(key) => {

@@ -85,6 +85,25 @@ vi.mock("@/lib/pythinker-client", () => {
     attach = vi.fn();
     close = vi.fn();
     updateUrl = vi.fn();
+    // The sidebar reads view preferences via these envelopes; tests that
+    // assert the Archived section is rendered need ``show_archived: true``.
+    getSidebarState = vi.fn().mockResolvedValue({
+      schema_version: 1,
+      pinned_keys: [],
+      archived_keys: [],
+      title_overrides: {},
+      tags_by_key: {},
+      collapsed_groups: {},
+      view: {
+        density: "comfortable",
+        show_previews: false,
+        show_timestamps: false,
+        show_archived: true,
+        sort: "updated_desc",
+      },
+      updated_at: null,
+    });
+    setSidebarState = vi.fn(async (state) => state);
   }
 
   return { PythinkerClient: MockClient };
