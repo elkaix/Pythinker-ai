@@ -10,9 +10,17 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   install-smoke:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
@@ -107,3 +115,21 @@ jobs:
           export PATH="$(uv tool dir --bin):$PATH"
           pythinker --version
           test -f "$HOME/.pythinker/config.json"             || { echo "config.json not created by onboard"; exit 1; }
+
+  install-smoke-required:
+    name: Install Smoke Required
+    runs-on: ubuntu-latest
+    needs: [install-smoke]
+    if: ${{ always() }}
+    permissions: {}
+    steps:
+      - name: Verify install smoke passed
+        shell: bash
+        env:
+          SMOKE_RESULT: ${{ needs.install-smoke.result }}
+        run: |
+          if [[ "$SMOKE_RESULT" != "success" ]]; then
+            echo "install-smoke result: $SMOKE_RESULT"
+            exit 1
+          fi
+          echo "Install smoke passed."

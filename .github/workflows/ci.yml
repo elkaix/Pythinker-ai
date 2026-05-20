@@ -6,9 +6,17 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -36,11 +44,26 @@ jobs:
     - name: Lint with ruff
       run: uv run ruff check pythinker --select F401,F841
 
+    - name: Run tests with coverage
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+      run: uv run pytest tests/ --cov=pythinker --cov-report=xml
+
     - name: Run tests
+      if: matrix.os != 'ubuntu-latest' || matrix.python-version != '3.12'
       run: uv run pytest tests/
+
+    - name: Upload coverage XML
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.12'
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-xml
+        path: coverage.xml
+        if-no-files-found: error
 
   webui:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - uses: actions/checkout@v6
@@ -81,3 +104,26 @@ jobs:
 
     - name: Verify wheel contains WebUI bundle
       run: python scripts/check_wheel_webui.py
+
+  ci-required:
+    name: CI Required
+    runs-on: ubuntu-latest
+    needs: [test, webui]
+    if: ${{ always() }}
+    permissions: {}
+    steps:
+      - name: Verify required CI jobs passed
+        shell: bash
+        env:
+          TEST_RESULT: ${{ needs.test.result }}
+          WEBUI_RESULT: ${{ needs.webui.result }}
+        run: |
+          if [[ "$TEST_RESULT" != "success" ]]; then
+            echo "test job result: $TEST_RESULT"
+            exit 1
+          fi
+          if [[ "$WEBUI_RESULT" != "success" ]]; then
+            echo "webui job result: $WEBUI_RESULT"
+            exit 1
+          fi
+          echo "All required CI jobs passed."
