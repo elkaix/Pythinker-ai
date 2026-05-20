@@ -81,6 +81,7 @@ vi.mock("@/lib/pythinker-client", () => {
     onError = () => () => {};
     onChat = () => () => {};
     sendMessage = vi.fn();
+    requestActivityReplay = vi.fn();
     newChat = vi.fn();
     attach = vi.fn();
     close = vi.fn();

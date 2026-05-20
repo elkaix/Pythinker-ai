@@ -250,7 +250,38 @@ export type InboundEvent =
       request_id?: string;
       detail?: string;
     }
+  | {
+      event: "webui_activity_replay";
+      request_id?: string;
+      chat_id: string;
+      events: WebUIActivityReplayRecord[];
+    }
+  | {
+      event: "webui_activity_replay_error";
+      request_id?: string;
+      detail?: string;
+    }
   | { event: "error"; chat_id?: string; detail?: string; request_id?: string };
+
+/** One entry in the ``webui_activity.replay`` response — a frame from the
+ * persisted JSONL transcript. Only ``file_activity`` and (in future)
+ * ``provider_failover`` carry payloads; ``turn_boundary`` is a marker.
+ * The server filters to events after the most recent ``turn_boundary``,
+ * so in practice clients only see ``file_activity`` entries today. */
+export type WebUIActivityReplayRecord =
+  | {
+      v: 1;
+      ts: string;
+      kind: "file_activity";
+      activity: FileActivityPayload;
+    }
+  | {
+      v: 1;
+      ts: string;
+      kind: "provider_failover";
+      info: ProviderFailoverInfo;
+    }
+  | { v: 1; ts: string; kind: "turn_boundary" };
 
 /** Wire shape emitted by ``runner.py`` for each file-edit phase. The hook
  * normalizes this into a ``FileEditActivity`` keyed by ``call_id``. */
@@ -390,4 +421,9 @@ export type Outbound =
       type: "webui_file_read.get";
       request_id: string;
       path: string;
+    }
+  | {
+      type: "webui_activity.replay";
+      chat_id: string;
+      max_events?: number;
     };
