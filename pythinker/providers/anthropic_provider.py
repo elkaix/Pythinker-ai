@@ -601,8 +601,9 @@ class AnthropicProvider(LLMProvider):
     @staticmethod
     def _is_streaming_required_error(e: Exception) -> bool:
         """Anthropic SDK rejects long non-stream requests with a ValueError
-        whose message starts with 'Streaming is required'. Match defensively
-        on substring so a future SDK message tweak doesn't break detection."""
+        whose message contains 'Streaming is required'. Match defensively on
+        case-insensitive substring so a future SDK message tweak doesn't
+        break detection."""
         return isinstance(e, ValueError) and "streaming is required" in str(e).lower()
 
     async def chat(
