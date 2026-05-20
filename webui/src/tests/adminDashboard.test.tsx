@@ -322,7 +322,7 @@ describe("AdminDashboard", () => {
     renderDashboard("infrastructure");
 
     expect(await screen.findByText("Infrastructure")).toBeInTheDocument();
-    expect(screen.getByText("gateway.host")).toBeInTheDocument();
-    expect(screen.getAllByText("127.0.0.1").length).toBeGreaterThan(0);
+    expect(await screen.findByText("gateway.host")).toBeInTheDocument();
+    expect((await screen.findAllByText("127.0.0.1")).length).toBeGreaterThan(0);
   });
 });
