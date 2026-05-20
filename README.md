@@ -17,7 +17,7 @@
 
 > Powered by a tiny, multiplexing agent loop: one Python process listens to Slack, Telegram, Discord, WhatsApp, Matrix, MS Teams, email, a WebSocket WebUI, and an OpenAI-compatible HTTP API — all backed by a single session-scoped memory layer.
 
-> **What's new in 2.5.2** — Live file-edit chips in the WebUI now stream added/deleted line counts while the model is still emitting tool-call JSON, with a turn-scoped cluster above the assistant bubble, a read-only file viewer, and refresh-survival. New `agents.defaults.fallbackModels` drives transparent provider failover with a circuit breaker and a WebUI toast; Config Workbench gains live secret-mask hints and a pending-restart banner; WhatsApp media, bridge port handling, and reconnect backoff are hardened. See the [changelog](CHANGELOG.md) for details.
+> **What's new in 2.6.0** — New **Signal channel** (signal-cli HTTP/SSE) with full DM and group support. New **DM pairing system**: first-time senders receive a one-time code; owner approves via `/pairing approve`. Channel modules now load lazily (only enabled channels import their SDKs at startup), and the OpenAI-compatible provider client initializes on first use (~700 ms cold-start savings). `AnthropicProvider` transparently retries long requests via streaming. Shell tool detaches stdin so interactive prompts no longer block turns. See the [changelog](CHANGELOG.md) for details.
 
 ## 💡 Key Features
 
