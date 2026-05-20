@@ -90,6 +90,8 @@ class OpenAICodexProvider(LLMProvider):
         reasoning_effort: str | None,
         tool_choice: str | dict[str, Any] | None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+        *,
+        on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
         """Shared request logic for both chat() and chat_stream()."""
         model = model or self.default_model
@@ -126,6 +128,7 @@ class OpenAICodexProvider(LLMProvider):
                 content, tool_calls, finish_reason = await _request_codex(
                     DEFAULT_CODEX_URL, headers, body, verify=True,
                     on_content_delta=on_content_delta,
+                    on_tool_call_delta=on_tool_call_delta,
                 )
             except Exception as e:
                 if "CERTIFICATE_VERIFY_FAILED" not in str(e):
@@ -134,6 +137,7 @@ class OpenAICodexProvider(LLMProvider):
                 content, tool_calls, finish_reason = await _request_codex(
                     DEFAULT_CODEX_URL, headers, body, verify=False,
                     on_content_delta=on_content_delta,
+                    on_tool_call_delta=on_tool_call_delta,
                 )
             return LLMResponse(content=content, tool_calls=tool_calls, finish_reason=finish_reason)
         except Exception as e:
@@ -155,8 +159,12 @@ class OpenAICodexProvider(LLMProvider):
         reasoning_effort: str | None = None,
         tool_choice: str | dict[str, Any] | None = None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+        on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
-        return await self._call_codex(messages, tools, model, reasoning_effort, tool_choice, on_content_delta)
+        return await self._call_codex(
+            messages, tools, model, reasoning_effort, tool_choice,
+            on_content_delta, on_tool_call_delta=on_tool_call_delta,
+        )
 
     def get_default_model(self) -> str:
         return self.default_model
@@ -203,6 +211,8 @@ async def _request_codex(
     body: dict[str, Any],
     verify: bool,
     on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+    *,
+    on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
 ) -> tuple[str, list[ToolCallRequest], str]:
     async with httpx.AsyncClient(timeout=60.0, verify=verify) as client:
         async with client.stream("POST", url, headers=headers, json=body) as response:
@@ -213,7 +223,9 @@ async def _request_codex(
                     _friendly_error(response.status_code, text.decode("utf-8", "ignore")),
                     retry_after=retry_after,
                 )
-            return await consume_sse(response, on_content_delta)
+            return await consume_sse(
+                response, on_content_delta, on_tool_call_delta=on_tool_call_delta,
+            )
 
 
 def _prompt_cache_key(messages: list[dict[str, Any]]) -> str:

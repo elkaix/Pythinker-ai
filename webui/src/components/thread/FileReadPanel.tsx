@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import {
   Sheet,
@@ -25,6 +26,7 @@ type State =
  * Fetches via ``webui_file_read.get``; binary content shows a placeholder
  * and oversize text shows a "truncated" banner. */
 export function FileReadPanel({ path, onOpenChange }: FileReadPanelProps) {
+  const { t } = useTranslation();
   const { client } = useClient();
   const [state, setState] = useState<State>({ kind: "idle" });
 
@@ -42,7 +44,7 @@ export function FileReadPanel({ path, onOpenChange }: FileReadPanelProps) {
       })
       .catch((err: Error) => {
         if (cancelled) return;
-        setState({ kind: "error", message: err.message || "read failed" });
+        setState({ kind: "error", message: err.message || t("thread.filePanel.readFailed") });
       });
     return () => {
       cancelled = true;
@@ -62,7 +64,7 @@ export function FileReadPanel({ path, onOpenChange }: FileReadPanelProps) {
         </SheetHeader>
         <div className="flex-1 overflow-auto px-4 pb-4">
           {state.kind === "loading" ? (
-            <p className="py-12 text-center text-sm text-muted-foreground">Loading…</p>
+            <p className="py-12 text-center text-sm text-muted-foreground">{t("thread.filePanel.loading")}</p>
           ) : null}
           {state.kind === "error" ? (
             <p
@@ -82,13 +84,14 @@ export function FileReadPanel({ path, onOpenChange }: FileReadPanelProps) {
 }
 
 function ReadyView({ result }: { result: WebUIFileReadResult }) {
+  const { t } = useTranslation();
   if (result.binary) {
     return (
       <p
         className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
         data-testid="file-read-binary"
       >
-        Binary file ({formatBytes(result.size)}). No preview.
+        {t("thread.filePanel.binary", { size: formatBytes(result.size) })}
       </p>
     );
   }
@@ -99,7 +102,7 @@ function ReadyView({ result }: { result: WebUIFileReadResult }) {
           className="mb-2 rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300"
           data-testid="file-read-truncated"
         >
-          File exceeds 1 MiB — showing the first 1 MiB only.
+          {t("thread.filePanel.truncated")}
         </p>
       ) : null}
       <pre

@@ -979,6 +979,7 @@ class OpenAICompatProvider(LLMProvider):
         reasoning_effort: str | None = None,
         tool_choice: str | dict[str, Any] | None = None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+        on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
         idle_timeout_s = int(os.environ.get("PYTHINKER_STREAM_IDLE_TIMEOUT_S", "90"))
         try:
@@ -993,6 +994,7 @@ class OpenAICompatProvider(LLMProvider):
                         body,
                         idle_timeout_s=idle_timeout_s,
                         on_content_delta=on_content_delta,
+                        on_tool_call_delta=on_tool_call_delta,
                     )
                     self._record_responses_success(model, reasoning_effort)
                     return result
@@ -1024,10 +1026,38 @@ class OpenAICompatProvider(LLMProvider):
                 except StopAsyncIteration:
                     break
                 chunks.append(chunk)
-                if on_content_delta and chunk.choices:
-                    text = getattr(chunk.choices[0].delta, "content", None)
-                    if text:
-                        await on_content_delta(text)
+                if chunk.choices:
+                    delta_obj = chunk.choices[0].delta
+                    if on_content_delta:
+                        text = getattr(delta_obj, "content", None)
+                        if text:
+                            await on_content_delta(text)
+                    if on_tool_call_delta:
+                        for idx, tool_delta in enumerate(
+                            getattr(delta_obj, "tool_calls", None) or []
+                        ):
+                            fn = _get(tool_delta, "function")
+                            tool_index = _get(tool_delta, "index")
+                            await on_tool_call_delta({
+                                "index": tool_index if tool_index is not None else idx,
+                                "call_id": str(_get(tool_delta, "id") or ""),
+                                "name": (
+                                    str(_get(fn, "name") or "") if fn is not None else ""
+                                ),
+                                "arguments_delta": (
+                                    str(_get(fn, "arguments") or "") if fn is not None else ""
+                                ),
+                            })
+                        function_call = getattr(delta_obj, "function_call", None)
+                        if function_call:
+                            await on_tool_call_delta({
+                                "index": 0,
+                                "call_id": "",
+                                "name": str(_get(function_call, "name") or ""),
+                                "arguments_delta": str(
+                                    _get(function_call, "arguments") or ""
+                                ),
+                            })
             return self._parse_chunks(chunks)
         except asyncio.TimeoutError:
             return LLMResponse(

@@ -300,7 +300,6 @@ def test_make_provider_returns_plain_when_chain_empty() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_no_fallback_when_primary_succeeds() -> None:
     primary = _FakeProvider("primary", _make_response("primary ok"))
     factory = MagicMock()
@@ -316,7 +315,6 @@ async def test_no_fallback_when_primary_succeeds() -> None:
     factory.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_fallback_on_primary_error() -> None:
     primary = _FakeProvider("primary", _error_response())
     fallback = _FakeProvider("fallback", _make_response("fallback ok"))
@@ -335,7 +333,6 @@ async def test_fallback_on_primary_error() -> None:
     assert fallback.chat_calls[0]["model"] == "fallback-a"
 
 
-@pytest.mark.asyncio
 async def test_no_fallback_when_content_already_streamed() -> None:
     primary = _FakeProvider("primary", _error_response())
     factory = MagicMock()
@@ -356,7 +353,6 @@ async def test_no_fallback_when_content_already_streamed() -> None:
     factory.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_failover_on_rate_limit_text() -> None:
     primary = _FakeProvider("primary", _error_response("rate limit exceeded"))
     fallback = _FakeProvider("fallback", _make_response("fallback ok"))
@@ -372,7 +368,6 @@ async def test_failover_on_rate_limit_text() -> None:
     factory.assert_called_once()
 
 
-@pytest.mark.asyncio
 async def test_no_fallback_on_bad_request() -> None:
     primary = _FakeProvider(
         "primary",
@@ -395,7 +390,6 @@ async def test_no_fallback_on_bad_request() -> None:
     factory.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_no_fallback_on_auth_error() -> None:
     primary = _FakeProvider(
         "primary",
@@ -418,7 +412,6 @@ async def test_no_fallback_on_auth_error() -> None:
     factory.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_failover_on_timeout_kind() -> None:
     primary = _FakeProvider(
         "primary",
@@ -436,7 +429,6 @@ async def test_failover_on_timeout_kind() -> None:
     assert result.content == "fallback ok"
 
 
-@pytest.mark.asyncio
 async def test_fallback_tries_models_in_order() -> None:
     primary = _FakeProvider("primary", _error_response("primary fail"))
     fallback_a = _FakeProvider("a", _error_response("a fail"))
@@ -454,7 +446,6 @@ async def test_fallback_tries_models_in_order() -> None:
     assert factory.call_count == 2
 
 
-@pytest.mark.asyncio
 async def test_all_fallbacks_fail_returns_last_error() -> None:
     primary = _FakeProvider("primary", _error_response("primary fail"))
     fallback = _FakeProvider("fallback", _error_response("all fail"))
@@ -471,7 +462,6 @@ async def test_all_fallbacks_fail_returns_last_error() -> None:
     assert "all fail" in result.content
 
 
-@pytest.mark.asyncio
 async def test_factory_exception_skips_that_model() -> None:
     primary = _FakeProvider("primary", _error_response())
     fallback_b = _FakeProvider("b", _make_response("b ok"))
@@ -488,7 +478,6 @@ async def test_factory_exception_skips_that_model() -> None:
     assert factory.call_count == 2
 
 
-@pytest.mark.asyncio
 async def test_fallback_uses_fallback_generation_fields() -> None:
     primary = _FakeProvider("primary", _error_response())
     fallback = _FakeProvider("fallback", _make_response("ok"))
@@ -519,7 +508,6 @@ async def test_fallback_uses_fallback_generation_fields() -> None:
     assert "reasoning_effort" not in fallback.chat_calls[0]
 
 
-@pytest.mark.asyncio
 async def test_empty_fallback_list_passes_error_through() -> None:
     primary = _FakeProvider("primary", _error_response())
     factory = MagicMock()
@@ -534,7 +522,6 @@ async def test_empty_fallback_list_passes_error_through() -> None:
     factory.assert_not_called()
 
 
-@pytest.mark.asyncio
 async def test_chat_stream_failover_when_no_content_streamed() -> None:
     primary = _FakeProvider("primary", _error_response(""))
     fallback = _FakeProvider("fallback", _make_response("stream ok"))
@@ -575,7 +562,6 @@ def test_generation_is_forwarded_to_primary() -> None:
     assert fb.generation.max_tokens == 1024
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_skips_primary_after_threshold() -> None:
     primary = _FakeProvider("primary", _error_response())
     fallback = _FakeProvider("fallback", _make_response("fallback ok"))
@@ -596,7 +582,6 @@ async def test_circuit_breaker_skips_primary_after_threshold() -> None:
     assert primary.chat_calls == []
 
 
-@pytest.mark.asyncio
 async def test_circuit_breaker_resets_on_primary_success() -> None:
     primary = _FakeProvider("primary", _error_response())
     fallback = _FakeProvider("fallback", _make_response("fallback ok"))
@@ -623,7 +608,6 @@ async def test_circuit_breaker_resets_on_primary_success() -> None:
     assert len(primary.chat_calls) == 1
 
 
-@pytest.mark.asyncio
 async def test_emits_provider_failover_event_via_contextvar() -> None:
     primary = _FakeProvider("primary", _error_response("rate limited"))
     primary._response.error_kind = "rate_limit"
@@ -653,7 +637,6 @@ async def test_emits_provider_failover_event_via_contextvar() -> None:
     assert event["reason"] == "rate_limit"
 
 
-@pytest.mark.asyncio
 async def test_failover_event_skipped_when_no_callback_bound() -> None:
     # No callback bound: the emit path must be a silent no-op.
     primary = _FakeProvider("primary", _error_response())
@@ -669,7 +652,6 @@ async def test_failover_event_skipped_when_no_callback_bound() -> None:
     assert result.content == "fallback ok"  # no exception, no event consumer
 
 
-@pytest.mark.asyncio
 async def test_failover_event_emitter_failure_does_not_break_failover() -> None:
     primary = _FakeProvider("primary", _error_response())
     fallback = _FakeProvider("fallback", _make_response("fallback ok"))

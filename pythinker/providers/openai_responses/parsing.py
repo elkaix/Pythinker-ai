@@ -62,12 +62,16 @@ async def iter_sse(response: httpx.Response) -> AsyncGenerator[dict[str, Any], N
 async def consume_sse(
     response: httpx.Response,
     on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+    *,
+    on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
 ) -> tuple[str, list[ToolCallRequest], str]:
     """Consume a Responses API SSE stream into ``(content, tool_calls, finish_reason)``."""
     content = ""
     tool_calls: list[ToolCallRequest] = []
     tool_call_buffers: dict[str, dict[str, Any]] = {}
     finish_reason = "stop"
+
+    call_id_index: dict[str, int] = {}
 
     async for event in iter_sse(response):
         event_type = event.get("type")
@@ -82,6 +86,15 @@ async def consume_sse(
                     "name": item.get("name"),
                     "arguments": item.get("arguments") or "",
                 }
+                if call_id not in call_id_index:
+                    call_id_index[call_id] = len(call_id_index)
+                if on_tool_call_delta:
+                    await on_tool_call_delta({
+                        "index": call_id_index[call_id],
+                        "call_id": str(call_id),
+                        "name": str(item.get("name") or ""),
+                        "arguments_delta": str(item.get("arguments") or ""),
+                    })
         elif event_type == "response.output_text.delta":
             delta_text = event.get("delta") or ""
             content += delta_text
@@ -90,7 +103,16 @@ async def consume_sse(
         elif event_type == "response.function_call_arguments.delta":
             call_id = event.get("call_id")
             if call_id and call_id in tool_call_buffers:
-                tool_call_buffers[call_id]["arguments"] += event.get("delta") or ""
+                delta_text = event.get("delta") or ""
+                tool_call_buffers[call_id]["arguments"] += delta_text
+                if on_tool_call_delta and delta_text:
+                    buf = tool_call_buffers[call_id]
+                    await on_tool_call_delta({
+                        "index": call_id_index.get(call_id, 0),
+                        "call_id": str(call_id),
+                        "name": str(buf.get("name") or ""),
+                        "arguments_delta": delta_text,
+                    })
         elif event_type == "response.function_call_arguments.done":
             call_id = event.get("call_id")
             if call_id and call_id in tool_call_buffers:
@@ -210,6 +232,8 @@ def parse_response_output(response: Any) -> LLMResponse:
 async def consume_sdk_stream(
     stream: Any,
     on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+    *,
+    on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
 ) -> tuple[str, list[ToolCallRequest], str, dict[str, int], str | None]:
     """Consume an SDK async stream from ``client.responses.create(stream=True)``."""
     content = ""
@@ -219,6 +243,8 @@ async def consume_sdk_stream(
     usage: dict[str, int] = {}
     reasoning_content: str | None = None
 
+    call_id_index: dict[str, int] = {}
+
     async for event in stream:
         event_type = getattr(event, "type", None)
         if event_type == "response.output_item.added":
@@ -227,11 +253,22 @@ async def consume_sdk_stream(
                 call_id = getattr(item, "call_id", None)
                 if not call_id:
                     continue
+                item_name = getattr(item, "name", None)
+                item_args = getattr(item, "arguments", None) or ""
                 tool_call_buffers[call_id] = {
                     "id": getattr(item, "id", None) or "fc_0",
-                    "name": getattr(item, "name", None),
-                    "arguments": getattr(item, "arguments", None) or "",
+                    "name": item_name,
+                    "arguments": item_args,
                 }
+                if call_id not in call_id_index:
+                    call_id_index[call_id] = len(call_id_index)
+                if on_tool_call_delta:
+                    await on_tool_call_delta({
+                        "index": call_id_index[call_id],
+                        "call_id": str(call_id),
+                        "name": str(item_name or ""),
+                        "arguments_delta": str(item_args),
+                    })
         elif event_type == "response.output_text.delta":
             delta_text = getattr(event, "delta", "") or ""
             content += delta_text
@@ -240,7 +277,16 @@ async def consume_sdk_stream(
         elif event_type == "response.function_call_arguments.delta":
             call_id = getattr(event, "call_id", None)
             if call_id and call_id in tool_call_buffers:
-                tool_call_buffers[call_id]["arguments"] += getattr(event, "delta", "") or ""
+                delta_text = getattr(event, "delta", "") or ""
+                tool_call_buffers[call_id]["arguments"] += delta_text
+                if on_tool_call_delta and delta_text:
+                    buf = tool_call_buffers[call_id]
+                    await on_tool_call_delta({
+                        "index": call_id_index.get(call_id, 0),
+                        "call_id": str(call_id),
+                        "name": str(buf.get("name") or ""),
+                        "arguments_delta": delta_text,
+                    })
         elif event_type == "response.function_call_arguments.done":
             call_id = getattr(event, "call_id", None)
             if call_id and call_id in tool_call_buffers:

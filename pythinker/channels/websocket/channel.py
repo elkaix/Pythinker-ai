@@ -86,6 +86,10 @@ if TYPE_CHECKING:
     from pythinker.session.manager import SessionManager
 
 
+_FILE_READ_MAX_BYTES = 1_048_576   # 1 MiB — hard cap for WebUI file panel reads
+_FILE_READ_PROBE_BYTES = 8192      # binary-detection scan window (null-byte check)
+
+
 def _get_media_dir(*args: Any, **kwargs: Any) -> Path:
     """Defer ``get_media_dir`` lookup so tests can patch the package binding.
 
@@ -1474,14 +1478,9 @@ class WebSocketChannel(BaseChannel):
         resolve it (following symlinks) and refuse any result that escapes
         the workspace root. Files are capped at ``MAX_FILE_READ_BYTES``;
         beyond that we return only the truncated head with ``truncated=true``.
-        Binary content (detected by null-byte scan over the first 8 KiB)
+        Binary content (detected by null-byte scan over the first ``_FILE_READ_PROBE_BYTES``)
         returns ``binary=true`` and no ``content``.
         """
-        from pathlib import Path
-
-        max_bytes = 1_048_576  # 1 MiB
-        probe_bytes = 8192
-
         request_id = envelope.get("request_id")
 
         async def _error(detail: str) -> None:
@@ -1522,7 +1521,7 @@ class WebSocketChannel(BaseChannel):
         try:
             size = absolute.stat().st_size
             with open(absolute, "rb") as handle:
-                head = handle.read(min(size, probe_bytes))
+                head = handle.read(min(size, _FILE_READ_PROBE_BYTES))
                 binary = b"\x00" in head
                 if binary:
                     await self._send_event(
@@ -1532,16 +1531,16 @@ class WebSocketChannel(BaseChannel):
                         path=str(absolute.relative_to(workspace)),
                         binary=True,
                         size=size,
-                        truncated=False,
+                        truncated=size > _FILE_READ_MAX_BYTES,
                         content="",
                     )
                     return
-                content_bytes = head + handle.read(max_bytes - len(head))
+                content_bytes = head + handle.read(_FILE_READ_MAX_BYTES - len(head))
         except OSError as exc:
             await _error(f"read failed: {exc}")
             return
 
-        truncated = size > max_bytes
+        truncated = size > _FILE_READ_MAX_BYTES
         try:
             content = content_bytes.decode("utf-8")
         except UnicodeDecodeError:
@@ -1611,11 +1610,7 @@ class WebSocketChannel(BaseChannel):
         if isinstance(raw_max, int) and raw_max > 0:
             max_events = raw_max
 
-        try:
-            full = read_webui_activity_transcript(cid, max_events=max_events)
-        except Exception as exc:  # noqa: BLE001
-            await _error(str(exc))
-            return
+        full = read_webui_activity_transcript(cid, max_events=max_events)
 
         # Trim to the slice after the most recent ``turn_boundary``: those
         # events belong to the (possibly in-flight) current turn. An idle

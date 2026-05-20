@@ -509,13 +509,16 @@ class LLMProvider(ABC):
         reasoning_effort: str | None = None,
         tool_choice: str | dict[str, Any] | None = None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+        on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
-        """Stream a chat completion, calling *on_content_delta* for each text chunk.
+        """Stream a chat completion.
 
-        Returns the same ``LLMResponse`` as :meth:`chat`.  The default
-        implementation falls back to a non-streaming call and delivers the
-        full content as a single delta.  Providers that support native
-        streaming should override this method.
+        Calls ``on_content_delta`` for each text chunk and, when supported,
+        ``on_tool_call_delta`` for each partial tool-call frame
+        ``{index, call_id, name, arguments_delta}``. Returns the same
+        ``LLMResponse`` as :meth:`chat`. The default implementation falls back
+        to a non-streaming call and delivers the full content as a single
+        delta; providers that support native streaming override this method.
         """
         response = await self.chat(
             messages=messages, tools=tools, model=model,
@@ -524,6 +527,25 @@ class LLMProvider(ABC):
         )
         if on_content_delta and response.content:
             await on_content_delta(response.content)
+        if on_tool_call_delta:
+            # Synthesize one delta per final tool_call so callers wired to the
+            # streaming surface still see them when a provider transparently
+            # falls back to non-streaming.
+            for idx, tc in enumerate(response.tool_calls):
+                try:
+                    args = tc.arguments
+                except Exception:
+                    args = {}
+                try:
+                    args_text = json.dumps(args, ensure_ascii=False) if isinstance(args, dict) else ""
+                except Exception:
+                    args_text = ""
+                await on_tool_call_delta({
+                    "index": idx,
+                    "call_id": str(getattr(tc, "id", "") or ""),
+                    "name": str(getattr(tc, "name", "") or ""),
+                    "arguments_delta": args_text,
+                })
         return response
 
     async def _safe_chat_stream(self, **kwargs: Any) -> LLMResponse:
@@ -545,6 +567,7 @@ class LLMProvider(ABC):
         reasoning_effort: object = _SENTINEL,
         tool_choice: str | dict[str, Any] | None = None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+        on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
         retry_mode: str = "standard",
         on_retry_wait: Callable[[str], Awaitable[None]] | None = None,
     ) -> LLMResponse:
@@ -561,6 +584,7 @@ class LLMProvider(ABC):
             max_tokens=max_tokens, temperature=temperature,
             reasoning_effort=reasoning_effort, tool_choice=tool_choice,
             on_content_delta=on_content_delta,
+            on_tool_call_delta=on_tool_call_delta,
         )
         return await self._run_with_retry(
             self._safe_chat_stream,

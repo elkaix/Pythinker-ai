@@ -83,7 +83,19 @@ export function useSidebarState(): UseSidebarStateResult {
     fetched
       .then((next) => {
         if (cancelled) return;
-        setState(next);
+        // If the user already made changes while the fetch was in-flight
+        // (indicated by a pending debounce write), preserve those local changes
+        // on top of the server state so they aren't silently overwritten.
+        setState((prev) =>
+          debounceTimer.current !== null
+            ? mergeState(next, {
+                view: prev.view,
+                collapsed_groups: prev.collapsed_groups,
+                title_overrides: prev.title_overrides,
+                tags_by_key: prev.tags_by_key,
+              })
+            : next
+        );
         setLoading(false);
       })
       .catch(() => {

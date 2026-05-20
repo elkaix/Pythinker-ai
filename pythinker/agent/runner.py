@@ -17,6 +17,7 @@ from pythinker.agent.tools.registry import ToolRegistry
 from pythinker.providers.base import LLMProvider, LLMResponse, ToolCallRequest
 from pythinker.utils.file_edit_events import (
     FileEditTracker,
+    StreamingFileEditTracker,
     build_file_edit_end_event,
     build_file_edit_error_event,
     build_file_edit_start_event,
@@ -321,7 +322,9 @@ class AgentRunner:
             )
             context = AgentHookContext(iteration=iteration, messages=messages)
             await hook.before_iteration(context)
-            response = await self._request_model(spec, messages_for_model, hook, context)
+            response, streamed_call_ids = await self._request_model(
+                spec, messages_for_model, hook, context,
+            )
             raw_usage = self._usage_dict(response.usage)
             context.response = response
             context.usage = dict(raw_usage)
@@ -341,6 +344,7 @@ class AgentRunner:
                         tool_events,
                         external_lookup_counts,
                         injection_cycles,
+                        streamed_call_ids=streamed_call_ids,
                     )
                 )
                 if drained:
@@ -653,6 +657,8 @@ class AgentRunner:
         tool_events: list[dict[str, str]],
         external_lookup_counts: dict[str, int],
         injection_cycles: int,
+        *,
+        streamed_call_ids: set[str] | None = None,
     ) -> tuple[
         str,
         int,
@@ -710,6 +716,7 @@ class AgentRunner:
             spec,
             response.tool_calls,
             external_lookup_counts,
+            streamed_call_ids=streamed_call_ids,
         )
         tool_events.extend(new_events)
         context.tool_results = list(results)
@@ -773,7 +780,15 @@ class AgentRunner:
         messages: list[dict[str, Any]],
         hook: AgentHook,
         context: AgentHookContext,
-    ):
+    ) -> tuple[LLMResponse, set[str]]:
+        """Run one model call and return ``(response, streamed_call_ids)``.
+
+        ``streamed_call_ids`` is the set of tool-call IDs the
+        ``StreamingFileEditTracker`` already announced via live events; the
+        runner uses it to skip the synchronous ``start`` event in ``_run_tool``
+        (whose ``added=0/deleted=0`` would otherwise overwrite live counts on
+        the WebUI side).
+        """
         timeout_s: float | None = spec.llm_timeout_s
         if timeout_s is None:
             # Default to a finite timeout to avoid per-session lock starvation when an LLM
@@ -792,27 +807,81 @@ class AgentRunner:
             messages,
             tools=spec.tools.get_definitions(),
         )
+        streamed_ids: set[str] = set()
+        live_tracker: StreamingFileEditTracker | None = None
         if hook.wants_streaming():
             async def _stream(delta: str) -> None:
                 await hook.on_stream(context, delta)
 
+            tool_call_delta_cb = None
+            if spec.file_activity_callback is not None:
+                async def _emit_live(events: list[dict[str, Any]]) -> None:
+                    for ev in events:
+                        try:
+                            await spec.file_activity_callback(ev)
+                        except Exception:
+                            logger.debug(
+                                "file_activity_callback (live) failed", exc_info=True,
+                            )
+
+                live_tracker = StreamingFileEditTracker(
+                    workspace=spec.workspace,
+                    tools=spec.tools,
+                    emit=_emit_live,
+                )
+
+                async def _on_tool_call_delta(payload: dict[str, Any]) -> None:
+                    try:
+                        await live_tracker.update(payload)
+                    except Exception:
+                        logger.debug(
+                            "StreamingFileEditTracker.update failed", exc_info=True,
+                        )
+
+                tool_call_delta_cb = _on_tool_call_delta
+
             coro = self.provider.chat_stream_with_retry(
                 **kwargs,
                 on_content_delta=_stream,
+                on_tool_call_delta=tool_call_delta_cb,
             )
         else:
             coro = self.provider.chat_with_retry(**kwargs)
 
         if timeout_s is None:
-            return await coro
-        try:
-            return await asyncio.wait_for(coro, timeout=timeout_s)
-        except asyncio.TimeoutError:
-            return LLMResponse(
-                content=f"Error calling LLM: timed out after {timeout_s:g}s",
-                finish_reason="error",
-                error_kind="timeout",
-            )
+            response = await coro
+        else:
+            try:
+                response = await asyncio.wait_for(coro, timeout=timeout_s)
+            except asyncio.TimeoutError:
+                response = LLMResponse(
+                    content=f"Error calling LLM: timed out after {timeout_s:g}s",
+                    finish_reason="error",
+                    error_kind="timeout",
+                )
+
+        if live_tracker is not None:
+            try:
+                await live_tracker.flush()
+            except Exception:
+                logger.debug("StreamingFileEditTracker.flush failed", exc_info=True)
+            if response.should_execute_tools:
+                live_tracker.apply_final_call_ids(response.tool_calls)
+            # Calls the tracker streamed but the final response dropped get an
+            # explicit error chip so the WebUI doesn't leave them in "editing".
+            # When tools won't execute (refusal/error finish reason), treat all
+            # streamed calls as dropped so their chips show error state.
+            try:
+                await live_tracker.error_unmatched(
+                    response.tool_calls if response.should_execute_tools else [],
+                    "Tool call did not complete.",
+                )
+            except Exception:
+                logger.debug(
+                    "StreamingFileEditTracker.error_unmatched failed", exc_info=True,
+                )
+            streamed_ids = live_tracker.seen_canonical_call_ids()
+        return response, streamed_ids
 
     async def _request_finalization_retry(
         self,
@@ -853,18 +922,26 @@ class AgentRunner:
         spec: AgentRunSpec,
         tool_calls: list[ToolCallRequest],
         external_lookup_counts: dict[str, int],
+        *,
+        streamed_call_ids: set[str] | None = None,
     ) -> tuple[list[Any], list[dict[str, str]], BaseException | None]:
         batches = self._partition_tool_batches(spec, tool_calls)
         tool_results: list[tuple[Any, dict[str, str], BaseException | None]] = []
         for batch in batches:
             if spec.concurrent_tools and len(batch) > 1:
                 tool_results.extend(await asyncio.gather(*(
-                    self._run_tool(spec, tool_call, external_lookup_counts)
+                    self._run_tool(
+                        spec, tool_call, external_lookup_counts,
+                        streamed_call_ids=streamed_call_ids,
+                    )
                     for tool_call in batch
                 )))
             else:
                 for tool_call in batch:
-                    tool_results.append(await self._run_tool(spec, tool_call, external_lookup_counts))
+                    tool_results.append(await self._run_tool(
+                        spec, tool_call, external_lookup_counts,
+                        streamed_call_ids=streamed_call_ids,
+                    ))
 
         results: list[Any] = []
         events: list[dict[str, str]] = []
@@ -881,6 +958,8 @@ class AgentRunner:
         spec: AgentRunSpec,
         tool_call: ToolCallRequest,
         external_lookup_counts: dict[str, int],
+        *,
+        streamed_call_ids: set[str] | None = None,
     ) -> tuple[Any, dict[str, str], BaseException | None]:
         hint = "\n\n[Analyze the error above and try a different approach.]"
         lookup_error = repeated_external_lookup_error(
@@ -922,18 +1001,37 @@ class AgentRunner:
                     resolver_tool = spec.tools.get(tool_call.name)
                 except Exception:
                     resolver_tool = None
+            # OpenAI Responses encodes tool_call.id as ``call_id|item_id`` so the
+            # next-turn submission can round-trip the item_id half. The WebUI,
+            # however, keys chips by the bare ``call_id`` (matching live
+            # streaming events). Strip the suffix when emitting start/end so
+            # both sources land on the same chip; tool_call.id itself stays
+            # composite for the round-trip.
+            raw_id = str(tool_call.id or "")
+            chip_call_id = raw_id.split("|", 1)[0] if "|" in raw_id else raw_id
             tracker = prepare_file_edit_tracker(
-                call_id=tool_call.id,
+                call_id=chip_call_id,
                 tool_name=tool_call.name,
                 tool=resolver_tool,
                 workspace=spec.workspace,
                 params=params if isinstance(params, dict) else tool_call.arguments,
             )
             if tracker is not None:
-                try:
-                    await spec.file_activity_callback(build_file_edit_start_event(tracker))
-                except Exception:
-                    logger.debug("file_activity_callback start failed", exc_info=True)
+                # The streaming tracker already announced this call via live
+                # events. Re-emitting ``start`` here would reset added/deleted
+                # to 0 on the WebUI side because its merge takes the latest.
+                already_streamed = bool(
+                    streamed_call_ids and chip_call_id in streamed_call_ids
+                )
+                if not already_streamed:
+                    try:
+                        await spec.file_activity_callback(
+                            build_file_edit_start_event(tracker)
+                        )
+                    except Exception:
+                        logger.debug(
+                            "file_activity_callback start failed", exc_info=True,
+                        )
 
         async def _emit_end() -> None:
             if tracker is None or spec.file_activity_callback is None:

@@ -74,6 +74,7 @@ async def stream_response(
     *,
     idle_timeout_s: int,
     on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+    on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
 ) -> LLMResponse:
     stream_body = dict(body)
     stream_body["stream"] = True
@@ -81,6 +82,7 @@ async def stream_response(
     content, tool_calls, finish_reason, usage, reasoning_content = await consume_sdk_stream(
         timed_stream(stream, idle_timeout_s=idle_timeout_s),
         on_content_delta,
+        on_tool_call_delta=on_tool_call_delta,
     )
     return LLMResponse(
         content=content or None,

@@ -8,6 +8,20 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ### Added
 
+- File-edit chips now animate added/deleted line counts *while the model is
+  still streaming the tool-call JSON*, instead of materializing only after the
+  call completes. A new `StreamingFileEditTracker` consumes per-chunk tool-call
+  argument deltas from the provider's streaming surface, runs them through an
+  incremental JSON-string scanner that survives partial `\uXXXX` escapes split
+  across chunks, and emits throttled `file_activity` events (`approximate=true`)
+  with a leading `~` rendered in the chip. The streaming hook covers
+  OpenAI-compatible chat/completions, Anthropic Messages, and the OpenAI
+  Responses API surface (chat.completions providers animate counts in real
+  time; the OpenAI Responses API — Codex / GPT-5 / o-series — ships full
+  argument payloads at `output_item.done` time, so its chips show the path
+  immediately but the count snaps from the start state to the exact diff
+  rather than climbing). Live counts cleanly merge with the eventual exact
+  diff once the tool actually executes.
 - WebUI now restores the in-flight file-edit chip cluster after a refresh. The runtime appends each
   `file_activity` / `provider_failover` event to a small per-chat JSONL transcript under
   `~/.pythinker/<instance>/webui/activity/<chat>.jsonl` (256 KiB cap, opportunistic trim), and the

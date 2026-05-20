@@ -44,8 +44,15 @@ export function FileEditChip({ activity, active, onClick }: FileEditChipProps) {
         active={active && !isError && !isDone}
         textClassName="text-[11px]"
       />
-      {isDone && stats ? (
-        <span className="font-mono text-[10px] text-muted-foreground">{stats}</span>
+      {stats ? (
+        <span
+          className={cn(
+            "font-mono text-[10px] text-muted-foreground",
+            activity.approximate && !isDone ? "italic opacity-80" : null,
+          )}
+        >
+          {stats}
+        </span>
       ) : null}
       {activity.binary && isDone ? (
         <span className="rounded bg-muted px-1 text-[9px] uppercase tracking-wider text-muted-foreground">
@@ -60,9 +67,14 @@ export function FileEditChip({ activity, active, onClick }: FileEditChipProps) {
 
 function formatStats(a: FileEditActivity): string {
   if (a.binary) return "";
-  if (a.phase !== "end") return "";
+  // Streaming "approximate" counts ride along with the live chip so the user
+  // sees the file growing under their cursor; the leading "~" cues the value
+  // is mid-stream and may revise upward by the time the tool completes.
+  const isLiveApproximate = a.phase !== "end" && a.approximate && (a.added > 0 || a.deleted > 0);
+  if (a.phase !== "end" && !isLiveApproximate) return "";
   const added = a.added > 0 ? `+${a.added}` : "";
   const deleted = a.deleted > 0 ? `-${a.deleted}` : "";
-  if (added && deleted) return `${added} ${deleted}`;
-  return added || deleted;
+  const raw = added && deleted ? `${added} ${deleted}` : added || deleted;
+  if (!raw) return "";
+  return isLiveApproximate ? `~${raw}` : raw;
 }

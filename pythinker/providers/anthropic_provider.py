@@ -628,6 +628,7 @@ class AnthropicProvider(LLMProvider):
         reasoning_effort: str | None = None,
         tool_choice: str | dict[str, Any] | None = None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+        on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
         kwargs = self._build_kwargs(
             messages, tools, model, max_tokens, temperature,
@@ -636,17 +637,55 @@ class AnthropicProvider(LLMProvider):
         idle_timeout_s = int(os.environ.get("PYTHINKER_STREAM_IDLE_TIMEOUT_S", "90"))
         try:
             async with self._client.messages.stream(**kwargs) as stream:
-                if on_content_delta:
-                    stream_iter = stream.text_stream.__aiter__()
+                if on_content_delta or on_tool_call_delta:
+                    # Enumerate the full event stream (not just text_stream) so
+                    # ``input_json_delta`` chunks can be demuxed into
+                    # ``on_tool_call_delta``. The idle-timeout must track *any*
+                    # SSE chunk; otherwise a long tool-JSON burst with no text
+                    # would falsely look like a stall.
+                    tool_blocks: dict[int, dict[str, str]] = {}
                     while True:
                         try:
-                            text = await asyncio.wait_for(
-                                stream_iter.__anext__(),
+                            chunk = await asyncio.wait_for(
+                                stream.__anext__(),
                                 timeout=idle_timeout_s,
                             )
                         except StopAsyncIteration:
                             break
-                        await on_content_delta(text)
+                        ctype = getattr(chunk, "type", None)
+                        if ctype == "content_block_start":
+                            block = getattr(chunk, "content_block", None)
+                            if getattr(block, "type", None) == "tool_use":
+                                index = int(getattr(chunk, "index", 0) or 0)
+                                state = {
+                                    "call_id": str(getattr(block, "id", "") or ""),
+                                    "name": str(getattr(block, "name", "") or ""),
+                                }
+                                tool_blocks[index] = state
+                                if on_tool_call_delta:
+                                    await on_tool_call_delta({
+                                        "index": index,
+                                        **state,
+                                        "arguments_delta": "",
+                                    })
+                        elif ctype == "content_block_delta":
+                            delta = getattr(chunk, "delta", None)
+                            dtype = getattr(delta, "type", None)
+                            if dtype == "text_delta" and on_content_delta:
+                                text = getattr(delta, "text", None) or ""
+                                if text:
+                                    await on_content_delta(text)
+                            elif dtype == "input_json_delta" and on_tool_call_delta:
+                                partial = getattr(delta, "partial_json", None) or ""
+                                if partial:
+                                    index = int(getattr(chunk, "index", 0) or 0)
+                                    state = tool_blocks.get(index, {})
+                                    await on_tool_call_delta({
+                                        "index": index,
+                                        "call_id": state.get("call_id", ""),
+                                        "name": state.get("name", ""),
+                                        "arguments_delta": partial,
+                                    })
                 response = await asyncio.wait_for(
                     stream.get_final_message(),
                     timeout=idle_timeout_s,

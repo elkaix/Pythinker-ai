@@ -68,7 +68,7 @@ async def test_prompt_cache_key_uses_stable_conversation_prefix(monkeypatch):
         lambda: SimpleNamespace(account_id="acct", access="token"),
     )
 
-    async def fake_request(url, headers, body, verify, on_content_delta=None):
+    async def fake_request(url, headers, body, verify, on_content_delta=None, **_kwargs):
         bodies.append(body)
         return "ok", [], "stop"
 
@@ -104,7 +104,7 @@ async def test_codex_reasoning_effort_none_omits_reasoning_body(monkeypatch):
         lambda: SimpleNamespace(account_id="acct", access="token"),
     )
 
-    async def fake_request(url, headers, body, verify, on_content_delta=None):
+    async def fake_request(url, headers, body, verify, on_content_delta=None, **_kwargs):
         bodies.append(body)
         return "ok", [], "stop"
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Awaitable, Callable
-from contextvars import ContextVar
+from contextvars import ContextVar, Token
 from typing import Any
 
 from loguru import logger
@@ -17,7 +17,7 @@ _FAILOVER_CALLBACK: ContextVar[FailoverCallback | None] = ContextVar(
 )
 
 
-def set_failover_callback(callback: FailoverCallback | None) -> object:
+def set_failover_callback(callback: FailoverCallback | None) -> Token[FailoverCallback | None]:
     """Bind *callback* for the current async context; pass the returned token
     to :func:`reset_failover_callback` to restore the previous binding.
 
@@ -28,8 +28,8 @@ def set_failover_callback(callback: FailoverCallback | None) -> object:
     return _FAILOVER_CALLBACK.set(callback)
 
 
-def reset_failover_callback(token: object) -> None:
-    _FAILOVER_CALLBACK.reset(token)  # type: ignore[arg-type]
+def reset_failover_callback(token: Token[FailoverCallback | None]) -> None:
+    _FAILOVER_CALLBACK.reset(token)
 
 # Circuit breaker tuned to match OpenAICompatProvider's Responses API breaker.
 _PRIMARY_FAILURE_THRESHOLD = 3
@@ -201,7 +201,7 @@ class FallbackProvider(LLMProvider):
             logger.debug("Primary model '{}' circuit open; skipping", primary_model)
 
         last_response: LLMResponse | None = None
-        primary_skipped = not self._primary_available()
+        primary_skipped = primary_response is None
         for idx, fallback in enumerate(self._fallback_presets):
             fallback_model = fallback.model
             if has_streamed is not None and has_streamed[0]:
@@ -271,7 +271,7 @@ class FallbackProvider(LLMProvider):
         if last_response is not None:
             return last_response
         return LLMResponse(
-            content=f"Primary model '{primary_model}' circuit open and no fallbacks available",
+            content=f"Primary model '{primary_model}' unavailable and all fallbacks failed",
             finish_reason="error",
         )
 

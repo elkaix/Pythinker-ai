@@ -100,7 +100,13 @@
         "io": "Couldn't read this file"
       }
     },
-    "scrollToBottom": "Scroll to bottom"
+    "scrollToBottom": "Scroll to bottom",
+    "filePanel": {
+      "loading": "Loading…",
+      "readFailed": "Read failed",
+      "binary": "Binary file ({{size}}). No preview.",
+      "truncated": "File exceeds 1 MiB — showing the first 1 MiB only."
+    }
   },
   "message": {
     "streaming": "streaming",
