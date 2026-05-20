@@ -192,6 +192,7 @@ class ExecTool(Tool):
             comspec = env.get("COMSPEC", os.environ.get("COMSPEC", "cmd.exe"))
             return await asyncio.create_subprocess_exec(
                 comspec, "/c", command,
+                stdin=asyncio.subprocess.DEVNULL,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=cwd,
@@ -200,6 +201,7 @@ class ExecTool(Tool):
         bash = shutil.which("bash") or "/bin/bash"
         return await asyncio.create_subprocess_exec(
             bash, "-l", "-c", command,
+            stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=cwd,
