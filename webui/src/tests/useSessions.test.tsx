@@ -24,6 +24,7 @@ function fakeClient() {
     onError: () => () => {},
     onChat: () => () => {},
     sendMessage: vi.fn(),
+    requestActivityReplay: vi.fn(),
     newChat: vi.fn(),
     attach: vi.fn(),
     connect: vi.fn(),

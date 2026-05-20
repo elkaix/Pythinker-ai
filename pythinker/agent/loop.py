@@ -32,6 +32,7 @@ from pythinker.bus.queue import MessageBus
 from pythinker.command import CommandContext, CommandRouter, register_builtin_commands
 from pythinker.config.schema import AgentDefaults
 from pythinker.providers.base import LLMProvider
+from pythinker.providers.fallback_provider import reset_failover_callback, set_failover_callback
 from pythinker.providers.limits import derive_window
 from pythinker.providers.model_profiles import get_profile
 from pythinker.runtime.egress import ToolEgressGateway
@@ -1394,6 +1395,13 @@ class AgentLoop:
                     metadata=meta,
                 )
             )
+            # Persist for refresh-survival. WebUI-only — other channels
+            # don't have a replay surface for these structured events.
+            if msg.channel == "websocket":
+                from pythinker.webui.activity_transcript import (
+                    append_webui_activity,
+                )
+                append_webui_activity(msg.chat_id, "file_activity", payload)
 
         async def _bus_provider_failover(payload: dict[str, Any]) -> None:
             meta = dict(msg.metadata or {})
@@ -1407,17 +1415,17 @@ class AgentLoop:
                     metadata=meta,
                 )
             )
+            if msg.channel == "websocket":
+                from pythinker.webui.activity_transcript import (
+                    append_webui_activity,
+                )
+                append_webui_activity(msg.chat_id, "provider_failover", payload)
 
         # Persist the triggering user message up front so a mid-turn crash
         # doesn't silently lose the prompt on recovery. ``media`` rides along
         # as raw on-disk paths — sanitized image blocks are stripped from
         # JSONL, and webui replay needs the paths to mint signed URLs.
         user_persisted_early = self.turn_writer.persist_user_message_early(msg, session)
-
-        from pythinker.providers.fallback_provider import (
-            reset_failover_callback,
-            set_failover_callback,
-        )
 
         t_wall = time.time()
         failover_token = set_failover_callback(_bus_provider_failover)
@@ -1450,6 +1458,13 @@ class AgentLoop:
         self._clear_pending_user_turn(session)
         self._clear_runtime_checkpoint(session)
         self.sessions.save(session)
+        # Mark the turn boundary in the WebUI activity transcript so refresh
+        # replay rebuilds one cluster per turn instead of merging everything
+        # into a single super-cluster.
+        if msg.channel == "websocket":
+            from pythinker.webui.activity_transcript import append_webui_activity
+
+            append_webui_activity(msg.chat_id, "turn_boundary")
         self._emit_context_turn_event(session)
         self._schedule_background(self.consolidator.maybe_consolidate_by_tokens(session))
         # Best-effort: name freshly-created webui chats from the first turn so

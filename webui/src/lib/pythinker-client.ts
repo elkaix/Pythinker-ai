@@ -240,6 +240,21 @@ export class PythinkerClient {
     this.queueSend({ type: "stop", chat_id: chatId });
   }
 
+  /** Ask the server for the in-flight file-edit / failover slice for *chatId*.
+   *
+   * Used on attach so refreshing mid-turn restores the chip cluster instead
+   * of leaving the user staring at a bare assistant bubble. The reply
+   * arrives via ``onChat`` as a ``webui_activity_replay`` event keyed by
+   * the same chat_id — no request/response promise plumbing needed.
+   * Fire-and-forget: a missing transcript yields an empty list, and any
+   * error is silent (replay is a UX nicety, not a correctness gate). */
+  requestActivityReplay(chatId: string, maxEvents?: number): void {
+    const frame: Outbound = maxEvents
+      ? { type: "webui_activity.replay", chat_id: chatId, max_events: maxEvents }
+      : { type: "webui_activity.replay", chat_id: chatId };
+    this.queueSend(frame);
+  }
+
   /** Drop the last assistant reply and re-run the prior user message. */
   regenerate(chatId: string): void {
     this.queueSend({ type: "regenerate", chat_id: chatId });

@@ -8,6 +8,13 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ### Added
 
+- WebUI now restores the in-flight file-edit chip cluster after a refresh. The runtime appends each
+  `file_activity` / `provider_failover` event to a small per-chat JSONL transcript under
+  `~/.pythinker/<instance>/webui/activity/<chat>.jsonl` (256 KiB cap, opportunistic trim), and the
+  WebUI sends a `webui_activity.replay` envelope on attach. The server returns only events after the
+  most recent turn boundary, so completed turns stay quiet and a refresh mid-turn rebuilds the chip
+  cluster instead of leaving the user staring at a bare assistant bubble. Replay is best-effort:
+  persistence and reply failures are silent so the live event delivery remains the source of truth.
 - The runtime's per-tool `file_activity` events (shipped in 44f917ea) now drive a live "files being
   edited" cluster above the assistant bubble in the WebUI. Each cluster is a collapsed one-line
   summary ("3 files edited (+45 −12)") that expands to a row of `FileEditChip`s; chips animate while

@@ -1392,6 +1392,9 @@ class WebSocketChannel(BaseChannel):
         if t == "webui_file_read.get":
             await self._handle_file_read_envelope(connection, envelope)
             return
+        if t == "webui_activity.replay":
+            await self._handle_activity_replay_envelope(connection, envelope)
+            return
         await self._send_event(connection, "error", detail=f"unknown type: {t!r}")
 
     async def _handle_sidebar_state_envelope(
@@ -1564,6 +1567,73 @@ class WebSocketChannel(BaseChannel):
             size=size,
             truncated=truncated,
             content=content,
+        )
+
+    async def _handle_activity_replay_envelope(
+        self,
+        connection: Any,
+        envelope: dict[str, Any],
+    ) -> None:
+        """Replay the in-flight file-edit / failover slice for *chat_id*.
+
+        WebUI clients call this on attach so refreshing mid-turn restores
+        the chip cluster instead of staring at a bare assistant bubble.
+        Returns only events recorded *after* the most recent turn boundary
+        — completed turns already have their assistant content in the
+        session JSONL replay; replaying their chips would just clutter the
+        thread with floating cluster rows at the wrong position.
+
+        Persistence is best-effort — a missing transcript returns
+        ``events=[]`` rather than an error.
+        """
+        from pythinker.webui.activity_transcript import (
+            DEFAULT_REPLAY_EVENTS,
+            read_webui_activity_transcript,
+        )
+
+        request_id = envelope.get("request_id")
+        cid = envelope.get("chat_id")
+
+        async def _error(detail: str) -> None:
+            await self._send_event(
+                connection,
+                "webui_activity_replay_error",
+                request_id=request_id,
+                detail=detail,
+            )
+
+        if not _is_valid_chat_id(cid):
+            await _error("invalid chat_id")
+            return
+
+        raw_max = envelope.get("max_events")
+        max_events: int = DEFAULT_REPLAY_EVENTS
+        if isinstance(raw_max, int) and raw_max > 0:
+            max_events = raw_max
+
+        try:
+            full = read_webui_activity_transcript(cid, max_events=max_events)
+        except Exception as exc:  # noqa: BLE001
+            await _error(str(exc))
+            return
+
+        # Trim to the slice after the most recent ``turn_boundary``: those
+        # events belong to the (possibly in-flight) current turn. An idle
+        # session whose last record is a boundary returns ``[]`` here, which
+        # is correct — there's no in-flight chip cluster to restore.
+        trimmed: list[dict[str, Any]] = []
+        for record in reversed(full):
+            if record.get("kind") == "turn_boundary":
+                break
+            trimmed.append(record)
+        trimmed.reverse()
+
+        await self._send_event(
+            connection,
+            "webui_activity_replay",
+            request_id=request_id,
+            chat_id=cid,
+            events=trimmed,
         )
 
     async def _handle_admin_config_envelope(

@@ -14,6 +14,7 @@ const fakeClient = {
   onError: vi.fn(() => () => {}),
   newChat: vi.fn().mockResolvedValue("abcd"),
   sendMessage: vi.fn(),
+  requestActivityReplay: vi.fn(),
 };
 
 function wrapper({ children }: { children: ReactNode }) {

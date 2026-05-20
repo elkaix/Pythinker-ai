@@ -22,6 +22,7 @@ function makeClient() {
       for (const h of errorHandlers) h(err);
     },
     sendMessage: vi.fn(),
+    requestActivityReplay: vi.fn(),
     newChat: vi.fn(),
     attach: vi.fn(),
     connect: vi.fn(),

@@ -458,6 +458,78 @@ export function usePythinkerStream(
         ]);
         return;
       }
+      if (ev.event === "webui_activity_replay") {
+        // Refresh-survival: rebuild the in-flight chip cluster from the
+        // persisted slice. The server already trimmed to events after the
+        // most recent turn boundary, so a non-empty payload means the turn
+        // is still in flight (or just finished and the live ``stream_end``
+        // will arrive shortly and freeze the cluster via the existing path).
+        if (ev.chat_id !== chatId) return;
+        const seeded = new Map<string, FileEditActivity>(
+          cluster.current ? cluster.current.activities : [],
+        );
+        for (const record of ev.events) {
+          if (record.kind !== "file_activity") continue;
+          const a = record.activity;
+          if (!a.call_id) continue;
+          const prev = seeded.get(a.call_id);
+          // Phase state machine: a late ``start`` arriving after ``end`` /
+          // ``error`` (e.g. live event arrived first then replay landed)
+          // is silently dropped. Otherwise overwrite — most-recent wins.
+          if (prev && prev.phase !== "start" && a.phase === "start") continue;
+          seeded.set(a.call_id, {
+            call_id: a.call_id,
+            tool: a.tool,
+            path: a.path,
+            phase: a.phase,
+            status: a.status,
+            added: typeof a.added === "number" ? a.added : 0,
+            deleted: typeof a.deleted === "number" ? a.deleted : 0,
+            approximate: !!a.approximate,
+            binary: !!a.binary,
+            error: a.error,
+            updatedAt: Date.now(),
+          });
+        }
+        if (seeded.size === 0) return;
+        const placeholderId = buffer.current?.messageId;
+        const frozen = Array.from(seeded.values());
+        if (cluster.current) {
+          // Live events already spawned a cluster row — just patch its
+          // activities list with the merged set.
+          const clusterId = cluster.current.messageId;
+          cluster.current.activities = seeded;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === clusterId ? { ...m, activities: frozen } : m,
+            ),
+          );
+          return;
+        }
+        const newId = crypto.randomUUID();
+        cluster.current = { messageId: newId, activities: seeded };
+        const next: UIMessage = {
+          id: newId,
+          role: "tool",
+          content: "",
+          kind: "file_activity_cluster",
+          isStreaming: true,
+          createdAt: Date.now(),
+          activities: frozen,
+        };
+        setMessages((prev) => {
+          const idx = placeholderId
+            ? prev.findIndex((m) => m.id === placeholderId)
+            : -1;
+          if (idx < 0) return [...prev, next];
+          return [...prev.slice(0, idx), next, ...prev.slice(idx)];
+        });
+        return;
+      }
+      if (ev.event === "webui_activity_replay_error") {
+        // Replay is a UX nicety, not a correctness gate — swallow.
+        return;
+      }
       if (ev.event === "error") {
         // Server rejected the request — clear the typing-dots placeholder so
         // the user isn't stuck staring at it. The dedicated error UI is driven
@@ -479,6 +551,10 @@ export function usePythinkerStream(
     };
 
     const unsub = client.onChat(chatId, handle);
+    // Ask for the in-flight activity slice so refresh mid-turn restores the
+    // chip cluster. Fire-and-forget — the response routes through ``handle``
+    // as ``webui_activity_replay`` (or is silently dropped on error).
+    client.requestActivityReplay(chatId);
     return () => {
       unsub();
       cancelFlush();
