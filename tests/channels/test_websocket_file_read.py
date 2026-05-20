@@ -36,7 +36,9 @@ def bus() -> MagicMock:
 @pytest.fixture()
 def workspace(tmp_path: Path) -> Path:
     (tmp_path / "pkg").mkdir()
-    (tmp_path / "pkg" / "mod.py").write_text("print('hello')\n", encoding="utf-8")
+    # write_bytes avoids Windows text-mode CRLF translation; the handler reads
+    # bytes raw, so the on-disk content is what the client sees.
+    (tmp_path / "pkg" / "mod.py").write_bytes(b"print('hello')\n")
     (tmp_path / "secrets.bin").write_bytes(b"\x00\x01\x02ABC")
     return tmp_path
 
