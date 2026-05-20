@@ -1045,12 +1045,12 @@ class TestHandleDataMessageGroup:
         assert handled[0]["metadata"]["group_id"] == "grp=="
 
     async def test_bot_account_alias_learned_from_incoming(self):
-        ch, handled = self._make_group_channel(require_mention=False)
-        # If the bot's own UUID appears in an envelope we learn it
+        ch, _ = self._make_group_channel(require_mention=False)
+        # If the bot's own UUID appears in an envelope we learn it.
+        # _make_group_channel already installs async _handle_message and
+        # _start_typing stubs; re-patching with sync lambdas would TypeError
+        # under await (silently swallowed by _safe_handle) and mask coverage.
         params = _dm_envelope(source_number="+10000000000", source_uuid="new-bot-uuid")
-        # DMs from self are processed (learning alias), but DM policy is open
-        ch._handle_message = lambda **kw: handled.append(kw)  # type: ignore[method-assign]
-        ch._start_typing = lambda chat_id: None  # type: ignore[method-assign]
         await ch._handle_receive_notification(params)
         assert ch._id_matches_account("new-bot-uuid")
 
