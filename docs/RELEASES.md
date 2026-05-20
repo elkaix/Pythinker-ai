@@ -53,7 +53,7 @@ None planned. A major release requires a 30-day announcement window
 |---------|------------|--------|-------|
 | 2.5.0   | 2026-05-17 | minor  | Provider-aware model metadata, context-window budgeting, usage-cost estimates, and context assembly hardening. |
 | 2.4.0   | 2026-05-15 | minor  | Onboarding timeline refresh, mascot rebrand, and persisted slash-command history. |
-| 2.3.0   | 2026-05-14 | minor  | WhatsApp voice media, safer ingress checks, and Upstream upstream audit fixes. |
+| 2.3.0   | 2026-05-14 | minor  | WhatsApp voice media, safer ingress checks, and upstream audit fixes. |
 | 2.2.0   | 2026-05-06 | minor  | Multi-agent workspace layout, `/init`, subagent tasks, and WebUI admin controls. |
 | 2.1.1   | 2026-05-03 | patch  | WebUI empty stream-end cleanup, generated title cleanup, lint hygiene, and PyPI metadata fixes. |
 | 2.1.0   | 2026-05-02 | minor  | Config Workbench admin UI, smoother WebUI streaming, Streamdown rendering, and chat UX upgrades. |

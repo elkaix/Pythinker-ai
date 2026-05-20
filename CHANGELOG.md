@@ -157,8 +157,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 - WhatsApp voice messages now download bridge-side `audioMessage` media so the
   Python channel can transcribe them when voice transcription is configured.
-- Added `docs/upstream-upstream-audit.md`, tracking recent upstream Upstream
-  fixes that were ported, already present, deferred, or not applicable.
+- Added an internal upstream audit log tracking fixes that were ported,
+  already present, deferred, or not applicable.
 
 ### Changed
 
