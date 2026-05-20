@@ -225,6 +225,7 @@ class GitHubCopilotProvider(OpenAICompatProvider):
     async def _refresh_client_api_key(self) -> str:
         token = await self._get_copilot_access_token()
         self.api_key = token
+        await self._ensure_client()
         self._client.api_key = token
         return token
 

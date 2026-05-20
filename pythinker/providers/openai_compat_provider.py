@@ -14,15 +14,7 @@ from typing import TYPE_CHECKING, Any
 import json_repair
 from loguru import logger
 
-if os.environ.get("LANGFUSE_SECRET_KEY") and importlib.util.find_spec("langfuse"):
-    from langfuse.openai import AsyncOpenAI
-else:
-    if os.environ.get("LANGFUSE_SECRET_KEY"):
-        logger.warning(
-            "LANGFUSE_SECRET_KEY is set but langfuse is not installed; "
-            "install with `pip install langfuse` to enable tracing"
-        )
-    from openai import AsyncOpenAI
+AsyncOpenAI: Any = None  # populated lazily by _build_client() on first use
 
 from pythinker.providers._message_sanitize import (
     ALLOWED_MSG_KEYS,
@@ -234,12 +226,10 @@ class OpenAICompatProvider(LLMProvider):
         if extra_headers:
             default_headers.update(extra_headers)
 
-        self._client = AsyncOpenAI(
-            api_key=api_key or "no-key",
-            base_url=effective_base,
-            default_headers=default_headers,
-            max_retries=0,
-        )
+        self._api_key_for_client = api_key or "no-key"
+        self._default_headers_for_client = default_headers
+        self._client: Any = None
+        self._client_lock = asyncio.Lock()
 
         # Responses API circuit breaker: skip after repeated failures,
         # probe again after _RESPONSES_PROBE_INTERVAL_S seconds.
@@ -259,6 +249,34 @@ class OpenAICompatProvider(LLMProvider):
         for env_name, env_val in spec.env_extras:
             resolved = env_val.replace("{api_key}", api_key).replace("{api_base}", effective_base)
             os.environ.setdefault(env_name, resolved)
+
+    def _build_client(self) -> Any:
+        """Import AsyncOpenAI on first use and return a new client instance."""
+        global AsyncOpenAI
+        if AsyncOpenAI is None:
+            if os.environ.get("LANGFUSE_SECRET_KEY") and importlib.util.find_spec("langfuse"):
+                from langfuse.openai import AsyncOpenAI as _cls
+            else:
+                if os.environ.get("LANGFUSE_SECRET_KEY"):
+                    logger.warning(
+                        "LANGFUSE_SECRET_KEY is set but langfuse is not installed; "
+                        "install with `pip install langfuse` to enable tracing"
+                    )
+                from openai import AsyncOpenAI as _cls
+            AsyncOpenAI = _cls
+        return AsyncOpenAI(
+            api_key=self._api_key_for_client,
+            base_url=self._effective_base,
+            default_headers=self._default_headers_for_client,
+            max_retries=0,
+        )
+
+    async def _ensure_client(self) -> None:
+        """Initialize self._client on first use (double-checked locking)."""
+        if self._client is None:
+            async with self._client_lock:
+                if self._client is None:
+                    self._client = self._build_client()
 
     @classmethod
     def _apply_cache_control(
@@ -941,6 +959,7 @@ class OpenAICompatProvider(LLMProvider):
         reasoning_effort: str | None = None,
         tool_choice: str | dict[str, Any] | None = None,
     ) -> LLMResponse:
+        await self._ensure_client()
         try:
             if self._should_use_responses_api(model, reasoning_effort):
                 try:
@@ -981,6 +1000,7 @@ class OpenAICompatProvider(LLMProvider):
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
         on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
+        await self._ensure_client()
         idle_timeout_s = int(os.environ.get("PYTHINKER_STREAM_IDLE_TIMEOUT_S", "90"))
         try:
             if self._should_use_responses_api(model, reasoning_effort):

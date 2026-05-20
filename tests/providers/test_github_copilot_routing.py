@@ -65,14 +65,14 @@ async def test_github_copilot_does_not_fall_back_from_responses_error():
 
     with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI", return_value=mock_client):
         provider = GitHubCopilotProvider(default_model="github_copilot/gpt-5.4-mini")
-    provider._get_copilot_access_token = AsyncMock(return_value="copilot-access-token")
+        provider._get_copilot_access_token = AsyncMock(return_value="copilot-access-token")
 
-    response = await provider.chat(
-        messages=[{"role": "user", "content": "hi"}],
-        model="github_copilot/gpt-5.4-mini",
-        max_tokens=16,
-        temperature=0.1,
-    )
+        response = await provider.chat(
+            messages=[{"role": "user", "content": "hi"}],
+            model="github_copilot/gpt-5.4-mini",
+            max_tokens=16,
+            temperature=0.1,
+        )
 
     assert response.finish_reason == "error"
     mock_client.responses.create.assert_awaited_once()
