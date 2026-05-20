@@ -17,7 +17,7 @@
 
 > Powered by a tiny, multiplexing agent loop: one Python process listens to Slack, Telegram, Discord, WhatsApp, Matrix, MS Teams, email, a WebSocket WebUI, and an OpenAI-compatible HTTP API — all backed by a single session-scoped memory layer.
 
-> **What's new in 2.5.1** — WhatsApp now shows typing presence during agent turns, can send read receipts, supports direct-message pairing codes and group allowlists, and adds safer bridge reconnect/socket tuning plus outbound text/media controls. See the [changelog](CHANGELOG.md) for details.
+> **What's new in 2.5.2** — Live file-edit chips in the WebUI now stream added/deleted line counts while the model is still emitting tool-call JSON, with a turn-scoped cluster above the assistant bubble, a read-only file viewer, and refresh-survival. New `agents.defaults.fallbackModels` drives transparent provider failover with a circuit breaker and a WebUI toast; Config Workbench gains live secret-mask hints and a pending-restart banner; WhatsApp media, bridge port handling, and reconnect backoff are hardened. See the [changelog](CHANGELOG.md) for details.
 
 ## 💡 Key Features
 
