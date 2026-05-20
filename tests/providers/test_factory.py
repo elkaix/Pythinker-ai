@@ -7,6 +7,7 @@ can be detected, hot-reloaded, or audited from one place.
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import patch
 
 import pytest
@@ -103,7 +104,8 @@ def test_preset_forced_provider_uses_forced_credentials():
     cfg.agents.defaults.model_preset = "pinned"
 
     with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI") as mock_oai:
-        make_provider(cfg)
+        provider = make_provider(cfg)
+        asyncio.run(provider._ensure_client())
 
     api_key = mock_oai.call_args.kwargs["api_key"]
     assert api_key == "sk-openai-right", (
@@ -172,7 +174,8 @@ def test_huggingface_routes_via_openai_compat_with_router_base_url():
     """HF Inference Providers ship as a gateway entry, default base = router URL."""
     cfg = _config("huggingface/Qwen/Qwen2.5-72B-Instruct", huggingface={"apiKey": "hf_test"})
     with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI") as mock_client:
-        make_provider(cfg)
+        provider = make_provider(cfg)
+        asyncio.run(provider._ensure_client())
     # Confirm the api_base passed to AsyncOpenAI is the HF router endpoint.
     base_url = mock_client.call_args.kwargs.get("base_url") or mock_client.call_args.kwargs.get("api_base")
     assert "huggingface" in (base_url or "")

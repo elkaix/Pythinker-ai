@@ -124,12 +124,13 @@ def test_openrouter_spec_is_gateway() -> None:
 def test_openrouter_sets_default_attribution_headers() -> None:
     spec = find_by_name("openrouter")
     with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI") as mock_client:
-        OpenAICompatProvider(
+        provider = OpenAICompatProvider(
             api_key="sk-or-test-key",
             api_base="https://openrouter.ai/api/v1",
             default_model="anthropic/claude-sonnet-4-5",
             spec=spec,
         )
+        asyncio.run(provider._ensure_client())
 
     headers = mock_client.call_args.kwargs["default_headers"]
     assert headers["HTTP-Referer"] == "https://pythinker.ai"
@@ -141,7 +142,7 @@ def test_openrouter_sets_default_attribution_headers() -> None:
 def test_openrouter_user_headers_override_default_attribution() -> None:
     spec = find_by_name("openrouter")
     with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI") as mock_client:
-        OpenAICompatProvider(
+        provider = OpenAICompatProvider(
             api_key="sk-or-test-key",
             api_base="https://openrouter.ai/api/v1",
             default_model="anthropic/claude-sonnet-4-5",
@@ -152,6 +153,7 @@ def test_openrouter_user_headers_override_default_attribution() -> None:
             },
             spec=spec,
         )
+        asyncio.run(provider._ensure_client())
 
     headers = mock_client.call_args.kwargs["default_headers"]
     assert headers["HTTP-Referer"] == "https://pythinker.ai"
