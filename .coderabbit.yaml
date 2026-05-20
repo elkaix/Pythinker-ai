@@ -41,21 +41,9 @@ reviews:
     ignore_title_keywords: ["WIP", "DO NOT MERGE"]
     ignore_usernames: ["renovate[bot]", "dependabot[bot]"]
 
-  # Exclude generated or low-value review surfaces, while explicitly keeping
-  # dependency manifests/lockfiles visible where they matter.
+  # Inclusions first, exclusions last — CodeRabbit uses last-match-wins semantics,
+  # so exclusions must appear after inclusions to take effect.
   path_filters:
-    - "!pythinker/web/dist/**"
-    - "!webui/dist/**"
-    - "!bridge/dist/**"
-    - "!dist/**"
-    - "!**/node_modules/**"
-    - "!**/__pycache__/**"
-    - "!**/.pytest_cache/**"
-    - "!**/.ruff_cache/**"
-    - "!graphify-out/**"
-    - "!case/**"
-    - "!images/**"
-    - "!sync/**"
     - "pythinker/**"
     - "tests/**"
     - "webui/src/**"
@@ -77,6 +65,19 @@ reviews:
     - "SECURITY.md"
     - "CONTRIBUTING.md"
     - "AGENTS.md"
+    - ".coderabbit.yaml"
+    - "!pythinker/web/dist/**"
+    - "!webui/dist/**"
+    - "!bridge/dist/**"
+    - "!dist/**"
+    - "!**/node_modules/**"
+    - "!**/__pycache__/**"
+    - "!**/.pytest_cache/**"
+    - "!**/.ruff_cache/**"
+    - "!graphify-out/**"
+    - "!case/**"
+    - "!images/**"
+    - "!sync/**"
 
   path_instructions:
     - path: "pythinker/agent/loop.py"
