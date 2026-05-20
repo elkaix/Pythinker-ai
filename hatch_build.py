@@ -31,12 +31,13 @@ class WebUIFreshnessHook(BuildHookInterface):
             # Repo without the hash script (older checkout). Skip.
             return
 
-        if not hash_file.is_file():
-            sys.stderr.write(
-                "WebUIFreshnessHook: pythinker/web/dist/source-hash.txt is missing.\n"
-                "  Rebuild the WebUI before packaging: cd webui && bun run build\n"
-            )
-            raise SystemExit(1)
+        if not dist_dir.is_dir() or not hash_file.is_file():
+            # No dist yet — either an editable install in CI before the WebUI
+            # bundle is built, or someone running `pip install .` without first
+            # running `bun run build`. This hook only catches *stale* dist; the
+            # missing-bundle case is enforced separately by
+            # `scripts/check_wheel_webui.py` against built wheels before publish.
+            return
 
         # Import the hash function directly to avoid a subprocess hop.
         sys.path.insert(0, str(root / "scripts"))
