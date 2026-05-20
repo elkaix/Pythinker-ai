@@ -160,7 +160,7 @@ function FileReferenceIcon({ kind }: { kind: FileReferenceKind }) {
   if (kind === "react") {
     return (
       <svg
-        aria-hidden
+        aria-hidden="true"
         className="h-[0.98em] w-[0.98em] shrink-0 text-sky-500 dark:text-sky-300"
         viewBox="0 0 24 24"
         fill="none"
@@ -169,6 +169,7 @@ function FileReferenceIcon({ kind }: { kind: FileReferenceKind }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
+        <title>React file</title>
         <circle cx="12" cy="12" r="1.9" fill="currentColor" stroke="none" />
         <ellipse cx="12" cy="12" rx="9" ry="3.7" />
         <ellipse cx="12" cy="12" rx="9" ry="3.7" transform="rotate(60 12 12)" />
@@ -179,7 +180,7 @@ function FileReferenceIcon({ kind }: { kind: FileReferenceKind }) {
   if (kind === "default") {
     return (
       <svg
-        aria-hidden
+        aria-hidden="true"
         className="h-[0.98em] w-[0.98em] shrink-0 text-sky-500 dark:text-sky-300"
         viewBox="0 0 24 24"
         fill="none"
@@ -188,6 +189,7 @@ function FileReferenceIcon({ kind }: { kind: FileReferenceKind }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       >
+        <title>File</title>
         <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" />
         <path d="M14 2v5h5" />
       </svg>
