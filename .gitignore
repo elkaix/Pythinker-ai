@@ -55,6 +55,12 @@ tasks/
 
 # Build & packaging
 dist/
+# The bundled WebUI lives under pythinker/web/dist; the dir itself must exist
+# on fresh checkouts so editable installs do not fail the hatch force-include.
+# Un-ignore the dir, re-ignore everything inside it, then exempt the .gitkeep.
+!pythinker/web/dist/
+pythinker/web/dist/*
+!pythinker/web/dist/.gitkeep
 build/
 *.manifest
 *.spec

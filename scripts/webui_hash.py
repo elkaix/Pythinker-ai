@@ -75,6 +75,16 @@ def compute_hash() -> str:
 
 def cmd_write() -> int:
     DIST.mkdir(parents=True, exist_ok=True)
+    # Vite's `emptyOutDir: true` clears DIST on every build, including the
+    # tracked .gitkeep placeholder. Re-write it here so the dir keeps existing
+    # on fresh checkouts after a local rebuild.
+    gitkeep = DIST / ".gitkeep"
+    if not gitkeep.exists():
+        gitkeep.write_text(
+            "# Placeholder so the WebUI dist directory always exists on fresh\n"
+            "# checkouts. `bun run build` (cd webui && bun run build) populates\n"
+            "# this directory with the real bundle.\n"
+        )
     h = compute_hash()
     HASH_FILE.write_text(h + "\n")
     print(f"wrote {HASH_FILE.relative_to(REPO_ROOT)}: {h[:16]}…", file=sys.stderr)
