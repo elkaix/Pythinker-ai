@@ -80,4 +80,9 @@ BUILTIN_COMMAND_METADATA: tuple[CommandMeta, ...] = (
         "/init",
         "Walk this project and write a tuned AGENTS.md at the repo root",
     ),
+    CommandMeta(
+        "/pairing",
+        "List, approve, deny or revoke DM pairing requests",
+        usage="/pairing [list|approve <code>|deny <code>|revoke <user>]",
+    ),
 )

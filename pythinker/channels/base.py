@@ -10,6 +10,12 @@ from loguru import logger
 
 from pythinker.bus.events import InboundMessage, OutboundMessage
 from pythinker.bus.queue import MessageBus
+from pythinker.pairing import (
+    PAIRING_CODE_META_KEY,
+    format_pairing_reply,
+    generate_code,
+    is_approved,
+)
 
 
 class BaseChannel(ABC):
@@ -37,6 +43,7 @@ class BaseChannel(ABC):
         """
         self.config = config
         self.bus = bus
+        self.logger = logger.bind(channel=self.name)
         self._running = False
 
     async def transcribe_audio(self, file_path: str | Path) -> str:
@@ -125,20 +132,22 @@ class BaseChannel(ABC):
         return bool(streaming) and type(self).send_delta is not BaseChannel.send_delta
 
     def is_allowed(self, sender_id: str) -> bool:
-        """Check if *sender_id* is permitted.  Empty list → deny all; ``"*"`` → allow all."""
+        """Check sender permission: star > allowlist > pairing store > deny."""
         if isinstance(self.config, dict):
-            if "allow_from" in self.config:
-                allow_list = self.config.get("allow_from")
-            else:
-                allow_list = self.config.get("allowFrom", [])
+            allow_list = (
+                self.config.get("allow_from")
+                or self.config.get("allowFrom")
+                or []
+            )
         else:
-            allow_list = getattr(self.config, "allow_from", [])
-        if not allow_list:
-            logger.warning("{}: allow_from is empty — all access denied", self.name)
-            return False
+            allow_list = getattr(self.config, "allow_from", None) or []
         if "*" in allow_list:
             return True
-        return str(sender_id) in allow_list
+        if str(sender_id) in allow_list:
+            return True
+        if is_approved(self.name, str(sender_id)):
+            return True
+        return False
 
     async def _handle_message(
         self,
@@ -148,6 +157,7 @@ class BaseChannel(ABC):
         media: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
         session_key: str | None = None,
+        is_dm: bool = False,
     ) -> None:
         """
         Handle an incoming message from the chat platform.
@@ -163,13 +173,31 @@ class BaseChannel(ABC):
             media: Optional list of media URLs.
             metadata: Optional channel-specific metadata.
             session_key: Optional session key override (e.g. thread-scoped sessions).
+            is_dm: True when this message is a direct message; on denial the
+                base class issues a one-time pairing code so the owner can
+                approve the sender via ``/pairing approve <code>``.
         """
         if not self.is_allowed(sender_id):
-            logger.warning(
-                "Access denied for sender {} on channel {}. "
-                "Add them to allowFrom list in config to grant access.",
-                sender_id, self.name,
-            )
+            if is_dm:
+                code = generate_code(self.name, str(sender_id))
+                await self.send(
+                    OutboundMessage(
+                        channel=self.name,
+                        chat_id=str(chat_id),
+                        content=format_pairing_reply(code),
+                        metadata={PAIRING_CODE_META_KEY: code},
+                    )
+                )
+                logger.info(
+                    "Sent pairing code {} to sender {} in chat {}",
+                    code, sender_id, chat_id,
+                )
+            else:
+                logger.warning(
+                    "Access denied for sender {} on channel {}. "
+                    "Add them to allowFrom list in config to grant access.",
+                    sender_id, self.name,
+                )
             return
 
         meta = metadata or {}

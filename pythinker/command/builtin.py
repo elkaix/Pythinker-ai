@@ -39,6 +39,7 @@ from pythinker.command.builtins.format import (
     _format_task_row,  # noqa: F401  (kept for backwards compatibility)
 )
 from pythinker.command.builtins.init import cmd_init
+from pythinker.command.builtins.pairing import cmd_pairing
 from pythinker.command.builtins.lifecycle import (
     _cmd_restart_impl,
     _cmd_upgrade_impl,
@@ -107,3 +108,5 @@ def register_builtin_commands(router: CommandRouter) -> None:
     router.exact("/logout", cmd_logout)
     router.prefix("/logout ", cmd_logout)
     router.exact("/init", cmd_init)
+    router.exact("/pairing", cmd_pairing)
+    router.prefix("/pairing ", cmd_pairing)

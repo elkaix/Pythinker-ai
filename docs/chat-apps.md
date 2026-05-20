@@ -11,6 +11,7 @@ Connect pythinker to your favorite chat platform. Want to build your own? See th
 | **Matrix** | Homeserver URL + Access token |
 | **Email** | IMAP/SMTP credentials |
 | **Microsoft Teams** | App ID + App Password + public HTTPS endpoint |
+| **Signal** | signal-cli daemon + phone number |
 
 <details>
 <summary><b>Telegram</b> (Recommended)</summary>
@@ -382,6 +383,65 @@ Create or reuse a Microsoft Teams / Azure bot app registration. Set the bot mess
 > - `validateInboundAuth: true` enables inbound Bot Framework bearer-token validation (signature, issuer, audience, lifetime, `serviceUrl`). This is the safe default for public deployments. Only set it to `false` for local development or tightly controlled testing.
 
 **4. Run**
+
+```bash
+pythinker gateway
+```
+
+</details>
+
+<details>
+<summary><b>Signal</b></summary>
+
+Uses **signal-cli** daemon in HTTP mode — receive messages via SSE, send via JSON-RPC.
+
+**1. Install signal-cli**
+
+Install [signal-cli](https://github.com/AsamK/signal-cli) and register a phone number:
+
+```bash
+signal-cli -u +1234567890 register
+signal-cli -u +1234567890 verify <CODE>
+```
+
+Start the daemon:
+
+```bash
+signal-cli -a +1234567890 daemon --http localhost:8080
+```
+
+**2. Configure**
+
+```json
+{
+  "channels": {
+    "signal": {
+      "enabled": true,
+      "phoneNumber": "+1234567890",
+      "daemonHost": "localhost",
+      "daemonPort": 8080,
+      "dm": {
+        "enabled": true,
+        "policy": "open"
+      },
+      "group": {
+        "enabled": true,
+        "policy": "open",
+        "requireMention": true
+      }
+    }
+  }
+}
+```
+
+DM and group access are configured independently:
+
+- `dm.policy`: `open` (allow any DM sender) or `allowlist` (only `dm.allowFrom`). Unknown DM senders get a one-time pairing code; approve with `/pairing approve <code>` from a chat the bot already responds in.
+- `group.policy`: `open` (operate in any group) or `allowlist` (only `group.allowFrom`).
+- `group.requireMention`: when `true` (default), the bot only responds in groups when mentioned.
+- `attachmentsDir`: override the directory `signal-cli` writes inbound attachments to (defaults to `~/.local/share/signal-cli/attachments` on Linux).
+
+**3. Run**
 
 ```bash
 pythinker gateway

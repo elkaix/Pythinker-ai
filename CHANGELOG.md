@@ -6,6 +6,21 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+### Added
+
+- **Signal channel** adapter using the `signal-cli` daemon (HTTP/SSE). Supports
+  DMs and group chats with independent open/allowlist policies, markdown→Signal
+  text-style conversion (with UTF-16 offsets), typing indicators, attachment
+  handling, group-message context buffering, and automatic reconnect with
+  exponential backoff. See `docs/chat-apps.md` for setup.
+- **DM pairing system** — first-time DM senders on any channel now receive a
+  one-time pairing code; the owner approves via `/pairing approve <code>` and
+  the sender is added to the channel's persistent approval list at
+  `~/.pythinker/pairing.json`. New `/pairing` slash command supports
+  `list | approve | deny | revoke`.
+- `BaseChannel` instances now expose `self.logger` (a loguru logger bound with
+  `channel=<name>`) so per-channel diagnostics carry context automatically.
+
 ## [2.5.2] - 2026-05-19
 
 ### Added
