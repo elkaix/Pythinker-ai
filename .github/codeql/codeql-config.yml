@@ -1,0 +1,26 @@
+name: "Pythinker CodeQL"
+
+queries:
+  - uses: security-and-quality
+
+paths:
+  - pythinker
+  - tests
+  - scripts
+  - webui/src
+  - bridge/src
+  - .github/workflows
+
+paths-ignore:
+  - pythinker/web/dist/**
+  - webui/dist/**
+  - bridge/dist/**
+  - dist/**
+  - "**/node_modules/**"
+  - "**/__pycache__/**"
+  - "**/.pytest_cache/**"
+  - "**/.ruff_cache/**"
+  - tests/snapshots/**
+  - graphify-out/**
+  - case/**
+  - images/**
