@@ -6,6 +6,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-05-20
+
 ### Added
 
 - **Signal channel** adapter using the `signal-cli` daemon (HTTP/SSE). Supports
@@ -20,6 +22,15 @@ All notable user-visible changes to Pythinker land here. The project follows
   `list | approve | deny | revoke`.
 - `BaseChannel` instances now expose `self.logger` (a loguru logger bound with
   `channel=<name>`) so per-channel diagnostics carry context automatically.
+- Channel modules are now loaded lazily via `discover_enabled()`: only modules
+  for explicitly enabled channels are imported, skipping heavy SDK imports
+  (telegram, discord, slack, etc.) at startup.
+
+### Performance
+
+- OpenAI-compatible provider clients (`AsyncOpenAI`) are now initialized on first
+  use instead of at provider construction time, saving ~700 ms cold-start cost
+  from the openai + httpx import chain.
 
 ### Fixed
 
@@ -27,6 +38,12 @@ All notable user-visible changes to Pythinker land here. The project follows
   Anthropic SDK raises `ValueError("Streaming is required for operations that may
   take longer than 10 minutes...")` for non-stream `messages.create` calls. Long
   generations no longer surface this provider-specific error to callers.
+- Shell tool commands now detach stdin (`stdin=DEVNULL`) so interactive prompts no
+  longer block agent turns.
+- Skywork provider `default_api_base` corrected from `/v1` to `/agent/v1`.
+- Packaging: WebUI dist files are now declared via hatch `artifacts` instead of
+  duplicate `include` + `force-include` directives, fixing a duplicate-filename
+  error that caused PyPI to reject the 2.5.2 wheel upload.
 
 ## [2.5.2] - 2026-05-19
 
