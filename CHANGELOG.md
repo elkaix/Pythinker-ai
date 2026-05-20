@@ -21,6 +21,13 @@ All notable user-visible changes to Pythinker land here. The project follows
 - `BaseChannel` instances now expose `self.logger` (a loguru logger bound with
   `channel=<name>`) so per-channel diagnostics carry context automatically.
 
+### Fixed
+
+- `AnthropicProvider.chat()` now transparently retries via `chat_stream` when the
+  Anthropic SDK raises `ValueError("Streaming is required for operations that may
+  take longer than 10 minutes...")` for non-stream `messages.create` calls. Long
+  generations no longer surface this provider-specific error to callers.
+
 ## [2.5.2] - 2026-05-19
 
 ### Added
