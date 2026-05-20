@@ -6,6 +6,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-05-19
+
 ### Added
 
 - File-edit chips now animate added/deleted line counts *while the model is
