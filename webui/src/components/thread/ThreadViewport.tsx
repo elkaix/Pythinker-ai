@@ -74,18 +74,27 @@ export function ThreadViewport({
     if (!scrollTarget) return;
     const el = scrollRef.current;
     if (!el) return;
+    // Map the server JSONL index to a message ID. Client-side virtual rows
+    // (file_activity_cluster) are injected and don't exist in the session
+    // JSONL, so filtering them out restores index alignment with the server.
+    const jsonlMessages = messages.filter((m) => m.kind !== "file_activity_cluster");
+    const targetMsg = jsonlMessages[scrollTarget.messageIndex];
+    if (!targetMsg) return;
     const target = el.querySelector<HTMLElement>(
-      `[data-message-index="${scrollTarget.messageIndex}"]`,
+      `[data-message-id="${targetMsg.id}"]`,
     );
     if (!target) return;
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     // Brief flash highlight so the user sees what was matched.
     target.classList.add("ring-2", "ring-amber-400/70", "transition-shadow");
     const id = window.setTimeout(() => {
-      target.classList.remove("ring-2", "ring-amber-400/70");
+      target.classList.remove("ring-2", "ring-amber-400/70", "transition-shadow");
     }, 1_500);
-    return () => window.clearTimeout(id);
-  }, [scrollTarget?.messageIndex, scrollTarget?.token, scrollRef]);
+    return () => {
+      window.clearTimeout(id);
+      target.classList.remove("ring-2", "ring-amber-400/70", "transition-shadow");
+    };
+  }, [scrollTarget?.messageIndex, scrollTarget?.token, scrollRef, messages]);
 
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden">

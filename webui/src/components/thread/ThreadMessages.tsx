@@ -40,10 +40,10 @@ export function ThreadMessages({
   const renderable = messages.filter(isRenderable);
   return (
     <div className="flex w-full flex-col gap-3">
-      {renderable.map((message, index) => (
+      {renderable.map((message) => (
         <div
           key={message.id}
-          data-message-index={index}
+          data-message-id={message.id}
           className="rounded-md"
         >
           {message.kind === "file_activity_cluster" ? (

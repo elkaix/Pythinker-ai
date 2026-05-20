@@ -58,7 +58,6 @@ class _FakeConnection:
         self.sent.append(json.loads(raw))
 
 
-@pytest.mark.asyncio
 async def test_file_read_refused_for_non_admin(
     bus: MagicMock, admin_service: MagicMock
 ) -> None:
@@ -73,7 +72,6 @@ async def test_file_read_refused_for_non_admin(
     assert conn.sent[0]["detail"] == "admin token required"
 
 
-@pytest.mark.asyncio
 async def test_file_read_returns_text_for_workspace_relative_path(
     bus: MagicMock, admin_service: MagicMock
 ) -> None:
@@ -95,7 +93,6 @@ async def test_file_read_returns_text_for_workspace_relative_path(
     assert event["path"] == "pkg/mod.py"
 
 
-@pytest.mark.asyncio
 async def test_file_read_blocks_path_traversal(
     bus: MagicMock, admin_service: MagicMock, tmp_path: Path
 ) -> None:
@@ -121,7 +118,6 @@ async def test_file_read_blocks_path_traversal(
         outside.unlink(missing_ok=True)
 
 
-@pytest.mark.asyncio
 async def test_file_read_flags_binary_content(
     bus: MagicMock, admin_service: MagicMock
 ) -> None:
@@ -139,7 +135,6 @@ async def test_file_read_flags_binary_content(
     assert event["content"] == ""
 
 
-@pytest.mark.asyncio
 async def test_file_read_truncates_oversize_files(
     bus: MagicMock, admin_service: MagicMock, workspace: Path
 ) -> None:
@@ -159,7 +154,6 @@ async def test_file_read_truncates_oversize_files(
     assert len(event["content"]) == 1_048_576
 
 
-@pytest.mark.asyncio
 async def test_file_read_rejects_directory_path(
     bus: MagicMock, admin_service: MagicMock
 ) -> None:
@@ -175,7 +169,6 @@ async def test_file_read_rejects_directory_path(
     assert conn.sent[0]["detail"] == "not a regular file"
 
 
-@pytest.mark.asyncio
 async def test_file_read_rejects_empty_path(
     bus: MagicMock, admin_service: MagicMock
 ) -> None:

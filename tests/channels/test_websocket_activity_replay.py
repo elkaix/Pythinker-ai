@@ -65,7 +65,6 @@ def _file_activity_payload(call_id: str = "c1") -> dict[str, Any]:
     }
 
 
-@pytest.mark.asyncio
 async def test_replay_returns_empty_events_when_transcript_missing(bus: MagicMock) -> None:
     channel = _ch(bus)
     conn = _FakeConnection()
@@ -86,7 +85,6 @@ async def test_replay_returns_empty_events_when_transcript_missing(bus: MagicMoc
     assert event["events"] == []
 
 
-@pytest.mark.asyncio
 async def test_replay_returns_only_events_after_last_turn_boundary(bus: MagicMock) -> None:
     """Past turns' activity stays buried — only the in-flight slice replays."""
     cid = "websocket:abc"
@@ -115,7 +113,6 @@ async def test_replay_returns_only_events_after_last_turn_boundary(bus: MagicMoc
     assert [e["activity"]["call_id"] for e in event["events"]] == ["c2", "c3"]
 
 
-@pytest.mark.asyncio
 async def test_replay_returns_empty_when_session_is_idle(bus: MagicMock) -> None:
     """A turn that ended cleanly leaves no in-flight slice to restore."""
     cid = "websocket:abc"
@@ -134,7 +131,6 @@ async def test_replay_returns_empty_when_session_is_idle(bus: MagicMock) -> None
     assert event["events"] == []
 
 
-@pytest.mark.asyncio
 async def test_replay_rejects_invalid_chat_id(bus: MagicMock) -> None:
     channel = _ch(bus)
     conn = _FakeConnection()
@@ -153,7 +149,6 @@ async def test_replay_rejects_invalid_chat_id(bus: MagicMock) -> None:
     assert event["detail"] == "invalid chat_id"
 
 
-@pytest.mark.asyncio
 async def test_replay_honors_max_events_cap(bus: MagicMock) -> None:
     cid = "websocket:abc"
     for i in range(20):

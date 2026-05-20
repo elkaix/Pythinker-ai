@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { AlertTriangle, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,7 @@ interface ProviderFailoverToastsProps {
  * notice persists until the user dismisses it; the parent hook handles
  * per-turn dedupe so repeats within the same turn never reach this list. */
 export function ProviderFailoverToasts({ notices, onDismiss, className }: ProviderFailoverToastsProps) {
+  const { t } = useTranslation();
   if (notices.length === 0) return null;
   return (
     <div
@@ -42,7 +44,7 @@ export function ProviderFailoverToasts({ notices, onDismiss, className }: Provid
           <Button
             variant="ghost"
             size="icon"
-            aria-label="Dismiss"
+            aria-label={t("common.dismiss")}
             className="-mr-1 -mt-1 h-6 w-6 text-amber-700 hover:bg-amber-500/15 dark:text-amber-300"
             onClick={() => onDismiss(notice.id)}
           >
