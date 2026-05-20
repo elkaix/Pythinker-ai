@@ -63,25 +63,39 @@ class ChannelManager:
 
     def _init_channels(self) -> None:
         """Initialize channels discovered via pkgutil scan + entry_points plugins."""
-        from pythinker.channels.registry import discover_all
+        from pythinker.channels.registry import discover_channel_names, discover_enabled
 
         transcription_provider = self.config.channels.transcription_provider
         transcription_key = self._resolve_transcription_key(transcription_provider)
         transcription_base = self._resolve_transcription_base(transcription_provider)
         transcription_language = self.config.channels.transcription_language
 
-        for name, cls in discover_all().items():
+        # Collect enabled module names using cheap pkgutil scan, then import
+        # only those — avoids loading heavy SDKs for disabled channels.
+        names = discover_channel_names()
+        candidate_names: set[str] = set(names)
+        extra = getattr(self.config.channels, "__pydantic_extra__", None) or {}
+        candidate_names.update(extra.keys())
+
+        enabled_names: set[str] = set()
+        for name in candidate_names:
+            section = getattr(self.config.channels, name, None)
+            if section is None:
+                if name == "websocket":
+                    enabled_names.add(name)  # websocket defaults to enabled
+                continue
+            if (
+                section.get("enabled", False)
+                if isinstance(section, dict)
+                else getattr(section, "enabled", False)
+            ):
+                enabled_names.add(name)
+
+        for name, cls in discover_enabled(enabled_names, _names=names).items():
             section = getattr(self.config.channels, name, None)
             if section is None and cls.name == "websocket":
                 section = cls.default_config()
             if section is None:
-                continue
-            enabled = (
-                section.get("enabled", False)
-                if isinstance(section, dict)
-                else getattr(section, "enabled", False)
-            )
-            if not enabled:
                 continue
             try:
                 kwargs: dict[str, Any] = {}

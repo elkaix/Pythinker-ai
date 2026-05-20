@@ -206,7 +206,7 @@ async def test_manager_loads_plugin_from_dict_config():
     )
 
     with patch(
-        "pythinker.channels.registry.discover_all",
+        "pythinker.channels.registry.discover_enabled",
         return_value={"fakeplugin": _FakePlugin},
     ):
         mgr = ChannelManager.__new__(ChannelManager)
@@ -236,7 +236,7 @@ async def test_manager_propagates_groq_transcription_api_base_to_channels():
     )
 
     with patch(
-        "pythinker.channels.registry.discover_all",
+        "pythinker.channels.registry.discover_enabled",
         return_value={"fakeplugin": _FakePlugin},
     ):
         mgr = ChannelManager.__new__(ChannelManager)
@@ -272,7 +272,7 @@ async def test_manager_propagates_openai_transcription_api_base_to_channels():
     )
 
     with patch(
-        "pythinker.channels.registry.discover_all",
+        "pythinker.channels.registry.discover_enabled",
         return_value={"fakeplugin": _FakePlugin},
     ):
         mgr = ChannelManager.__new__(ChannelManager)
@@ -529,16 +529,13 @@ async def test_manager_skips_disabled_plugin():
         providers=SimpleNamespace(groq=SimpleNamespace(api_key="")),
     )
 
-    with patch(
-        "pythinker.channels.registry.discover_all",
-        return_value={"fakeplugin": _FakePlugin},
-    ):
-        mgr = ChannelManager.__new__(ChannelManager)
-        mgr.config = fake_config
-        mgr.bus = MessageBus()
-        mgr.channels = {}
-        mgr._dispatch_task = None
-        mgr._init_channels()
+    mgr = ChannelManager.__new__(ChannelManager)
+    mgr.config = fake_config
+    mgr.bus = MessageBus()
+    mgr.channels = {}
+    mgr._dispatch_task = None
+    mgr._uptime_buckets = {}
+    mgr._init_channels()
 
     assert "fakeplugin" not in mgr.channels
 

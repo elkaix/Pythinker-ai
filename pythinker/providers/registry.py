@@ -161,7 +161,7 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         env_extras=(("APIFREE_API_KEY", "{api_key}"),),
         is_gateway=True,
         detect_by_base_keyword="apifree.ai",
-        default_api_base="https://api.apifree.ai/v1",
+        default_api_base="https://api.apifree.ai/agent/v1",
         signup_url="https://www.apifree.ai",
     ),
     # AiHubMix: global gateway, OpenAI-compatible interface.
@@ -449,6 +449,17 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         detect_by_base_keyword="ant-ling.com",
         default_api_base="https://api.ant-ling.com/v1",
         signup_url="https://developer.ant-ling.com/en/docs/api-reference/openai/",
+    ),
+    # APIFree: OpenAI-compatible API gateway with agent-optimised models.
+    ProviderSpec(
+        name="apifree",
+        keywords=("apifree", "api-free"),
+        env_key="APIFREE_API_KEY",
+        display_name="APIFree",
+        backend="openai_compat",
+        detect_by_base_keyword="apifree.ai",
+        default_api_base="https://api.apifree.ai/agent/v1",
+        signup_url="https://www.apifree.ai",
     ),
     # === Local deployment (matched by config key, NOT by api_base) =========
     # vLLM / any OpenAI-compatible local server
