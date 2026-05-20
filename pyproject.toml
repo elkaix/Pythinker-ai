@@ -156,6 +156,8 @@ include = [
     "pythinker/templates/**/*.md",
     "pythinker/skills/**/*.md",
     "pythinker/skills/**/*.sh",
+]
+artifacts = [
     "pythinker/web/dist/**",
 ]
 exclude = [
@@ -182,12 +184,10 @@ packages = ["pythinker"]
 "bridge/package.json" = "pythinker/bridge/package.json"
 "bridge/package-lock.json" = "pythinker/bridge/package-lock.json"
 "bridge/tsconfig.json" = "pythinker/bridge/tsconfig.json"
-"pythinker/web/dist" = "pythinker/web/dist"
 
 [tool.hatch.build.targets.sdist]
 include = [
     "pythinker/",
-    "pythinker/web/dist/**",
     "bridge/src/",
     "bridge/package.json",
     "bridge/package-lock.json",
@@ -199,9 +199,6 @@ include = [
     "SECURITY.md",
     "pyproject.toml",
 ]
-
-[tool.hatch.build.targets.sdist.force-include]
-"pythinker/web/dist" = "pythinker/web/dist"
 
 [tool.ruff]
 line-length = 100
