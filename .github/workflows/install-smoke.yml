@@ -10,19 +10,29 @@ on:
   pull_request:
     branches: [ main, dev ]
 
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   install-smoke:
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: "3.12"
 
@@ -35,7 +45,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libolm-dev build-essential
 
       - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: "1.3.13"
 
@@ -107,3 +117,21 @@ jobs:
           export PATH="$(uv tool dir --bin):$PATH"
           pythinker --version
           test -f "$HOME/.pythinker/config.json"             || { echo "config.json not created by onboard"; exit 1; }
+
+  install-smoke-required:
+    name: Install Smoke Required
+    runs-on: ubuntu-latest
+    needs: [install-smoke]
+    if: ${{ always() }}
+    permissions: {}
+    steps:
+      - name: Verify install smoke passed
+        shell: bash
+        env:
+          SMOKE_RESULT: ${{ needs.install-smoke.result }}
+        run: |
+          if [[ "$SMOKE_RESULT" != "success" ]]; then
+            echo "install-smoke result: $SMOKE_RESULT"
+            exit 1
+          fi
+          echo "Install smoke passed."

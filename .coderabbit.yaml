@@ -1,0 +1,295 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: en-US
+early_access: false
+tone_instructions: "Be concise and high-signal. Prioritize correctness, security, compatibility, async bugs, and test gaps over style nits."
+
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  high_level_summary: true
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  review_details: true
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: false
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  auto_apply_labels: false
+  suggested_reviewers: false
+  auto_assign_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: true
+
+  slop_detection:
+    enabled: true
+    label: "slop"
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 5
+    drafts: false
+    base_branches: ["main", "dev"]
+    ignore_title_keywords: ["WIP", "DO NOT MERGE"]
+    ignore_usernames: ["renovate[bot]", "dependabot[bot]"]
+
+  # Inclusions first, exclusions last — CodeRabbit uses last-match-wins semantics,
+  # so exclusions must appear after inclusions to take effect.
+  path_filters:
+    - "pythinker/**"
+    - "tests/**"
+    - "webui/src/**"
+    - "webui/package.json"
+    - "webui/bun.lock"
+    - "bridge/src/**"
+    - "bridge/package.json"
+    - "bridge/package-lock.json"
+    - "scripts/**"
+    - "docs/**"
+    - ".github/**"
+    - "Dockerfile"
+    - "docker-compose.yml"
+    - "entrypoint.sh"
+    - "docker/**/*.sh"
+    - "pyproject.toml"
+    - "README.md"
+    - "CHANGELOG.md"
+    - "SECURITY.md"
+    - "CONTRIBUTING.md"
+    - "AGENTS.md"
+    - ".coderabbit.yaml"
+    - "!pythinker/web/dist/**"
+    - "!webui/dist/**"
+    - "!bridge/dist/**"
+    - "!dist/**"
+    - "!**/node_modules/**"
+    - "!**/__pycache__/**"
+    - "!**/.pytest_cache/**"
+    - "!**/.ruff_cache/**"
+    - "!graphify-out/**"
+    - "!case/**"
+    - "!images/**"
+    - "!sync/**"
+
+  path_instructions:
+    - path: "pythinker/agent/loop.py"
+      instructions: |
+        Hot path. Verify per-session locks, pending subagent result injection,
+        checkpoint recovery, priority command routing, stream idle handling, and
+        outbound replies. Flag any rename/removal of _RUNTIME_CHECKPOINT_KEY or
+        _PENDING_USER_TURN_KEY without migration planning.
+
+    - path: "pythinker/agent/**"
+      instructions: |
+        Check asyncio correctness, task cleanup, session metadata compatibility,
+        memory/dream safety, subagent queue limits, and provider hot-reload behavior.
+        Avoid speculative abstractions in the core loop.
+
+    - path: "pythinker/agent/tools/**"
+      instructions: |
+        Treat tool changes as security-sensitive. Check schema fragments, registry
+        wiring, tool result truncation, sandbox behavior, approval behavior, SSRF
+        guards, path traversal protection, and tests. Flag shell/network exposure
+        without explicit guardrails.
+
+    - path: "pythinker/providers/**"
+      instructions: |
+        Provider quirks belong here, not in the agent core. Check retries, streaming,
+        role alternation, OAuth/token handling, Responses API fallback behavior,
+        model-specific request shaping, cached-token accounting, and tests that mock
+        provider HTTP boundaries without real secrets.
+
+    - path: "pythinker/channels/**"
+      instructions: |
+        Chat-platform quirks live here. Check allowFrom behavior, attachment/media
+        limits, formatting, outbound dispatch through ChannelManager, reconnect logic,
+        and isolation from provider/core concerns. Reject unsupported first-party
+        adapters or user-facing surfaces for Feishu/Lark, WeChat/WeCom, DingTalk,
+        or QQ unless explicitly approved by the maintainer in the PR.
+
+    - path: "pythinker/config/**"
+      instructions: |
+        Disk config is camelCase; Python fields are snake_case. New config fields
+        need schema defaults, loader/path review, docs, and tests for both Python
+        and disk representations where relevant.
+
+    - path: "pythinker/session/**"
+      instructions: |
+        Preserve persisted JSONL/session metadata compatibility. Flag changes that
+        break history loading, checkpoint recovery, or session keying.
+
+    - path: "pythinker/security/**"
+      instructions: |
+        Treat as security-critical. Check SSRF/internal-network protections,
+        whitelist behavior, local/loopback handling, and tests for bypasses.
+
+    - path: "pythinker/templates/**"
+      instructions: |
+        Published runtime surface. These files ship to end-user workspaces and change
+        agent behavior. Treat edits as user-facing and require matching tests/docs
+        where behavior changes.
+
+    - path: "pythinker/skills/**"
+      instructions: |
+        Built-in runtime skills ship in the wheel. Check frontmatter validity,
+        resource path restrictions, and avoid task-specific or maintainer-only rules.
+
+    - path: "webui/**"
+      instructions: |
+        React functional components, typed props/hooks, no undocumented @ts-ignore,
+        avoid any, preserve WebSocket wire compatibility, image limits, i18n, and
+        accessibility. bun.lock is canonical; flag package-lock.json or pnpm-lock.yaml
+        under webui/.
+
+    - path: "bridge/**"
+      instructions: |
+        Thin Baileys relay only. Reject business logic moving into the bridge. Check
+        token auth, localhost assumptions, reconnect behavior, and wire compatibility
+        with Python channel code. Reject unsupported chat-platform expansion unless
+        explicitly approved by the maintainer.
+
+    - path: ".github/workflows/**"
+      instructions: |
+        Check least-privilege permissions, pinned/maintained actions, no
+        pull_request_target with untrusted code, no provider secrets in fork PR runs,
+        concurrency behavior, and stable required meta-jobs.
+
+    - path: "tests/**"
+      instructions: |
+        pytest-asyncio is auto mode: async def test_... directly. Avoid redundant
+        @pytest.mark.asyncio. Mock HTTP/provider boundaries, never require real
+        secrets or live network. Clean up tasks, sockets, temp dirs, env vars, and
+        config overrides.
+
+    - path: "**/*.md"
+      instructions: |
+        Use American English. No Claude/Anthropic/Codex co-author trailers and no
+        "Generated with ..." footers. Prefer direct, non-AI-sounding prose.
+
+  tools:
+    ruff:
+      enabled: true
+    biome:
+      enabled: true
+    actionlint:
+      enabled: true
+    zizmor:
+      enabled: true
+    shellcheck:
+      enabled: true
+    hadolint:
+      enabled: true
+    yamllint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    trufflehog:
+      enabled: true
+    checkov:
+      enabled: true
+    trivy:
+      enabled: true
+    osvScanner:
+      enabled: true
+    semgrep:
+      enabled: true
+    github-checks:
+      enabled: true
+      timeout_ms: 900000
+
+    # Avoid duplicate/noisy tools where Pythinker has chosen Ruff/Biome instead.
+    eslint:
+      enabled: false
+    flake8:
+      enabled: false
+    pylint:
+      enabled: false
+
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+    title:
+      mode: "warning"
+      requirements: |
+        Imperative, concise, ideally 72 characters or fewer. Optional conventional
+        prefix is fine: fix:, feat:, refactor:, test:, docs:, chore:, perf:, build:.
+        Do not include AI co-author trailers or generated-by footers.
+    description:
+      mode: "warning"
+    issue_assessment:
+      mode: "off"
+    custom_checks:
+      - name: "No AI co-author trailers"
+        mode: "error"
+        instructions: |
+          Fail if commit messages, PR body, changelog entries, or generated release
+          notes contain AI/tool/model co-author trailers or footers, including:
+          "Co-Authored-By: Claude", "Co-Authored-By: Claude Code",
+          "Co-Authored-By: Codex", "Generated with Claude Code", or similar.
+
+      - name: "No unsupported chat surfaces"
+        mode: "error"
+        instructions: |
+          Fail if the PR adds first-party adapters, docs, config examples, fixtures,
+          or user-facing strings for Feishu/Lark, WeChat, WeCom, DingTalk, or QQ,
+          unless the maintainer explicitly approved that scope in the PR.
+
+      - name: "Version bump discipline"
+        mode: "warning"
+        instructions: |
+          If pyproject.toml [project].version changed, verify pythinker/__init__.py
+          fallback version changed to match and CHANGELOG.md has a section for the
+          same version.
+
+      - name: "Release approval discipline"
+        mode: "warning"
+        instructions: |
+          Version bumps, dependency additions, dependency pin changes, publish/tag
+          changes, and release workflow behavior changes require explicit maintainer
+          approval in the PR discussion.
+
+chat:
+  art: false
+  allow_non_org_members: true
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "AGENTS.md"
+      - "**/AGENTS.md"
+      - "CONTRIBUTING.md"
+      - "SECURITY.md"
+      - "docs/ARCHITECTURE.md"
+  learnings:
+    scope: "local"
+  issues:
+    scope: "local"
+  pull_requests:
+    scope: "local"
+  mcp:
+    usage: "disabled"
+
+code_generation:
+  docstrings:
+    language: en-US
+  unit_tests:
+    path_instructions:
+      - path: "tests/**"
+        instructions: |
+          pytest-asyncio auto mode; async def test_... directly. Mock HTTP/provider
+          boundaries and never require real secrets, live networks, or user config.

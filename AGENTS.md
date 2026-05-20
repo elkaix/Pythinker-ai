@@ -39,6 +39,42 @@ over speculative abstractions.
 - **Ask before releases, version bumps, dependency additions, dependency pin changes, or patch
   overrides.** These require explicit maintainer approval.
 
+## Operating discipline
+
+These rules apply to every task unless a scoped `AGENTS.md` deliberately narrows them. Bias toward
+caution over speed on non-trivial work.
+
+1. **Think before coding.** State assumptions, ask rather than guess, push back when a simpler path
+   exists, and stop to name confusion instead of coding through it.
+2. **Simplicity first.** Ship the minimum code, docs, or tests that solve the real problem. Avoid
+   speculative abstractions, unused configurability, and single-use framework seams.
+3. **Surgical changes.** Touch only the necessary files and lines. Match surrounding style and clean
+   up only the dead imports, variables, functions, or docs drift your change creates.
+4. **Goal-driven execution.** Convert requests into verifiable success criteria, keep a concise plan
+   for multi-step work, and loop until the chosen check has actually run or its blocker is reported.
+5. **Deterministic code before model calls.** Use LLMs for judgment, drafting, classification,
+   summarization, and extraction. Use ordinary code, tests, tables, or parsers for routing, retries,
+   deterministic transforms, and structured data handling.
+6. **Respect context budgets.** Keep active task context lean (about 4,000 tokens) and session
+   context bounded (about 30,000 tokens). If the budget is at risk, checkpoint state, surface the
+   risk, and ask to continue or start fresh rather than silently degrading reasoning.
+7. **Surface conflicts.** When existing patterns disagree, choose the newer, better-tested, or
+   owner-scoped pattern; explain the choice and flag the losing pattern for cleanup instead of
+   inventing a third hybrid.
+8. **Read before writing.** Before code changes, inspect the owning exports, immediate callers,
+   scoped `AGENTS.md`, relevant shared utilities, and nearby tests/docs. Ask if the design intent is
+   unclear.
+9. **Tests verify intent.** Tests should encode why the behavior matters and fail when business
+   logic changes. Avoid tests that only assert implementation details or would pass with a broken
+   feature.
+10. **Checkpoint significant steps.** After non-trivial investigation, editing, or verification,
+    summarize what changed, what was verified with evidence, and what remains before moving deeper.
+11. **Conventions over taste.** Follow Pythinker's async runtime, provider/channel ownership,
+    camelCase config disk format, docs tone, and existing import/logging style even when you would
+    personally choose differently. Surface harmful conventions; do not fork silently.
+12. **Fail loud.** Report skipped steps, skipped tests, uncertainty, and environment limits. Do not
+    claim "done," "works," or "tests pass" unless that status was actually verified.
+
 ## Quick commands
 
 Use the smallest command that verifies the change.
