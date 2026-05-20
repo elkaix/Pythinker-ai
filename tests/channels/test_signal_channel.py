@@ -551,7 +551,6 @@ class TestEndToEndDMRouting:
     super()._handle_message which issues a pairing code.
     """
 
-    @pytest.mark.asyncio
     async def test_open_dm_policy_publishes_to_bus(self):
         """Open DM: _check_inbound_policy passes → _handle_message publishes."""
         ch = _make_channel(dm_enabled=True, dm_policy="open")
@@ -574,7 +573,6 @@ class TestEndToEndDMRouting:
         assert published[0].content == "hello"
         assert published[0].sender_id == "+19995550001"
 
-    @pytest.mark.asyncio
     async def test_allowlist_dm_denied_triggers_pairing(self):
         """Allowlist DM: denied sender triggers pairing code via send()."""
         ch = _make_channel(dm_enabled=True, dm_policy="allowlist", dm_allow_from=[])
@@ -601,7 +599,6 @@ class TestEndToEndDMRouting:
         sent_text = ch._http.posts[0]["json"]["params"]["message"]  # type: ignore[attr-defined]
         assert "pairing" in sent_text.lower() or "pair" in sent_text.lower()
 
-    @pytest.mark.asyncio
     async def test_allowlist_dm_denied_with_group_open_still_pairs(self):
         """dm.policy="allowlist" + group.policy="open": denied DM sender
         must still get a pairing code, not be leaked by the group open check."""
@@ -631,7 +628,6 @@ class TestEndToEndDMRouting:
         assert published == []
         assert len(ch._http.posts) == 1  # type: ignore[attr-defined]
 
-    @pytest.mark.asyncio
     async def test_open_group_policy_publishes_to_bus(self):
         """Open group: group message from unknown sender publishes to bus."""
         ch = _make_channel(
@@ -773,7 +769,6 @@ class TestHandleDataMessageDM:
             dm_enabled=True, dm_policy=policy, dm_allow_from=allow_from or []
         )
 
-    @pytest.mark.asyncio
     async def test_dm_open_policy_accepted(self):
         ch, handled = self._make_dm_channel(policy="open")
         params = _dm_envelope(source_number="+19995550001", message="hi")
@@ -782,14 +777,12 @@ class TestHandleDataMessageDM:
         assert handled[0]["chat_id"] == "+19995550001"
         assert handled[0]["content"] == "hi"
 
-    @pytest.mark.asyncio
     async def test_dm_allowlist_accepted(self):
         ch, handled = self._make_dm_channel(policy="allowlist", allow_from=["+19995550001"])
         params = _dm_envelope(source_number="+19995550001")
         await ch._handle_receive_notification(params)
         assert len(handled) == 1
 
-    @pytest.mark.asyncio
     async def test_dm_allowlist_rejected_triggers_pairing(self):
         # Denied DM senders go through super()._handle_message which checks
         # is_allowed → sends pairing code via self.send().
@@ -804,7 +797,6 @@ class TestHandleDataMessageDM:
         sent_text = ch._http.posts[0]["json"]["params"]["message"]  # type: ignore[attr-defined]
         assert "pairing" in sent_text.lower() or "pair" in sent_text.lower()
 
-    @pytest.mark.asyncio
     async def test_dm_paired_sender_allowed_without_allowlist_entry(self, monkeypatch):
         # Once a sender completes pairing they should pass is_allowed on every
         # subsequent message — otherwise the pairing reply loops forever.
@@ -820,7 +812,6 @@ class TestHandleDataMessageDM:
         # Unpaired sender stays denied.
         assert ch.is_allowed("+19995559999") is False
 
-    @pytest.mark.asyncio
     async def test_dm_allowlist_matches_without_plus_prefix(self):
         """An allowlist entry without '+' must match a sender that carries '+'."""
         ch, handled = self._make_dm_channel(policy="allowlist", allow_from=["19995550001"])
@@ -828,7 +819,6 @@ class TestHandleDataMessageDM:
         await ch._handle_receive_notification(params)
         assert len(handled) == 1
 
-    @pytest.mark.asyncio
     async def test_dm_allowlist_matches_with_plus_prefix(self):
         """An allowlist entry with '+' must match a sender without '+'."""
         ch, handled = self._make_dm_channel(policy="allowlist", allow_from=["+19995550001"])
@@ -839,7 +829,6 @@ class TestHandleDataMessageDM:
         await ch._handle_receive_notification(params)
         assert len(handled) == 1
 
-    @pytest.mark.asyncio
     async def test_dm_allowlist_matches_uuid_case_insensitive(self):
         """UUID matching must be case-insensitive."""
         uuid = "ABCDEF12-3456-7890-ABCD-EF1234567890"
@@ -848,7 +837,6 @@ class TestHandleDataMessageDM:
         await ch._handle_receive_notification(params)
         assert len(handled) == 1
 
-    @pytest.mark.asyncio
     async def test_dm_allowlist_matches_pipe_joined_composite_entry(self):
         """Allowlist entries written as ``phone|uuid`` composites still work.
 
@@ -864,7 +852,6 @@ class TestHandleDataMessageDM:
         await ch._handle_receive_notification(params)
         assert len(handled) == 1
 
-    @pytest.mark.asyncio
     async def test_dm_disabled_rejected(self):
         ch = _make_channel(dm_enabled=False)
         handled: list[dict] = []
@@ -882,21 +869,18 @@ class TestHandleDataMessageDM:
         await ch._handle_receive_notification(params)
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_reaction_message_ignored(self):
         ch, handled = self._make_dm_channel()
         params = _dm_envelope(reaction={"emoji": "👍", "targetTimestamp": 999})
         await ch._handle_receive_notification(params)
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_empty_message_ignored(self):
         ch, handled = self._make_dm_channel()
         params = _dm_envelope(message="")
         await ch._handle_receive_notification(params)
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_receipt_message_ignored(self):
         ch, handled = self._make_dm_channel()
         notification = {
@@ -908,7 +892,6 @@ class TestHandleDataMessageDM:
         await ch._handle_receive_notification(notification)
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_typing_indicator_ignored(self):
         ch, handled = self._make_dm_channel()
         notification = {
@@ -920,13 +903,11 @@ class TestHandleDataMessageDM:
         await ch._handle_receive_notification(notification)
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_missing_envelope_ignored(self):
         ch, handled = self._make_dm_channel()
         await ch._handle_receive_notification({})
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_metadata_passed_to_handle(self):
         ch, handled = self._make_dm_channel()
         params = _dm_envelope(source_number="+19995550001", source_name="Alice", timestamp=9999)
@@ -936,7 +917,6 @@ class TestHandleDataMessageDM:
         assert meta["timestamp"] == 9999
         assert meta["is_group"] is False
 
-    @pytest.mark.asyncio
     async def test_sender_id_with_uuid_variant(self):
         ch, handled = self._make_dm_channel()
         params = _dm_envelope(source_number="+19995550001", source_uuid="uuid-abc")
@@ -946,7 +926,6 @@ class TestHandleDataMessageDM:
         assert "+19995550001" in handled[0]["sender_id"]
         assert "uuid-abc" in handled[0]["sender_id"]
 
-    @pytest.mark.asyncio
     async def test_stop_typing_called_on_handle_error(self):
         ch = _make_channel(dm_enabled=True, dm_policy="open")
         typing_stopped: list[str] = []
@@ -991,7 +970,6 @@ class TestHandleDataMessageGroup:
             require_mention=require_mention,
         )
 
-    @pytest.mark.asyncio
     async def test_group_disabled_rejected(self):
         ch = _make_channel(group_enabled=False)
         handled: list[dict] = []
@@ -1000,14 +978,12 @@ class TestHandleDataMessageGroup:
         await ch._handle_receive_notification(params)
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_group_open_policy_no_mention_blocked_when_required(self):
         ch, handled = self._make_group_channel(require_mention=True)
         params = _group_envelope(group_id="grp==", message="hey everyone")
         await ch._handle_receive_notification(params)
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_group_open_policy_no_mention_required(self):
         ch, handled = self._make_group_channel(require_mention=False)
         params = _group_envelope(group_id="grp==", message="hey everyone")
@@ -1015,7 +991,6 @@ class TestHandleDataMessageGroup:
         assert len(handled) == 1
         assert handled[0]["chat_id"] == "grp=="
 
-    @pytest.mark.asyncio
     async def test_group_allowlist_accepted(self):
         ch, handled = self._make_group_channel(
             policy="allowlist", allow_from=["grp=="], require_mention=False
@@ -1024,14 +999,12 @@ class TestHandleDataMessageGroup:
         await ch._handle_receive_notification(params)
         assert len(handled) == 1
 
-    @pytest.mark.asyncio
     async def test_group_allowlist_rejected(self):
         ch, handled = self._make_group_channel(policy="allowlist", allow_from=["other=="])
         params = _group_envelope(group_id="grp==", message="hi")
         await ch._handle_receive_notification(params)
         assert handled == []
 
-    @pytest.mark.asyncio
     async def test_group_mention_triggers_response(self):
         ch, handled = self._make_group_channel(require_mention=True)
         ch._remember_account_id_alias("+10000000000")
@@ -1040,7 +1013,6 @@ class TestHandleDataMessageGroup:
         await ch._handle_receive_notification(params)
         assert len(handled) == 1
 
-    @pytest.mark.asyncio
     async def test_group_v2_id_extracted(self):
         ch, handled = self._make_group_channel(require_mention=False)
         params = _group_envelope(group_id="grpV2==", message="hi", use_v2=True)
@@ -1048,14 +1020,12 @@ class TestHandleDataMessageGroup:
         assert len(handled) == 1
         assert handled[0]["chat_id"] == "grpV2=="
 
-    @pytest.mark.asyncio
     async def test_group_message_includes_sender_prefix(self):
         ch, handled = self._make_group_channel(require_mention=False)
         params = _group_envelope(group_id="grp==", source_name="Bob", message="hello")
         await ch._handle_receive_notification(params)
         assert "[Bob]:" in handled[0]["content"]
 
-    @pytest.mark.asyncio
     async def test_group_message_context_prepended(self):
         ch, handled = self._make_group_channel(require_mention=False)
         # First message — adds to buffer but no context yet
@@ -1067,7 +1037,6 @@ class TestHandleDataMessageGroup:
         assert "[Recent group messages for context:]" in handled[1]["content"]
         assert "msg1" in handled[1]["content"]
 
-    @pytest.mark.asyncio
     async def test_group_metadata_marks_is_group(self):
         ch, handled = self._make_group_channel(require_mention=False)
         params = _group_envelope(group_id="grp==", message="hi")
@@ -1075,7 +1044,6 @@ class TestHandleDataMessageGroup:
         assert handled[0]["metadata"]["is_group"] is True
         assert handled[0]["metadata"]["group_id"] == "grp=="
 
-    @pytest.mark.asyncio
     async def test_bot_account_alias_learned_from_incoming(self):
         ch, handled = self._make_group_channel(require_mention=False)
         # If the bot's own UUID appears in an envelope we learn it
@@ -1118,7 +1086,6 @@ def _fake_streaming_client(lines: list[str], *, status_code: int = 200) -> Magic
 
 
 class TestLifecycle:
-    @pytest.mark.asyncio
     async def test_start_returns_early_when_phone_missing(self):
         """start() with an empty phone number must not enter the HTTP loop."""
         ch = _make_channel(phone_number="")
@@ -1129,7 +1096,6 @@ class TestLifecycle:
 
 
 class TestSSEReceiveLoop:
-    @pytest.mark.asyncio
     async def test_dispatches_valid_envelope(self):
         ch = _make_channel()
         ch._running = True
@@ -1151,7 +1117,6 @@ class TestSSEReceiveLoop:
             await ch._sse_receive_loop()
         assert captured == [{"envelope": {"sourceNumber": "+19995550001"}}]
 
-    @pytest.mark.asyncio
     async def test_handles_invalid_json_frame(self):
         """An unparseable SSE frame is logged and skipped without crashing."""
         ch = _make_channel()
@@ -1177,7 +1142,6 @@ class TestSSEReceiveLoop:
         # Bad frame skipped; good frame still dispatched.
         assert captured == [{"envelope": {"sourceNumber": "+1"}}]
 
-    @pytest.mark.asyncio
     async def test_non_200_status_raises(self):
         ch = _make_channel()
         ch._running = True
@@ -1185,7 +1149,6 @@ class TestSSEReceiveLoop:
         with pytest.raises(ConnectionError, match="status 503"):
             await ch._sse_receive_loop()
 
-    @pytest.mark.asyncio
     async def test_no_http_client_raises(self):
         ch = _make_channel()
         ch._http = None
@@ -1199,7 +1162,6 @@ class TestSSEReceiveLoop:
 
 
 class TestCommandHandling:
-    @pytest.mark.asyncio
     async def test_dm_command_forwarded_to_bus(self):
         """Slash commands in DMs are forwarded to the bus for AgentLoop to handle."""
         ch, forwarded = _make_channel_with_capture(dm_enabled=True, dm_policy="open")
@@ -1208,7 +1170,6 @@ class TestCommandHandling:
         assert len(forwarded) == 1
         assert forwarded[0]["content"].strip() == "/reset"
 
-    @pytest.mark.asyncio
     async def test_group_command_bypasses_mention_requirement(self):
         """Slash commands in groups bypass the mention requirement and reach the bus."""
         ch, forwarded = _make_channel_with_capture(
@@ -1219,7 +1180,6 @@ class TestCommandHandling:
         assert len(forwarded) == 1
         assert "/reset" in forwarded[0]["content"]
 
-    @pytest.mark.asyncio
     async def test_command_denied_for_disallowed_dm_sender(self):
         """Commands from senders not on the DM allowlist are dropped."""
         ch, forwarded = _make_channel_with_capture(dm_enabled=False)
@@ -1240,7 +1200,6 @@ class TestSend:
         ch._http = client  # type: ignore[assignment]
         return ch, client
 
-    @pytest.mark.asyncio
     async def test_send_plain_text_posts_rpc(self):
         ch, client = self._make_send_channel()
         msg = OutboundMessage(channel="signal", chat_id="+19995550001", content="hello")
@@ -1250,7 +1209,6 @@ class TestSend:
         assert payload["method"] == "send"
         assert payload["params"]["message"] == "hello"
 
-    @pytest.mark.asyncio
     async def test_send_with_markdown_includes_text_styles(self):
         ch, client = self._make_send_channel()
         msg = OutboundMessage(channel="signal", chat_id="+19995550001", content="**bold**")
@@ -1259,7 +1217,6 @@ class TestSend:
         assert "textStyle" in params
         assert any("BOLD" in s for s in params["textStyle"])
 
-    @pytest.mark.asyncio
     async def test_send_split_message_redistributes_text_styles(self):
         """Long message split across chunks: each chunk gets its own textStyle
         with offsets rebased to that chunk."""
@@ -1291,14 +1248,12 @@ class TestSend:
                 end_units = start + length
                 assert end_units <= len(chunk_text.encode("utf-16-le")) // 2
 
-    @pytest.mark.asyncio
     async def test_send_empty_content_skips_rpc(self):
         ch, client = self._make_send_channel()
         msg = OutboundMessage(channel="signal", chat_id="+19995550001", content="")
         await ch.send(msg)
         assert client.posts == []
 
-    @pytest.mark.asyncio
     async def test_send_to_group_uses_group_id(self):
         ch, client = self._make_send_channel()
         msg = OutboundMessage(channel="signal", chat_id="grp==", content="hi group")
@@ -1307,7 +1262,6 @@ class TestSend:
         assert "groupId" in params
         assert "recipient" not in params
 
-    @pytest.mark.asyncio
     async def test_send_to_dm_uses_recipient(self):
         ch, client = self._make_send_channel()
         msg = OutboundMessage(channel="signal", chat_id="+19995550001", content="hi")
@@ -1315,7 +1269,6 @@ class TestSend:
         params = client.posts[0]["json"]["params"]
         assert "recipient" in params
 
-    @pytest.mark.asyncio
     async def test_send_with_media_includes_attachments(self):
         ch, client = self._make_send_channel()
         msg = OutboundMessage(
@@ -1328,7 +1281,6 @@ class TestSend:
         params = client.posts[0]["json"]["params"]
         assert params.get("attachments") == ["/tmp/file.jpg"]
 
-    @pytest.mark.asyncio
     async def test_send_progress_message_does_not_stop_typing(self):
         ch, client = self._make_send_channel()
         stopped: list[str] = []
@@ -1347,7 +1299,6 @@ class TestSend:
         # Progress messages should NOT stop the typing indicator
         assert stopped == []
 
-    @pytest.mark.asyncio
     async def test_send_final_message_stops_typing(self):
         ch, client = self._make_send_channel()
         stopped: list[str] = []
@@ -1360,7 +1311,6 @@ class TestSend:
         await ch.send(msg)
         assert "+19995550001" in stopped
 
-    @pytest.mark.asyncio
     async def test_send_raises_on_daemon_error(self):
         # _send_http_request turns every exception into {"error": ...}, so this branch
         # is the only place ChannelManager retry can be triggered — must raise.
@@ -1376,7 +1326,6 @@ class TestSend:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_stop_cancels_sse_task() -> None:
     ch = _make_channel()
     cancelled = False
@@ -1400,7 +1349,6 @@ async def test_stop_cancels_sse_task() -> None:
     assert ch._running is False
 
 
-@pytest.mark.asyncio
 async def test_stop_closes_http_client() -> None:
     ch = _make_channel()
     client = _FakeHTTPClient()
@@ -1412,7 +1360,6 @@ async def test_stop_closes_http_client() -> None:
     assert client.closed
 
 
-@pytest.mark.asyncio
 async def test_stop_safe_when_no_sse_task() -> None:
     ch = _make_channel()
     ch._running = True
@@ -1426,7 +1373,6 @@ async def test_stop_safe_when_no_sse_task() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_send_request_increments_id() -> None:
     ch = _make_channel()
     client = _FakeHTTPClient()
@@ -1439,7 +1385,6 @@ async def test_send_request_increments_id() -> None:
     assert ids == [1, 2]
 
 
-@pytest.mark.asyncio
 async def test_send_request_raises_when_not_connected() -> None:
     ch = _make_channel()
     # _http is None by default
@@ -1452,7 +1397,6 @@ async def test_send_request_raises_when_not_connected() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.asyncio
 async def test_handle_notification_sync_message_does_not_forward() -> None:
     ch = _make_channel(dm_enabled=True, dm_policy="open")
     handled: list[dict] = []
@@ -1473,7 +1417,6 @@ async def test_handle_notification_sync_message_does_not_forward() -> None:
     assert handled == []
 
 
-@pytest.mark.asyncio
 async def test_handle_notification_no_source_skipped() -> None:
     ch = _make_channel(dm_enabled=True, dm_policy="open")
     handled: list[dict] = []

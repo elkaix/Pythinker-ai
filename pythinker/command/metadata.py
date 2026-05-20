@@ -83,6 +83,6 @@ BUILTIN_COMMAND_METADATA: tuple[CommandMeta, ...] = (
     CommandMeta(
         "/pairing",
         "List, approve, deny or revoke DM pairing requests",
-        usage="/pairing [list|approve <code>|deny <code>|revoke <user>]",
+        usage="/pairing [list|approve <code>|deny <code>|revoke <user>|revoke <channel> <user>]",
     ),
 )

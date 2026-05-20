@@ -46,7 +46,6 @@ def test_is_streaming_required_error_ignores_other_exception_types() -> None:
     ) is False
 
 
-@pytest.mark.asyncio
 async def test_chat_falls_back_to_stream_on_long_request_error() -> None:
     provider = _make_provider()
     provider._client.messages.create = AsyncMock(
@@ -81,7 +80,6 @@ async def test_chat_falls_back_to_stream_on_long_request_error() -> None:
     assert "on_content_delta" not in captured
 
 
-@pytest.mark.asyncio
 async def test_chat_does_not_fall_back_on_unrelated_value_error() -> None:
     provider = _make_provider()
     provider._client.messages.create = AsyncMock(

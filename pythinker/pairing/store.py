@@ -82,14 +82,15 @@ def generate_code(
     with _LOCK:
         data = _load()
         _gc_pending(data)
+        now = time.time()
         raw = "".join(secrets.choice(_ALPHABET) for _ in range(_CODE_LENGTH))
         code = f"{raw[:4]}-{raw[4:]}"
 
         data.setdefault("pending", {})[code] = {
             "channel": channel,
             "sender_id": sender_id,
-            "created_at": time.time(),
-            "expires_at": time.time() + ttl,
+            "created_at": now,
+            "expires_at": now + ttl,
         }
         _save(data)
         logger.info("Generated pairing code {} for {}@{}", code, sender_id, channel)
