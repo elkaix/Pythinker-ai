@@ -15,6 +15,9 @@ All notable user-visible changes to Pythinker land here. The project follows
 - WebUI bundle is now built inside the Dockerfile via a dedicated
   `webui-builder` stage (Bun runtime, pinned to BUILDPLATFORM), so fresh
   checkouts produce a self-contained image without a pre-step.
+- **Novita AI provider** (`novita`) — OpenAI-compatible gateway for hosted
+  model APIs at `https://api.novita.ai/openai`. Set `NOVITA_API_KEY` or the
+  config key `providers.novita.apiKey`.
 
 ### Fixed
 

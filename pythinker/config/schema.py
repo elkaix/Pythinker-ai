@@ -166,6 +166,7 @@ class ProvidersConfig(Base):
     huggingface: ProviderConfig = Field(default_factory=ProviderConfig)  # Hugging Face Inference Providers (HF_TOKEN, hf_...)
     skywork: ProviderConfig = Field(default_factory=ProviderConfig)  # Skywork / APIFree gateway
     siliconflow: ProviderConfig = Field(default_factory=ProviderConfig)  # SiliconFlow
+    novita: ProviderConfig = Field(default_factory=ProviderConfig)  # Novita
     volcengine: ProviderConfig = Field(default_factory=ProviderConfig)  # VolcEngine
     volcengine_coding_plan: ProviderConfig = Field(default_factory=ProviderConfig)  # VolcEngine Coding Plan
     byteplus: ProviderConfig = Field(default_factory=ProviderConfig)  # BytePlus (VolcEngine international)

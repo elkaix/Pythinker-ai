@@ -189,6 +189,17 @@ PROVIDERS: tuple[ProviderSpec, ...] = (
         detect_by_base_keyword="siliconflow",
         default_api_base="https://api.siliconflow.cn/v1",
     ),
+    # Novita AI: OpenAI-compatible gateway for hosted model APIs.
+    ProviderSpec(
+        name="novita",
+        keywords=("novita",),
+        env_key="NOVITA_API_KEY",
+        display_name="Novita AI",
+        backend="openai_compat",
+        is_gateway=True,
+        detect_by_base_keyword="novita",
+        default_api_base="https://api.novita.ai/openai",
+    ),
     # VolcEngine: OpenAI-compatible gateway, pay-per-use models
     ProviderSpec(
         name="volcengine",

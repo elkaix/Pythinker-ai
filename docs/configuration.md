@@ -144,6 +144,7 @@ The Workbench also includes operational checks for local administrators:
 | `gemini` | LLM (Gemini direct) | [aistudio.google.com](https://aistudio.google.com) |
 | `aihubmix` | LLM (API gateway, access to all models) | [aihubmix.com](https://aihubmix.com) |
 | `siliconflow` | LLM (SiliconFlow) | [siliconflow.cn](https://siliconflow.cn) |
+| `novita` | LLM (Novita AI: hosted model APIs, OpenAI-compatible) | [novita.ai](https://novita.ai) |
 | `dashscope` | LLM (Qwen) | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com) |
 | `moonshot` | LLM (Moonshot/Kimi) | [platform.moonshot.cn](https://platform.moonshot.cn) |
 | `zhipu` | LLM (Zhipu GLM) | [open.bigmodel.cn](https://open.bigmodel.cn) |
