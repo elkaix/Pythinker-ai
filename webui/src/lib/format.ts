@@ -10,11 +10,35 @@ export function formatTokens(value: number | null | undefined): string {
   return new Intl.NumberFormat().format(n);
 }
 
-/** Truncate the first user message into a chat title. */
+const LOW_INFORMATION_TITLE_PREVIEWS = new Set([
+  "hi",
+  "hello",
+  "hey",
+  "yo",
+  "sup",
+  "test",
+  "testing",
+]);
+
+function isLowInformationTitlePreview(text: string): boolean {
+  const normalized = text.toLowerCase().replace(/[.!?~\s]+$/g, "").trim();
+  return (
+    normalized.startsWith("/") ||
+    LOW_INFORMATION_TITLE_PREVIEWS.has(normalized)
+  );
+}
+
+/** Truncate the first user message into a chat title.
+ *
+ * Returns the fallback for previews that are pure greetings ("hi", "hello",
+ * "hey"), one-word smoke tests ("test", "testing"), or slash commands —
+ * those are signal-poor titles that just clutter the sidebar.
+ */
 export function deriveTitle(preview: string | undefined, fallback: string): string {
   if (!preview) return fallback;
   const oneLine = preview.replace(/\s+/g, " ").trim();
   if (!oneLine) return fallback;
+  if (isLowInformationTitlePreview(oneLine)) return fallback;
   return oneLine.length > 60 ? `${oneLine.slice(0, 57)}…` : oneLine;
 }
 

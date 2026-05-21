@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import type { AdminTabId } from "@/lib/admin-tabs";
 import { deriveWsUrl, fetchBootstrap } from "@/lib/bootstrap";
 import { cleanChatTitle } from "@/lib/chatTitle";
+import { deriveTitle } from "@/lib/format";
 import { PythinkerClient } from "@/lib/pythinker-client";
 import { ClientProvider } from "@/providers/ClientProvider";
 import type { ChatSummary } from "@/lib/types";
@@ -371,8 +372,7 @@ function Shell() {
 
   const headerTitle = activeSession
     ? cleanChatTitle(activeSession.title) ||
-      cleanChatTitle(activeSession.preview) ||
-      t("chat.fallbackTitle")
+      deriveTitle(cleanChatTitle(activeSession.preview), t("chat.fallbackTitle"))
     : t("app.brand");
 
   useEffect(() => {
