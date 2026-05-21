@@ -23,7 +23,11 @@ docker compose down                                      # stop
 ### Docker
 
 ```bash
-# Build the image
+# Option A — pull the pre-built multi-arch image from GHCR (recommended):
+docker pull ghcr.io/mohamed-elkholy95/pythinker-ai:latest
+docker tag ghcr.io/mohamed-elkholy95/pythinker-ai:latest pythinker
+
+# Option B — build locally from this checkout:
 docker build -t pythinker .
 
 # Initialize config (first time only)

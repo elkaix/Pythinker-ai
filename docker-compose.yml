@@ -21,6 +21,7 @@ services:
     restart: unless-stopped
     ports:
       - 18790:18790
+      - 8765:8765
     environment:
       # CDP endpoint for the browser tool.
       PYTHINKER_TOOLS__WEB__BROWSER__CDP_URL: "http://pythinker-browser:9222"

@@ -6,6 +6,24 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+### Added
+
+- **Pre-built container image** published to GitHub Container Registry on every
+  release at `ghcr.io/mohamed-elkholy95/pythinker-ai`. Multi-platform (amd64 +
+  arm64). Pull directly with `docker pull ghcr.io/mohamed-elkholy95/pythinker-ai:latest`
+  instead of running `docker build` locally. See `docs/deployment.md`.
+- WebUI bundle is now built inside the Dockerfile via a dedicated
+  `webui-builder` stage (Bun runtime, pinned to BUILDPLATFORM), so fresh
+  checkouts produce a self-contained image without a pre-step.
+
+### Fixed
+
+- Dockerfile now copies `hatch_build.py` alongside `pyproject.toml`, fixing a
+  clean-checkout build that would otherwise fail when hatchling tries to load
+  the wheel-time freshness hook declared in `pyproject.toml`.
+- `pythinker-gateway` compose service now exposes port 8765 so the WebUI /
+  WebSocket channel is reachable on host (previously only 18790 was bound).
+
 ## [2.6.0] - 2026-05-20
 
 ### Added

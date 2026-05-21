@@ -1,0 +1,92 @@
+name: Publish Container
+
+# Publishes a multi-platform (linux/amd64 + linux/arm64) container image of
+# Pythinker (the ``app`` stage of the repo Dockerfile — browser-runtime is
+# excluded; build it locally with ``docker compose --profile browser up``)
+# to GitHub Container Registry on every published GitHub Release.
+#
+# Image: ghcr.io/<owner>/pythinker-ai
+# Tags published by the metadata action on a release:
+#   - vX.Y.Z       (release tag, full semver)
+#   - X.Y.Z        (semver without v prefix)
+#   - X.Y          (major.minor)
+#   - latest       (only on release events)
+#
+# Manual dispatch produces a single ``manual-<short-sha>`` tag for testing.
+#
+# First-time setup: after the first successful run, go to the package's
+# settings on github.com (Packages tab on the user/org profile → Package
+# settings → Change visibility → Public) so anonymous users can pull
+# without a token. Subsequent pushes inherit the visibility.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  build-and-push:
+    name: Build and push to GHCR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Compute image name (lowercase per GHCR spec)
+        id: image
+        shell: bash
+        env:
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          set -euo pipefail
+          NAME="ghcr.io/$(echo "$OWNER" | tr '[:upper:]' '[:lower:]')/pythinker-ai"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Extract Docker metadata (tags + labels)
+        id: meta
+        uses: docker/metadata-action@c1e51972afc2121e065aed6d45c65596fe445f3f # v5.8.0
+        with:
+          images: ${{ steps.image.outputs.name }}
+          tags: |
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' }}
+            type=raw,value=manual-${{ github.sha }},enable=${{ github.event_name == 'workflow_dispatch' }}
+          labels: |
+            org.opencontainers.image.title=Pythinker
+            org.opencontainers.image.description=Asyncio-native agent runtime for one assistant across many chat platforms and APIs
+            org.opencontainers.image.licenses=MIT
+
+      - name: Set up QEMU (cross-architecture emulation for arm64)
+        uses: docker/setup-qemu-action@5306bad0baa6b616b9934712d4eba8da2112606d # v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@e468171a9de216ec08956ac3ada2f0791b6bd435 # v3.11.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@184bdaa0721073962dff0199f1fb9940f07167d1 # v3.5.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (linux/amd64 + linux/arm64, app stage only)
+        uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c20 # v6.18.0
+        with:
+          context: .
+          target: app
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
