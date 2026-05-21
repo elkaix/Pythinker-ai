@@ -121,3 +121,6 @@ temp/
 
 # graphify knowledge-graph output (generated locally; large HTML/JSON, regenerable)
 graphify-out/
+
+# Local research scrape blobs (Firecrawl raw JSON; cite extracts in plans, not raw)
+.firecrawl/
