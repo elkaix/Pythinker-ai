@@ -156,6 +156,7 @@ def test_check_git_tag_skips_when_head_untagged(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(
         ["git", "-c", "user.email=a@b", "-c", "user.name=a",
+         "-c", "commit.gpgsign=false",
          "commit", "--allow-empty", "-m", "init", "-q"],
         cwd=tmp_path,
         check=True,
@@ -168,11 +169,16 @@ def test_check_git_tag_matches_when_present(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(
         ["git", "-c", "user.email=a@b", "-c", "user.name=a",
+         "-c", "commit.gpgsign=false",
          "commit", "--allow-empty", "-m", "init", "-q"],
         cwd=tmp_path,
         check=True,
     )
-    subprocess.run(["git", "tag", "v2.0.0"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "tag.gpgsign=false", "tag", "v2.0.0"],
+        cwd=tmp_path,
+        check=True,
+    )
     result = check_git_tag_matches(tmp_path, "2.0.0")
     assert result.status == "ok"
 
@@ -181,11 +187,16 @@ def test_check_git_tag_mismatch(tmp_path: Path) -> None:
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(
         ["git", "-c", "user.email=a@b", "-c", "user.name=a",
+         "-c", "commit.gpgsign=false",
          "commit", "--allow-empty", "-m", "init", "-q"],
         cwd=tmp_path,
         check=True,
     )
-    subprocess.run(["git", "tag", "v1.9.9"], cwd=tmp_path, check=True)
+    subprocess.run(
+        ["git", "-c", "tag.gpgsign=false", "tag", "v1.9.9"],
+        cwd=tmp_path,
+        check=True,
+    )
     result = check_git_tag_matches(tmp_path, "2.0.0")
     assert result.status == "fail"
     assert "v1.9.9" in result.message
