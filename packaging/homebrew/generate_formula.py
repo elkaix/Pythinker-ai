@@ -104,7 +104,14 @@ def main(target_pkg: str) -> int:
     # verified via `sha256`. pip builds pythinker-ai (pure Python) from
     # the local source and resolves every transitive dependency from
     # PyPI as a prebuilt wheel.
-    out.append('    system libexec/"bin/pip", "install", "--no-warn-script-location", buildpath')
+    # Don't `pip install buildpath`: that would pin every fresh
+    # `brew install` to whichever sdist was current when the tap was
+    # last regenerated. Instead, install the unpinned package name so
+    # pip always resolves the newest pythinker-ai on PyPI. The
+    # buildpath sdist still gets downloaded (Brew requires `url` +
+    # `sha256`) — it just isn't what we install from.
+    out.append('    system libexec/"bin/pip", "install", "--no-warn-script-location",')
+    out.append('      "--upgrade", "pythinker-ai"')
     out.append("")
     out.append("    # dulwich's prebuilt macOS wheel ships a Mach-O accelerator")
     out.append("    # (_diff_tree.cpython-*-darwin.so) with insufficient header")
@@ -124,9 +131,10 @@ def main(target_pkg: str) -> int:
     out.append("  end")
     out.append("")
     out.append("  test do")
-    out.append(
-        f'    assert_match "{target_version}", shell_output("#{{bin}}/pythinker --version")'
-    )
+    # No version match — the install line is unpinned, so the
+    # installed pythinker-ai may be newer than `version` parsed from
+    # the formula's `url`. Just confirm the CLI runs.
+    out.append('    system bin/"pythinker", "--version"')
     out.append("  end")
     out.append("end")
     print("\n".join(out))
