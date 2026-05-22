@@ -98,7 +98,13 @@ jobs:
           # ModuleNotFoundError).
           python -m venv .poet-venv
           ./.poet-venv/bin/pip install --upgrade pip "setuptools<81"
-          ./.poet-venv/bin/pip install "pythinker-ai==${VERSION}" homebrew-pypi-poet==0.10.0
+          # `lxml<6` because lxml 6.x removed the `html_clean` extra that
+          # `readability-lxml` still declares; poet 0.10.0 walks the dep
+          # graph with pkg_resources and fails with `UnknownExtra` on lxml 6.
+          ./.poet-venv/bin/pip install \
+            "pythinker-ai==${VERSION}" \
+            "lxml<6" \
+            homebrew-pypi-poet==0.10.0
 
       - name: Generate Formula/pythinker-ai.rb
         env:
