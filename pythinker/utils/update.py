@@ -760,8 +760,19 @@ def native_upgrade(method: InstallMethod, version: str, *, dry_run: bool = False
     user sees a single prompt. For NATIVE_TARBALL it re-runs
     ``scripts/install-native.sh`` via curl-bash. For WINDOWS_EXE it executes
     the Inno installer with the silent flags documented in the .iss.
+
+    ``version`` is validated as PEP 440 before any shell interpolation —
+    callers come from CLI args / PyPI strings, but defense-in-depth guards
+    against a future refactor relaxing the constraint.
     """
     import subprocess
+
+    try:
+        Version(version)
+    except InvalidVersion as exc:
+        raise RuntimeError(
+            f"Invalid version {version!r} (must be PEP 440)"
+        ) from exc
 
     asset = native_asset_for(method, version)
     if asset is None:

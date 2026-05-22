@@ -27,6 +27,12 @@ on:
         required: false
         type: string
 
+# One build per release tag at a time. cancel-in-progress is false so a
+# re-run of a published release does not abort artifact uploads mid-stream.
+concurrency:
+  group: release-native-${{ github.event.release.tag_name || inputs.tag || github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -41,6 +47,12 @@ jobs:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
+      # tomllib is stdlib only on Python 3.11+. ubuntu-latest's bundled
+      # python3 has been 3.10 historically — pin explicitly to avoid a
+      # silent ModuleNotFoundError on the next runner refresh.
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.11"
       - id: v
         shell: bash
         env:
