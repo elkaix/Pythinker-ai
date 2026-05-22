@@ -89,11 +89,15 @@ jobs:
           set -euo pipefail
           # poet reads the *active* interpreter's installed packages, so it must
           # live inside the same venv as pythinker-ai — otherwise the formula
-          # generator can't enumerate transitive deps. `setuptools` is pulled
-          # in explicitly because poet still imports `pkg_resources`, which
-          # Python 3.12+ no longer ships in the stdlib venv.
+          # generator can't enumerate transitive deps.
+          #
+          # setuptools is pinned <81 because homebrew-pypi-poet 0.10.0 still
+          # imports `pkg_resources` at startup, and setuptools 81 dropped
+          # `pkg_resources` from the default install (Python 3.12 venvs do not
+          # ship it either, so a fresh 82.0.1 venv crashes with
+          # ModuleNotFoundError).
           python -m venv .poet-venv
-          ./.poet-venv/bin/pip install --upgrade pip setuptools
+          ./.poet-venv/bin/pip install --upgrade pip "setuptools<81"
           ./.poet-venv/bin/pip install "pythinker-ai==${VERSION}" homebrew-pypi-poet==0.10.0
 
       - name: Generate Formula/pythinker-ai.rb
