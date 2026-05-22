@@ -64,6 +64,9 @@ pythinker/web/dist/*
 build/
 *.manifest
 *.spec
+# Native-installer build inputs (PyInstaller + rpmbuild) live under packaging/.
+# They are intentional source artefacts despite matching the *.spec ignore above.
+!packaging/**/*.spec
 pip-wheel-metadata/
 share/python-wheels/
 

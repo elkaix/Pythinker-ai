@@ -328,3 +328,165 @@ def test_format_banner_yanked_takes_priority():
     line = update_mod.format_banner(info)
     assert line is not None
     assert "yanked" in line.lower()
+
+
+# ---------------------------------------------------------------------------
+# Native installer methods (2.7.0+)
+# ---------------------------------------------------------------------------
+
+
+def test_native_asset_for_deb_amd64(monkeypatch):
+    monkeypatch.setattr(update_mod, "sys", sys)
+    import platform as _p
+    monkeypatch.setattr(_p, "machine", lambda: "x86_64")
+    asset = update_mod.native_asset_for(InstallMethod.DEB, "2.7.0")
+    assert asset is not None
+    assert asset.filename == "pythinker-ai_2.7.0_amd64.deb"
+    assert asset.needs_sudo is True
+
+
+def test_native_asset_for_deb_arm64(monkeypatch):
+    import platform as _p
+    monkeypatch.setattr(_p, "machine", lambda: "aarch64")
+    asset = update_mod.native_asset_for(InstallMethod.DEB, "2.7.0")
+    assert asset is not None
+    assert asset.filename == "pythinker-ai_2.7.0_arm64.deb"
+
+
+def test_native_asset_for_rpm_x86_64(monkeypatch):
+    import platform as _p
+    monkeypatch.setattr(_p, "machine", lambda: "x86_64")
+    asset = update_mod.native_asset_for(InstallMethod.RPM, "2.7.0")
+    assert asset is not None
+    assert asset.filename == "pythinker-ai-2.7.0.x86_64.rpm"
+
+
+def test_native_asset_for_native_tarball_linux(monkeypatch):
+    import platform as _p
+    monkeypatch.setattr(_p, "machine", lambda: "x86_64")
+    monkeypatch.setattr(sys, "platform", "linux", raising=False)
+    asset = update_mod.native_asset_for(InstallMethod.NATIVE_TARBALL, "2.7.0")
+    assert asset is not None
+    assert asset.filename == "pythinker-2.7.0-x86_64-unknown-linux-gnu.tar.gz"
+    assert asset.needs_sudo is False
+
+
+def test_native_asset_for_windows_exe(monkeypatch):
+    asset = update_mod.native_asset_for(InstallMethod.WINDOWS_EXE, "2.7.0")
+    assert asset is not None
+    assert asset.filename == "PythinkerSetup-2.7.0.exe"
+
+
+def test_native_asset_for_returns_none_for_pypi_methods():
+    assert update_mod.native_asset_for(InstallMethod.UV_TOOL, "2.7.0") is None
+    assert update_mod.native_asset_for(InstallMethod.PIPX, "2.7.0") is None
+    assert update_mod.native_asset_for(InstallMethod.EDITABLE, "2.7.0") is None
+
+
+def test_upgrade_command_homebrew_combines_update_and_upgrade():
+    cmd = upgrade_command(InstallMethod.HOMEBREW)
+    assert cmd is not None
+    assert "brew update" in " ".join(cmd)
+    assert "brew upgrade pythinker-ai" in " ".join(cmd)
+
+
+def test_upgrade_command_native_methods_return_none():
+    # DEB/RPM/NATIVE_TARBALL/WINDOWS_EXE upgrade via native_upgrade(), not argv.
+    for m in (
+        InstallMethod.DEB,
+        InstallMethod.RPM,
+        InstallMethod.NATIVE_TARBALL,
+        InstallMethod.WINDOWS_EXE,
+    ):
+        assert upgrade_command(m) is None
+
+
+def test_suggested_upgrade_command_covers_all_native_methods():
+    for m in (
+        InstallMethod.HOMEBREW,
+        InstallMethod.DEB,
+        InstallMethod.RPM,
+        InstallMethod.NATIVE_TARBALL,
+        InstallMethod.WINDOWS_EXE,
+    ):
+        assert suggested_upgrade_command(m)  # non-empty
+
+
+def test_suggested_target_command_native_tarball_points_to_install_script():
+    s = update_mod.suggested_target_command(InstallMethod.NATIVE_TARBALL, "2.7.0")
+    assert "install-native.sh" in s
+    assert "--version 2.7.0" in s
+
+
+def test_no_auto_update_env_disables_startup_check(monkeypatch):
+    """PYTHINKER_CLI_NO_AUTO_UPDATE=1 short-circuits the banner."""
+    from pythinker.cli.updates import _updates_enabled
+
+    monkeypatch.setenv("PYTHINKER_CLI_NO_AUTO_UPDATE", "1")
+    monkeypatch.delenv("PYTHINKER_NO_UPDATE_CHECK", raising=False)
+    assert _updates_enabled(None) is False
+
+
+# ---------------------------------------------------------------------------
+# Frozen-bundle install-method detection (2.7.0+)
+# ---------------------------------------------------------------------------
+
+
+def test_detect_frozen_install_method_homebrew(monkeypatch):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(
+        sys,
+        "executable",
+        "/opt/homebrew/Cellar/pythinker-ai/2.7.0/libexec/bin/pythinker",
+        raising=False,
+    )
+    monkeypatch.setattr(sys, "platform", "darwin", raising=False)
+    assert detect_install_method() is InstallMethod.HOMEBREW
+
+
+def test_detect_frozen_install_method_windows_exe(monkeypatch):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    monkeypatch.setattr(
+        sys,
+        "executable",
+        r"C:\Users\me\AppData\Local\Programs\Pythinker\pythinker.exe",
+        raising=False,
+    )
+    monkeypatch.setattr(sys, "platform", "win32", raising=False)
+    monkeypatch.setenv("LOCALAPPDATA", r"C:\Users\me\AppData\Local")
+    assert detect_install_method() is InstallMethod.WINDOWS_EXE
+
+
+def test_detect_frozen_install_method_native_tarball_when_unowned(monkeypatch, tmp_path):
+    """A frozen binary under ~/.local/lib/pythinker not owned by dpkg/rpm => NATIVE_TARBALL."""
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    fake_bin = tmp_path / "lib" / "pythinker" / "pythinker"
+    fake_bin.parent.mkdir(parents=True)
+    fake_bin.write_text("")
+    monkeypatch.setattr(sys, "executable", str(fake_bin), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux", raising=False)
+    # Force the dpkg/rpm owner-query helpers to report "not owned" by stubbing shutil.which.
+    monkeypatch.setattr(update_mod, "_query_linux_package_owner", lambda _p: None)
+    assert detect_install_method() is InstallMethod.NATIVE_TARBALL
+
+
+def test_detect_frozen_install_method_deb(monkeypatch, tmp_path):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    fake_bin = tmp_path / "usr" / "lib" / "pythinker" / "pythinker"
+    fake_bin.parent.mkdir(parents=True)
+    fake_bin.write_text("")
+    monkeypatch.setattr(sys, "executable", str(fake_bin), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux", raising=False)
+    monkeypatch.setattr(update_mod, "_query_linux_package_owner", lambda _p: "dpkg")
+    assert detect_install_method() is InstallMethod.DEB
+
+
+def test_detect_frozen_install_method_rpm(monkeypatch, tmp_path):
+    monkeypatch.setattr(sys, "frozen", True, raising=False)
+    fake_bin = tmp_path / "usr" / "lib" / "pythinker" / "pythinker"
+    fake_bin.parent.mkdir(parents=True)
+    fake_bin.write_text("")
+    monkeypatch.setattr(sys, "executable", str(fake_bin), raising=False)
+    monkeypatch.setattr(sys, "platform", "linux", raising=False)
+    monkeypatch.setattr(update_mod, "_query_linux_package_owner", lambda _p: "rpm")
+    assert detect_install_method() is InstallMethod.RPM

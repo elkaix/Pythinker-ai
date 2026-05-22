@@ -1,6 +1,6 @@
 [project]
 name = "pythinker-ai"
-version = "2.6.0"
+version = "2.7.0"
 description = "Pythinker — a tiny agent framework with built-in chat channels, memory, MCP, and an OpenAI-compatible API."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
@@ -120,6 +120,24 @@ reports = [
     "reportlab>=4.0.0,<5.0.0",
 ]
 browser = []
+
+# Aggregate of every runtime extra. Used by the native-installer build
+# (release-native.yml) so the PyInstaller bundle ships with every channel,
+# tool, and provider importable out of the box. `dev` is intentionally
+# excluded — it's test-only and would bloat the frozen binary.
+all = [
+    "aiohttp>=3.9.0,<4.0.0",
+    "PyJWT>=2.0,<3.0",
+    "cryptography>=41.0",
+    "matrix-nio[e2e]>=0.25.2; sys_platform != 'win32'",
+    "mistune>=3.0.0,<4.0.0",
+    "nh3>=0.2.17,<1.0.0",
+    "discord.py>=2.5.2,<3.0.0",
+    "langsmith>=0.1.0",
+    "pymupdf>=1.25.0",
+    "reportlab>=4.0.0,<5.0.0",
+]
+
 dev = [
     "pytest>=9.0.0,<10.0.0",
     "pytest-asyncio>=1.3.0,<2.0.0",

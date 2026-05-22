@@ -6,8 +6,32 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-05-22
+
 ### Added
 
+- **Native installers for every platform.** Pythinker now ships per-OS
+  packages alongside the PyPI wheel:
+  - Windows: `PythinkerSetup-2.7.0.exe` (Inno Setup wizard, per-user install,
+    HKCU PATH edit, no UAC).
+  - macOS (Apple Silicon + Intel): `brew install
+    mohamed-elkholy95/pythinker/pythinker-ai` via auto-published Homebrew tap.
+  - Debian / Ubuntu: `pythinker-ai_2.7.0_{amd64,arm64}.deb`.
+  - Fedora / RHEL / openSUSE: `pythinker-ai-2.7.0.{x86_64,aarch64}.rpm`.
+  - Cross-OS curl-bash: `scripts/install-native.sh` auto-detects OS+arch,
+    verifies SHA-256, lands a single PyInstaller-frozen binary at
+    `~/.local/bin/pythinker`.
+  Every artifact ships with a matching `.sha256` file; the release workflow
+  uploads both to the GitHub Release.
+- **`pythinker update` command** — queries the GitHub Releases API, detects
+  how the running CLI was installed (brew / dpkg / rpm / exe / pyinstaller /
+  pip), verifies SHA-256, and re-runs the matching installer in place. Set
+  `PYTHINKER_CLI_NO_AUTO_UPDATE=1` to disable the proactive startup check.
+- **Homebrew tap auto-publish.** `.github/workflows/homebrew-tap.yml`
+  regenerates `Formula/pythinker-ai.rb` on every release and pushes it to
+  [`mohamed-elkholy95/homebrew-pythinker`](https://github.com/mohamed-elkholy95/homebrew-pythinker),
+  so `brew upgrade pythinker-ai` always finds the latest version with no
+  hand-curation.
 - **Pre-built container image** published to GitHub Container Registry on every
   release at `ghcr.io/mohamed-elkholy95/pythinker-ai`. Multi-platform (amd64 +
   arm64). Pull directly with `docker pull ghcr.io/mohamed-elkholy95/pythinker-ai:latest`
@@ -18,6 +42,14 @@ All notable user-visible changes to Pythinker land here. The project follows
 - **Novita AI provider** (`novita`) — OpenAI-compatible gateway for hosted
   model APIs at `https://api.novita.ai/openai`. Set `NOVITA_API_KEY` or the
   config key `providers.novita.apiKey`.
+
+### Changed
+
+- Legacy install paths (`scripts/install.sh`, `scripts/install.ps1`, `uvx`,
+  `uv tool install`, `pipx install`, bare `pip install`) keep working but now
+  print a deprecation banner. Set `PYTHINKER_INSTALL_QUIET_DEPRECATION=1` to
+  silence it. README Quick Start leads with the per-OS native installer
+  table.
 
 ### Fixed
 

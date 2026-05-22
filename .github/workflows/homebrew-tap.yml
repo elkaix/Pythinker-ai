@@ -1,0 +1,146 @@
+name: Publish Homebrew tap
+
+# Regenerates Formula/pythinker-ai.rb in mohamed-elkholy95/homebrew-pythinker
+# on every Pythinker release and pushes it. The formula is reconstructed
+# from scratch each run (no hand-curation), so `brew upgrade pythinker-ai`
+# always finds the latest version automatically.
+#
+# Security: every reference to release.tag_name / inputs.tag / GITHUB_REF
+# passes through an `env:` block before being touched by shell — see the
+# GitHub actions-injection guide.
+#
+# Prerequisites:
+#   * Repo secret HOMEBREW_TAP_TOKEN with Contents:write on the tap repo.
+#   * Tap repo exists with an empty `Formula/` directory.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to publish (e.g. v2.7.0). Defaults to workflow ref."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: Update tap formula
+    runs-on: macos-latest
+    env:
+      TAP_REPO: mohamed-elkholy95/homebrew-pythinker
+      RELEASE_TAG: ${{ github.event.release.tag_name }}
+      INPUT_TAG: ${{ inputs.tag }}
+      EVENT_NAME: ${{ github.event_name }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Resolve release version
+        id: v
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${EVENT_NAME}" = "release" ]; then
+            TAG="${RELEASE_TAG}"
+          else
+            TAG="${INPUT_TAG:-${GITHUB_REF#refs/tags/}}"
+          fi
+          VER="${TAG#v}"
+          PYPROJECT_VER=$(python3 -c "import tomllib;print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          if [ -n "${TAG}" ] && [ "${VER}" != "${PYPROJECT_VER}" ]; then
+            echo "::error::tag ${VER} does not match pyproject.toml ${PYPROJECT_VER}"
+            exit 1
+          fi
+          [ -n "${VER}" ] || VER="${PYPROJECT_VER}"
+          echo "version=${VER}" >>"${GITHUB_OUTPUT}"
+
+      - name: Install homebrew-pypi-poet
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          python -m pip install homebrew-pypi-poet==0.10.0
+
+      - name: Wait for PyPI to publish the release
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 60); do
+            if curl -fsSL "https://pypi.org/pypi/pythinker-ai/${VERSION}/json" >/dev/null; then
+              echo "pythinker-ai==${VERSION} is on PyPI"
+              exit 0
+            fi
+            echo "Waiting for PyPI… attempt ${attempt}/60"
+            sleep 10
+          done
+          echo "::error::pythinker-ai==${VERSION} did not appear on PyPI in time"
+          exit 1
+
+      - name: Install the release from PyPI in an isolated venv
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m venv .poet-venv
+          ./.poet-venv/bin/pip install --upgrade pip
+          ./.poet-venv/bin/pip install "pythinker-ai==${VERSION}"
+
+      - name: Generate Formula/pythinker-ai.rb
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p tap/Formula
+          ./.poet-venv/bin/poet --formula pythinker-ai > tap/Formula/pythinker-ai.rb
+          python3 - <<'PY'
+          from pathlib import Path
+          f = Path("tap/Formula/pythinker-ai.rb")
+          src = f.read_text()
+          src = src.replace(
+              'desc ""',
+              'desc "Tiny async agent framework with chat channels, memory, MCP, and an OpenAI-compatible API"',
+          )
+          src = src.replace('homepage ""', 'homepage "https://github.com/mohamed-elkholy95/Pythinker"')
+          f.write_text(src)
+          PY
+          head -n 20 tap/Formula/pythinker-ai.rb
+
+      - name: Push formula to tap repo
+        env:
+          HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          VERSION: ${{ steps.v.outputs.version }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${HOMEBREW_TAP_TOKEN:-}" ]; then
+            echo "::error::HOMEBREW_TAP_TOKEN secret is not configured. Skipping push."
+            exit 1
+          fi
+          WORK="$(mktemp -d)"
+          git clone --depth=1 "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/${TAP_REPO}.git" "${WORK}"
+          mkdir -p "${WORK}/Formula"
+          cp tap/Formula/pythinker-ai.rb "${WORK}/Formula/pythinker-ai.rb"
+          cd "${WORK}"
+          git config user.name  "pythinker-release-bot"
+          git config user.email "release-bot@users.noreply.github.com"
+          git add Formula/pythinker-ai.rb
+          if git diff --staged --quiet; then
+            echo "Formula unchanged."
+            exit 0
+          fi
+          git commit -m "pythinker-ai ${VERSION}"
+          git push origin HEAD:main

@@ -101,10 +101,21 @@ from pythinker.utils.restart import (  # noqa: E402
 from pythinker.utils.update import (  # noqa: E402
     InstallMethod,
     check_for_update_sync,
+    native_asset_for,
+    native_upgrade,
     suggested_target_command,
     suggested_upgrade_command,
     target_install_command,
     upgrade_command,
+)
+
+_NATIVE_INSTALL_METHODS = frozenset(
+    {
+        InstallMethod.DEB,
+        InstallMethod.RPM,
+        InstallMethod.NATIVE_TARBALL,
+        InstallMethod.WINDOWS_EXE,
+    }
 )
 
 app = typer.Typer(
@@ -1580,11 +1591,23 @@ def update(
             raise typer.Exit(2)
 
         cmd = upgrade_command(info.install_method)
-        if cmd is None:
+        # Native installers (DEB/RPM/native-tarball/Windows EXE) don't have a
+        # single argv — they download + SHA-verify + invoke the per-platform
+        # installer. `native_upgrade()` handles that; the rest of this command
+        # stays in charge of confirmation, locking, and exit-code reporting.
+        is_native = info.install_method in _NATIVE_INSTALL_METHODS
+        if not is_native and cmd is None:
             console.print(
                 f"[yellow]Auto-upgrade is not safe for {info.install_method.value} installs.[/yellow]"
             )
             console.print(f"Run manually: [cyan]{suggested}[/cyan]")
+            raise typer.Exit(2)
+        if is_native and native_asset_for(info.install_method, info.latest or "") is None:
+            console.print(
+                f"[yellow]No native asset published for "
+                f"{info.install_method.value} on this host.[/yellow]"
+            )
+            console.print(f"Fallback: [cyan]{suggested}[/cyan]")
             raise typer.Exit(2)
 
     if not yes:
@@ -1597,8 +1620,20 @@ def update(
             raise typer.Exit(0)
 
     lock_path = get_update_dir() / ".lock"
+    upgrade_version = target if target is not None else (info.latest or info.current)
 
     def _do_upgrade() -> int:
+        if info.install_method in _NATIVE_INSTALL_METHODS:
+            console.print(
+                f"Downloading & verifying native installer for "
+                f"[cyan]{info.install_method.value}[/cyan]…"
+            )
+            try:
+                return native_upgrade(info.install_method, upgrade_version)
+            except RuntimeError as exc:
+                console.print(f"[red]Native upgrade failed:[/red] {exc}")
+                console.print(f"Run manually: [cyan]{suggested}[/cyan]")
+                return 1
         console.print(f"Running: [cyan]{' '.join(cmd)}[/cyan]")
         try:
             proc = subprocess.run(cmd, check=False)

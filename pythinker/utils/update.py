@@ -38,9 +38,13 @@ DEFAULT_CACHE_TTL_S = 24 * 3600
 DEFAULT_FAILURE_TTL_S = 15 * 60  # short TTL on PyPI failure so transient outages don't pin users
 
 ENV_DISABLE = "PYTHINKER_NO_UPDATE_CHECK"
+ENV_NO_AUTO_UPDATE = "PYTHINKER_CLI_NO_AUTO_UPDATE"
 
 CACHE_FILENAME = "state.json"
 LOCK_FILENAME = ".lock"
+
+GITHUB_REPO = "mohamed-elkholy95/Pythinker"
+GITHUB_RELEASES_LATEST = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 
 class InstallMethod(str, enum.Enum):
@@ -50,6 +54,14 @@ class InstallMethod(str, enum.Enum):
     PIP_SYSTEM = "pip-system"
     EDITABLE = "editable"
     CONTAINER = "container"
+    # Native installers added in 2.7.0. Each one ships from the GitHub Release
+    # alongside the PyPI wheel; the in-app `pythinker update` command verifies
+    # SHA-256 of the downloaded asset before re-running the installer.
+    HOMEBREW = "homebrew"
+    DEB = "deb"
+    RPM = "rpm"
+    NATIVE_TARBALL = "native-tarball"
+    WINDOWS_EXE = "windows-exe"
     UNKNOWN = "unknown"
 
 
@@ -130,8 +142,17 @@ def detect_install_method() -> InstallMethod:
     Used to route the upgrade through the right tool.  Errs on the side of
     ``UNKNOWN`` when we can't be confident — the caller refuses auto-upgrade
     in that case.
+
+    Detection order matters: native installers (homebrew/deb/rpm/exe/
+    pyinstaller-tarball) are checked *first*, because a PyInstaller-frozen
+    bundle's ``sys.prefix`` does not point at a real Python prefix and the
+    legacy heuristics would otherwise mis-label it as PIP_SYSTEM.
     """
-    # Editable / source checkout: pythinker imports from outside site-packages.
+    # 1. Frozen PyInstaller bundle (the native installers all ship one).
+    if getattr(sys, "frozen", False):
+        return _detect_frozen_install_method()
+
+    # 2. Editable / source checkout: pythinker imports from outside site-packages.
     try:
         import pythinker as _pythinker
 
@@ -166,6 +187,95 @@ def detect_install_method() -> InstallMethod:
     return InstallMethod.PIP_SYSTEM
 
 
+def _detect_frozen_install_method() -> InstallMethod:
+    """Disambiguate native installs once we know we're in a PyInstaller bundle.
+
+    The frozen binary lives at ``sys.executable``; the surrounding directory
+    tells us which native installer dropped it:
+
+      * ``%LOCALAPPDATA%\\Programs\\Pythinker`` or ``%ProgramFiles%\\Pythinker`` -> Inno EXE
+      * ``/opt/homebrew/Cellar/pythinker-ai`` or ``/usr/local/Cellar/...``   -> Homebrew
+      * dpkg / rpm report ownership of the binary                           -> DEB / RPM
+      * ``~/.local/lib/pythinker`` or any other prefix                      -> native tarball
+    """
+    exe = Path(sys.executable).resolve()
+    exe_parts_lower = [p.lower() for p in exe.parts]
+
+    # Windows Inno install dirs.
+    if sys.platform == "win32":
+        marker_paths = (
+            os.environ.get("LOCALAPPDATA", ""),
+            os.environ.get("PROGRAMFILES", ""),
+            os.environ.get("PROGRAMFILES(X86)", ""),
+        )
+        for marker in marker_paths:
+            if marker and marker.lower() in str(exe).lower():
+                if "pythinker" in exe_parts_lower:
+                    return InstallMethod.WINDOWS_EXE
+        return InstallMethod.WINDOWS_EXE  # any frozen .exe on Windows
+
+    # Homebrew Cellar layout: /opt/homebrew/Cellar/pythinker-ai/<ver>/...
+    if "cellar" in exe_parts_lower:
+        return InstallMethod.HOMEBREW
+
+    # dpkg / rpm ownership query — definitive on Linux when the tools exist.
+    if sys.platform.startswith("linux"):
+        owner = _query_linux_package_owner(exe)
+        if owner == "dpkg":
+            return InstallMethod.DEB
+        if owner == "rpm":
+            return InstallMethod.RPM
+
+    # Default for any other frozen layout (curl-bash native tarball).
+    return InstallMethod.NATIVE_TARBALL
+
+
+def _query_linux_package_owner(exe_path: Path) -> str | None:
+    """Return ``"dpkg"`` / ``"rpm"`` if a package manager owns ``exe_path``."""
+    import shutil
+    import subprocess
+
+    # The frozen binary lives under /usr/lib/pythinker for both .deb and .rpm;
+    # the launcher at /usr/bin/pythinker is what dpkg/rpm tracks. Resolve to
+    # one of those before querying.
+    candidates: list[Path] = [exe_path]
+    launcher = Path("/usr/bin/pythinker")
+    if launcher.exists():
+        candidates.append(launcher)
+
+    if shutil.which("dpkg-query"):
+        for cand in candidates:
+            try:
+                proc = subprocess.run(
+                    ["dpkg-query", "-S", str(cand)],
+                    capture_output=True,
+                    text=True,
+                    timeout=2.0,
+                    check=False,
+                )
+            except (OSError, subprocess.SubprocessError):
+                continue
+            if proc.returncode == 0 and "pythinker-ai" in proc.stdout:
+                return "dpkg"
+
+    if shutil.which("rpm"):
+        for cand in candidates:
+            try:
+                proc = subprocess.run(
+                    ["rpm", "-qf", str(cand)],
+                    capture_output=True,
+                    text=True,
+                    timeout=2.0,
+                    check=False,
+                )
+            except (OSError, subprocess.SubprocessError):
+                continue
+            if proc.returncode == 0 and "pythinker-ai" in proc.stdout:
+                return "rpm"
+
+    return None
+
+
 def _running_in_container() -> bool:
     """Cheap container heuristic.  Not bulletproof; conservative on false positives."""
     if Path("/.dockerenv").exists():
@@ -195,7 +305,13 @@ def upgrade_command(method: InstallMethod) -> list[str] | None:
         return ["pipx", "upgrade", PACKAGE_NAME]
     if method is InstallMethod.PIP_VENV:
         return [sys.executable, "-m", "pip", "install", "--upgrade", PACKAGE_NAME]
-    # PIP_SYSTEM, EDITABLE, CONTAINER, UNKNOWN: print only, don't auto-run.
+    if method is InstallMethod.HOMEBREW:
+        # `brew update` first so the tap formula refresh actually surfaces a
+        # newer version; `brew upgrade` is a no-op otherwise.
+        return ["sh", "-c", f"brew update && brew upgrade {PACKAGE_NAME}"]
+    # DEB / RPM / NATIVE_TARBALL / WINDOWS_EXE upgrade in `native_upgrade()`
+    # because they need to download + SHA-verify the asset before invoking
+    # dpkg / rpm / installer. PIP_SYSTEM, EDITABLE, CONTAINER, UNKNOWN: print only.
     return None
 
 
@@ -247,6 +363,32 @@ def suggested_target_command(method: InstallMethod, version: str) -> str:
             f"docker pull <image>:{version}  "
             f"# or rebuild the image with {PACKAGE_NAME}=={version} pinned"
         )
+    if method is InstallMethod.HOMEBREW:
+        return (
+            f"brew uninstall {PACKAGE_NAME} && "
+            f"brew install mohamed-elkholy95/pythinker/{PACKAGE_NAME}@{version}  "
+            "# requires a version-pinned formula in the tap"
+        )
+    if method is InstallMethod.DEB:
+        return (
+            f"curl -fL -o /tmp/pythinker.deb "
+            f"https://github.com/{GITHUB_REPO}/releases/download/v{version}/{PACKAGE_NAME}_{version}_$(dpkg --print-architecture).deb "
+            f"&& sudo dpkg -i /tmp/pythinker.deb"
+        )
+    if method is InstallMethod.RPM:
+        return (
+            f"sudo rpm -U https://github.com/{GITHUB_REPO}/releases/download/v{version}/{PACKAGE_NAME}-{version}.$(uname -m).rpm"
+        )
+    if method is InstallMethod.NATIVE_TARBALL:
+        return (
+            f"curl -fsSL https://raw.githubusercontent.com/{GITHUB_REPO}/main/scripts/install-native.sh "
+            f"| bash -s -- --version {version}"
+        )
+    if method is InstallMethod.WINDOWS_EXE:
+        return (
+            f"# Download PythinkerSetup-{version}.exe from "
+            f"https://github.com/{GITHUB_REPO}/releases/tag/v{version} and run it"
+        )
     return f'pip install --force-reinstall "{PACKAGE_NAME}=={version}"'
 
 
@@ -261,6 +403,25 @@ def suggested_upgrade_command(method: InstallMethod) -> str:
         return "git pull && uv sync --all-extras  # or: pip install -e ."
     if method is InstallMethod.CONTAINER:
         return f"docker pull <image>  # or rebuild the image with the new {PACKAGE_NAME} version"
+    if method is InstallMethod.DEB:
+        return (
+            f"# `pythinker update` downloads + verifies + installs the matching "
+            f"{PACKAGE_NAME}_<ver>_$(dpkg --print-architecture).deb  (needs sudo)"
+        )
+    if method is InstallMethod.RPM:
+        return (
+            f"# `pythinker update` downloads + verifies + installs the matching "
+            f"{PACKAGE_NAME}-<ver>.$(uname -m).rpm  (needs sudo)"
+        )
+    if method is InstallMethod.NATIVE_TARBALL:
+        return (
+            f"curl -fsSL https://raw.githubusercontent.com/{GITHUB_REPO}/main/scripts/install-native.sh | bash"
+        )
+    if method is InstallMethod.WINDOWS_EXE:
+        return (
+            "# `pythinker update` downloads PythinkerSetup-<ver>.exe "
+            "and runs it silently (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)"
+        )
     return f"pip install --upgrade {PACKAGE_NAME}"
 
 
@@ -482,12 +643,184 @@ def format_banner(info: UpdateInfo) -> str | None:
     return None
 
 
+# ---------------------------------------------------------------------------
+# Native-installer upgrade path (DEB / RPM / native tarball / Windows EXE)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class NativeAsset:
+    """Describes one GitHub-Release artifact for a (method, version, arch) triple."""
+
+    filename: str
+    method: InstallMethod
+    needs_sudo: bool
+
+
+def native_asset_for(method: InstallMethod, version: str) -> NativeAsset | None:
+    """Compute the release-asset filename matching the host arch for ``method``.
+
+    Returns ``None`` when ``method`` doesn't ship a GH-Release artifact.
+    """
+    import platform
+
+    machine = platform.machine().lower()
+    if method is InstallMethod.DEB:
+        arch = "amd64" if machine in ("x86_64", "amd64") else (
+            "arm64" if machine in ("aarch64", "arm64") else None
+        )
+        if arch is None:
+            return None
+        return NativeAsset(
+            filename=f"{PACKAGE_NAME}_{version}_{arch}.deb",
+            method=method,
+            needs_sudo=True,
+        )
+    if method is InstallMethod.RPM:
+        if machine not in ("x86_64", "aarch64"):
+            return None
+        return NativeAsset(
+            filename=f"{PACKAGE_NAME}-{version}.{machine}.rpm",
+            method=method,
+            needs_sudo=True,
+        )
+    if method is InstallMethod.NATIVE_TARBALL:
+        if sys.platform.startswith("linux"):
+            if machine in ("x86_64", "amd64"):
+                target = "x86_64-unknown-linux-gnu"
+            elif machine in ("aarch64", "arm64"):
+                target = "aarch64-unknown-linux-gnu"
+            else:
+                return None
+        elif sys.platform == "darwin":
+            if machine in ("arm64", "aarch64"):
+                target = "aarch64-apple-darwin"
+            else:
+                return None
+        else:
+            return None
+        return NativeAsset(
+            filename=f"pythinker-{version}-{target}.tar.gz",
+            method=method,
+            needs_sudo=False,
+        )
+    if method is InstallMethod.WINDOWS_EXE:
+        return NativeAsset(
+            filename=f"PythinkerSetup-{version}.exe",
+            method=method,
+            needs_sudo=False,
+        )
+    return None
+
+
+def _release_asset_url(version: str, filename: str) -> str:
+    return f"https://github.com/{GITHUB_REPO}/releases/download/v{version}/{filename}"
+
+
+def _download_with_sha256(url: str, sha_url: str, dest: Path, *, timeout_s: float = 60.0) -> None:
+    """Download ``url`` to ``dest``; verify against the ``.sha256`` sidecar.
+
+    Raises :class:`RuntimeError` on any download or verification failure. The
+    sidecar must be the upstream ``shasum`` format (``<hexdigest>  <filename>``).
+    """
+    import hashlib
+
+    timeout = httpx.Timeout(timeout_s, connect=10.0)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    with httpx.Client(timeout=timeout, follow_redirects=True) as client:
+        sha_resp = client.get(sha_url)
+        sha_resp.raise_for_status()
+        expected = sha_resp.text.strip().split()[0].lower()
+        if len(expected) != 64 or not all(c in "0123456789abcdef" for c in expected):
+            raise RuntimeError(f"Invalid SHA-256 sidecar at {sha_url}: {sha_resp.text!r}")
+
+        with client.stream("GET", url) as r:
+            r.raise_for_status()
+            hasher = hashlib.sha256()
+            with dest.open("wb") as fh:
+                for chunk in r.iter_bytes(chunk_size=1 << 16):
+                    fh.write(chunk)
+                    hasher.update(chunk)
+            actual = hasher.hexdigest().lower()
+            if actual != expected:
+                dest.unlink(missing_ok=True)
+                raise RuntimeError(
+                    f"SHA-256 mismatch for {url}\n  expected: {expected}\n  actual:   {actual}"
+                )
+
+
+def native_upgrade(method: InstallMethod, version: str, *, dry_run: bool = False) -> int:
+    """Download the release asset, verify SHA-256, and run the matching installer.
+
+    Returns the process exit code (0 == success). Raises :class:`RuntimeError`
+    if the asset can't be resolved or verification fails — the caller is
+    expected to translate that into a CLI error.
+
+    For DEB / RPM the installer needs root; this helper spawns ``sudo`` so the
+    user sees a single prompt. For NATIVE_TARBALL it re-runs
+    ``scripts/install-native.sh`` via curl-bash. For WINDOWS_EXE it executes
+    the Inno installer with the silent flags documented in the .iss.
+    """
+    import subprocess
+
+    asset = native_asset_for(method, version)
+    if asset is None:
+        raise RuntimeError(
+            f"No GitHub-Release asset is published for method={method.value} on this host."
+        )
+
+    if dry_run:
+        url = _release_asset_url(version, asset.filename)
+        logger.info("native_upgrade dry-run: would download {} (needs_sudo={})", url, asset.needs_sudo)
+        return 0
+
+    # Special-case the native tarball: the installer script already does the
+    # download + SHA-256 check itself, so we just shell out to it.
+    if method is InstallMethod.NATIVE_TARBALL:
+        cmd = [
+            "bash",
+            "-c",
+            f"curl -fsSL https://raw.githubusercontent.com/{GITHUB_REPO}/main/scripts/install-native.sh "
+            f"| bash -s -- --version {version}",
+        ]
+        return subprocess.run(cmd, check=False).returncode
+
+    # Download + verify for everything else.
+    tmpdir = Path(get_update_dir()) / "downloads" / version
+    tmpdir.mkdir(parents=True, exist_ok=True)
+    dest = tmpdir / asset.filename
+    url = _release_asset_url(version, asset.filename)
+    _download_with_sha256(url, url + ".sha256", dest)
+
+    if method is InstallMethod.DEB:
+        cmd = ["sudo", "dpkg", "-i", str(dest)]
+        rc = subprocess.run(cmd, check=False).returncode
+        if rc != 0:
+            # Fall back to `apt-get -f install` to fix any dep gap dpkg flagged.
+            subprocess.run(["sudo", "apt-get", "-f", "install", "-y"], check=False)
+        return rc
+
+    if method is InstallMethod.RPM:
+        cmd = ["sudo", "rpm", "-U", str(dest)]
+        return subprocess.run(cmd, check=False).returncode
+
+    if method is InstallMethod.WINDOWS_EXE:
+        cmd = [str(dest), "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART"]
+        return subprocess.run(cmd, check=False).returncode
+
+    raise RuntimeError(f"native_upgrade is not implemented for {method.value}")
+
+
 __all__ = [
     "DEFAULT_CACHE_TTL_S",
     "DEFAULT_FAILURE_TTL_S",
     "DEFAULT_TIMEOUT_S",
     "ENV_DISABLE",
+    "ENV_NO_AUTO_UPDATE",
+    "GITHUB_RELEASES_LATEST",
+    "GITHUB_REPO",
     "InstallMethod",
+    "NativeAsset",
     "PACKAGE_NAME",
     "PYPI_JSON_URL",
     "UpdateInfo",
@@ -497,6 +830,8 @@ __all__ = [
     "fetch_pypi_metadata",
     "format_banner",
     "mark_notified",
+    "native_asset_for",
+    "native_upgrade",
     "parse_pypi_response",
     "select_latest_version",
     "suggested_target_command",
