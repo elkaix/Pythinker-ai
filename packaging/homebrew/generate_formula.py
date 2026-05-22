@@ -93,6 +93,17 @@ def main(target_pkg: str) -> int:
     out.append(f'  license "{LICENSE_LITERAL}"')
     out.append("")
     out.append('  depends_on "python@3.12"')
+    # Homebrew forces source builds via `--no-binary :all:`, so we need every
+    # native toolchain that any transitive sdist requires at compile time:
+    #   * rust       — cryptography>=48, pydantic-core, jiter, primp, regex,
+    #                  tiktoken all switched to Rust extensions via maturin/pyo3
+    #   * openssl@3  — cryptography's OpenSSL bindings
+    #   * pkg-config — cffi resolves libffi/openssl headers via pkg-config
+    # These are :build-only deps because the resulting wheels link statically
+    # at install time and don't keep a runtime link to the brew formulae.
+    out.append('  depends_on "openssl@3"')
+    out.append('  depends_on "pkg-config" => :build')
+    out.append('  depends_on "rust" => :build')
     out.append("")
     # Both pythinker-ai and the sibling pythinker-code formula install a
     # `bin/pythinker` console script (see [project.scripts] in each project's
