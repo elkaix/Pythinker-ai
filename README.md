@@ -113,7 +113,7 @@ files and the PATH edit.
 ### 🍎 macOS — Homebrew tap
 
 ```bash
-# 1. Install
+# 1. Install — always pulls the newest pythinker-ai release on PyPI
 brew install mohamed-elkholy95/pythinker/pythinker-ai
 
 # 2. Verify
@@ -123,11 +123,14 @@ which pythinker          # -> /opt/homebrew/bin/pythinker (Apple Silicon)
 ```
 
 Works on **Apple Silicon and Intel** — brew picks the right Python build for
-you. The tap auto-publishes a fresh formula on every Pythinker release, so
-`brew upgrade pythinker-ai` always finds the latest version.
+you. The formula provisions a clean venv and installs `pythinker-ai`
+unpinned, so every fresh `brew install` resolves the newest release on PyPI;
+the tap also auto-republishes its `url`/`sha256` block on every Pythinker
+release so `brew info` reflects the current version.
 
-**Upgrade:** `brew upgrade pythinker-ai` (Homebrew packages don't auto-update;
-run this whenever you want the latest).
+**Upgrade:** `brew upgrade pythinker-ai` works once the tap has refreshed
+for the new release. To pick up a PyPI point release immediately (between
+tap refreshes), `brew reinstall pythinker-ai`.
 
 **Uninstall:** `brew uninstall pythinker-ai && brew untap mohamed-elkholy95/pythinker`.
 
