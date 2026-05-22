@@ -94,6 +94,15 @@ def main(target_pkg: str) -> int:
     out.append("")
     out.append('  depends_on "python@3.12"')
     out.append("")
+    # Both pythinker-ai and the sibling pythinker-code formula install a
+    # `bin/pythinker` console script (see [project.scripts] in each project's
+    # pyproject.toml). Without `conflicts_with`, the second `brew install`
+    # crashes with the opaque error:
+    #   "Could not symlink bin/pythinker, target already exists".
+    # Declaring it on either side is enough for brew to refuse cleanly.
+    out.append('  conflicts_with "pythinker-code",')
+    out.append('    because: "both install a `pythinker` executable into bin/"')
+    out.append("")
     for name, _ver, url, sha in resources:
         out.append(f'  resource "{name}" do')
         out.append(f'    url "{url}"')
