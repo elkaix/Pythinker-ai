@@ -46,7 +46,13 @@ WORKDIR /app
 # [tool.hatch.build.targets.wheel.hooks.custom]; it must be present even
 # during the stub install or hatchling errors.
 COPY pyproject.toml README.md LICENSE hatch_build.py ./
-RUN mkdir -p pythinker bridge && touch pythinker/__init__.py && \
+# hatchling resolves `[tool.hatch.build.targets.wheel.force-include]` at build
+# time, so the bridge/* paths it references must exist even during this
+# deps-only warm-up. Touch empty stubs so hatchling does not error with
+# `FileNotFoundError: Forced include not found: /app/bridge/package-lock.json`
+# before the real bridge/ COPY below.
+RUN mkdir -p pythinker bridge/src && touch pythinker/__init__.py \
+        bridge/package.json bridge/package-lock.json bridge/tsconfig.json && \
     uv pip install --system --no-cache . && \
     rm -rf pythinker bridge
 

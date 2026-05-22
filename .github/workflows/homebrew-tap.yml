@@ -64,13 +64,6 @@ jobs:
           [ -n "${VER}" ] || VER="${PYPROJECT_VER}"
           echo "version=${VER}" >>"${GITHUB_OUTPUT}"
 
-      - name: Install homebrew-pypi-poet
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m pip install --upgrade pip
-          python -m pip install homebrew-pypi-poet==0.10.0
-
       - name: Wait for PyPI to publish the release
         env:
           VERSION: ${{ steps.v.outputs.version }}
@@ -88,15 +81,18 @@ jobs:
           echo "::error::pythinker-ai==${VERSION} did not appear on PyPI in time"
           exit 1
 
-      - name: Install the release from PyPI in an isolated venv
+      - name: Install the release + poet into an isolated venv
         env:
           VERSION: ${{ steps.v.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
+          # poet reads the *active* interpreter's installed packages, so it must
+          # live inside the same venv as pythinker-ai — otherwise the formula
+          # generator can't enumerate transitive deps.
           python -m venv .poet-venv
           ./.poet-venv/bin/pip install --upgrade pip
-          ./.poet-venv/bin/pip install "pythinker-ai==${VERSION}"
+          ./.poet-venv/bin/pip install "pythinker-ai==${VERSION}" homebrew-pypi-poet==0.10.0
 
       - name: Generate Formula/pythinker-ai.rb
         env:
