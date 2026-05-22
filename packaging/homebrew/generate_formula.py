@@ -1,22 +1,34 @@
-"""Generate a Homebrew formula for pythinker-ai from the active venv.
+"""Generate a Homebrew formula for pythinker-ai.
 
-Replaces the unmaintained `homebrew-pypi-poet` (last release in 2024, breaks
-on every modern setuptools / lxml release). We inspect the installed
-distributions with `importlib.metadata`, fetch each one's sdist URL + SHA-256
-from PyPI's JSON API, and emit the formula with proper `resource` stanzas.
+Pythinker pulls in cryptography, pydantic-core, jiter, tiktoken, rpds-py,
+primp, Pillow, lxml, and other packages with Rust or C extensions. Brew's
+`Language::Python::Virtualenv` enforces ``--no-binary :all: --only-binary
+:none:`` on every resource install, which means each sdist must compile from
+source — including bootstrapping maturin from a Rust sdist inside the PEP 517
+build env. That path is fragile in practice (maturin's sdist install dies
+silently in build isolation even with Rust + OpenSSL on the host).
+
+We side-step the whole compile chain: the formula provisions a plain venv
+and runs ``pip install`` directly with binary wheels allowed, so PyPI's
+prebuilt arm64/x86_64 macOS wheels are used. Reproducibility comes from the
+``pythinker-ai==<version>`` pin plus pythinker-ai's own pyproject.toml dep
+constraints. This is acceptable for a single-maintainer Tier 2 tap (not a
+homebrew-core formula, where source-only is required).
+
+Assumption: every transitive runtime dependency publishes a macOS arm64 +
+Python 3.12 wheel to PyPI. True for the current dependency surface; if a
+future resource gains a wheel gap, pip will fall back to a source build and
+we'll need to revisit (either add the native dep here or pin around the
+gap).
 
 Usage:
     python packaging/homebrew/generate_formula.py <package> > Formula/<pkg>.rb
-
-The active interpreter (or venv) must already have the target package and
-all its runtime dependencies installed.
 """
 
 from __future__ import annotations
 
 import json
 import sys
-import textwrap
 import urllib.request
 from importlib.metadata import distributions
 from typing import Any
@@ -29,11 +41,7 @@ LICENSE_LITERAL = "MIT"
 
 
 def fetch_sdist(name: str, version: str) -> tuple[str, str]:
-    """Return (sdist_url, sha256) for the named release on PyPI.
-
-    Falls back to the first wheel if no sdist is published (rare but happens for
-    pure-binary packages). Brew handles both — wheels are noted with a comment.
-    """
+    """Return ``(sdist_url, sha256)`` for the release on PyPI."""
     url = PYPI_JSON.format(pkg=name, ver=version)
     with urllib.request.urlopen(url, timeout=30) as resp:  # nosec B310 — fixed scheme
         payload: dict[str, Any] = json.loads(resp.read())
@@ -51,41 +59,22 @@ def normalized_name(raw: str) -> str:
 
 
 def main(target_pkg: str) -> int:
-    seen: dict[str, str] = {}
     target_version: str | None = None
-    target_url: str | None = None
-    target_sha: str | None = None
-
     for dist in distributions():
         name = normalized_name(dist.metadata["Name"] or "")
-        if not name or name in seen:
-            continue
-        ver = dist.version
-        seen[name] = ver
-
-    if normalized_name(target_pkg) not in seen:
+        if name == normalized_name(target_pkg):
+            target_version = dist.version
+            break
+    if target_version is None:
         print(f"::error::{target_pkg} not installed in active venv", file=sys.stderr)
         return 1
 
-    target_version = seen.pop(normalized_name(target_pkg))
     target_url, target_sha = fetch_sdist(target_pkg, target_version)
 
-    # Stable order: alphabetical for review-friendliness.
-    resources: list[tuple[str, str, str, str]] = []
-    for name, ver in sorted(seen.items()):
-        try:
-            url, sha = fetch_sdist(name, ver)
-        except (urllib.error.HTTPError, urllib.error.URLError, KeyError, RuntimeError) as exc:
-            print(f"::warning::skipping {name}=={ver}: {exc}", file=sys.stderr)
-            continue
-        resources.append((name, ver, url, sha))
-
-    # Build the formula. PythonAi -> CamelCase pythinker-ai => PythinkerAi.
+    # pythinker-ai -> PythinkerAi (Ruby CamelCase).
     klass = "".join(part.capitalize() for part in target_pkg.replace("_", "-").split("-"))
-    out = []
+    out: list[str] = []
     out.append(f"class {klass} < Formula")
-    out.append("  include Language::Python::Virtualenv")
-    out.append("")
     out.append(f'  desc "{DESC}"')
     out.append(f'  homepage "{HOMEPAGE}"')
     out.append(f'  url "{target_url}"')
@@ -93,39 +82,36 @@ def main(target_pkg: str) -> int:
     out.append(f'  license "{LICENSE_LITERAL}"')
     out.append("")
     out.append('  depends_on "python@3.12"')
-    # Homebrew forces source builds via `--no-binary :all:`, so we need every
-    # native toolchain that any transitive sdist requires at compile time:
-    #   * rust       — cryptography>=48, pydantic-core, jiter, primp, regex,
-    #                  tiktoken all switched to Rust extensions via maturin/pyo3
-    #   * openssl@3  — cryptography's OpenSSL bindings
-    #   * pkg-config — cffi resolves libffi/openssl headers via pkg-config
-    # These are :build-only deps because the resulting wheels link statically
-    # at install time and don't keep a runtime link to the brew formulae.
-    out.append('  depends_on "openssl@3"')
-    out.append('  depends_on "pkg-config" => :build')
-    out.append('  depends_on "rust" => :build')
     out.append("")
     # Both pythinker-ai and the sibling pythinker-code formula install a
-    # `bin/pythinker` console script (see [project.scripts] in each project's
-    # pyproject.toml). Without `conflicts_with`, the second `brew install`
-    # crashes with the opaque error:
+    # `bin/pythinker` console script (see [project.scripts] in each
+    # project's pyproject.toml). Without `conflicts_with`, the second
+    # `brew install` crashes with the opaque error:
     #   "Could not symlink bin/pythinker, target already exists".
-    # Declaring it on either side is enough for brew to refuse cleanly.
     out.append('  conflicts_with "pythinker-code",')
     out.append('    because: "both install a `pythinker` executable into bin/"')
     out.append("")
-    for name, _ver, url, sha in resources:
-        out.append(f'  resource "{name}" do')
-        out.append(f'    url "{url}"')
-        out.append(f'    sha256 "{sha}"')
-        out.append("  end")
-        out.append("")
     out.append("  def install")
-    out.append("    virtualenv_install_with_resources")
+    out.append("    # Provision a plain venv and let pip resolve prebuilt wheels for")
+    out.append("    # the Rust/C-extension dependency tree (cryptography, pydantic-core,")
+    out.append("    # jiter, tiktoken, rpds-py, primp, Pillow, lxml, …). Using")
+    out.append("    # `virtualenv_install_with_resources` would force `--no-binary :all:`")
+    out.append("    # and require bootstrapping maturin from a Rust sdist inside PEP 517")
+    out.append("    # build isolation, which is the failure mode this formula is escaping.")
+    out.append('    python = Formula["python@3.12"].opt_libexec/"bin/python3"')
+    out.append('    system python, "-m", "venv", libexec')
+    # Install from `buildpath` — the sdist brew already downloaded and
+    # verified via `sha256`. pip builds pythinker-ai (pure Python) from
+    # the local source and resolves every transitive dependency from
+    # PyPI as a prebuilt wheel.
+    out.append('    system libexec/"bin/pip", "install", "--no-warn-script-location", buildpath')
+    out.append('    bin.install_symlink libexec/"bin/pythinker"')
     out.append("  end")
     out.append("")
     out.append("  test do")
-    out.append(f'    assert_match "{target_version}", shell_output("#{{bin}}/pythinker --version")')
+    out.append(
+        f'    assert_match "{target_version}", shell_output("#{{bin}}/pythinker --version")'
+    )
     out.append("  end")
     out.append("end")
     print("\n".join(out))
