@@ -800,7 +800,10 @@ def test_xiaomi_mimo_thinking_disabled_for_none() -> None:
 
 def test_xiaomi_mimo_gateway_thinking_enabled_with_prefix() -> None:
     kw = _build_kwargs_for("openrouter", "xiaomi/mimo-v2.5-pro", reasoning_effort="medium")
-    assert kw["extra_body"] == {"thinking": {"type": "enabled"}}
+    assert kw["extra_body"] == {
+        "thinking": {"type": "enabled"},
+        "reasoning": {"effort": "medium"},
+    }
 
 
 def test_xiaomi_mimo_flash_does_not_get_thinking_payload() -> None:
@@ -850,7 +853,10 @@ def test_kimi_k25_no_extra_body_when_reasoning_effort_none() -> None:
 def test_kimi_k25_thinking_enabled_with_openrouter_prefix() -> None:
     """OpenRouter-style model names like moonshotai/kimi-k2.5 must trigger thinking."""
     kw = _build_kwargs_for("openrouter", "moonshotai/kimi-k2.5", reasoning_effort="medium")
-    assert kw.get("extra_body") == {"thinking": {"type": "enabled"}}
+    assert kw.get("extra_body") == {
+        "thinking": {"type": "enabled"},
+        "reasoning": {"effort": "medium"},
+    }
 
 
 def test_kimi_k26_thinking_enabled() -> None:
@@ -862,6 +868,16 @@ def test_kimi_k26_thinking_enabled() -> None:
 def test_kimi_k26_thinking_enabled_with_openrouter_prefix() -> None:
     """OpenRouter-style names like moonshotai/kimi-k2.6 must trigger thinking."""
     kw = _build_kwargs_for("openrouter", "moonshotai/kimi-k2.6", reasoning_effort="medium")
+    assert kw.get("extra_body") == {
+        "thinking": {"type": "enabled"},
+        "reasoning": {"effort": "medium"},
+    }
+
+
+def test_kimi_drops_redundant_reasoning_effort_kwarg() -> None:
+    """Moonshot rejects both reasoning_effort and native thinking; drop the kwarg."""
+    kw = _build_kwargs_for("moonshot", "kimi-k2.5", reasoning_effort="medium")
+    assert "reasoning_effort" not in kw
     assert kw.get("extra_body") == {"thinking": {"type": "enabled"}}
 
 

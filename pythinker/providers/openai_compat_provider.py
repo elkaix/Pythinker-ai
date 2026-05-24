@@ -434,6 +434,10 @@ class OpenAICompatProvider(LLMProvider):
             kwargs.setdefault("extra_body", {}).update(
                 {"thinking": {"type": "enabled" if thinking_enabled else "disabled"}}
             )
+            # Moonshot rejects requests that carry both 'reasoning_effort' and
+            # the native 'thinking' param. We already expressed the user's
+            # intent via 'thinking', so drop the redundant wire-level kwarg.
+            kwargs.pop("reasoning_effort", None)
 
         # Model-level thinking injection for MiMo thinking-capable models.
         # Covers direct Xiaomi requests and gateway-routed names such as
@@ -443,6 +447,22 @@ class OpenAICompatProvider(LLMProvider):
             thinking_enabled = semantic_effort not in {"minimal", "none"}
             kwargs.setdefault("extra_body", {}).update(
                 {"thinking": {"type": "enabled" if thinking_enabled else "disabled"}}
+            )
+
+        # OpenRouter uses its own unified `reasoning` field and does not forward
+        # provider-specific thinking shapes (the Kimi/MiMo extra_body.thinking
+        # above) to upstream. For known thinking-capable models routed via OR,
+        # mirror the effort into reasoning.effort (OR enum:
+        # none|minimal|low|medium|high|xhigh), which OR translates to the
+        # upstream model's native shape.
+        if (
+            spec
+            and spec.name == "openrouter"
+            and reasoning_effort is not None
+            and (_is_kimi_thinking_model(model_name) or _is_mimo_thinking_model(model_name))
+        ):
+            kwargs.setdefault("extra_body", {}).update(
+                {"reasoning": {"effort": semantic_effort}}
             )
 
         if tools:
