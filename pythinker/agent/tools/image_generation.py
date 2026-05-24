@@ -25,6 +25,7 @@ from pythinker.providers.image_generation import (
     ImageGenerationProvider,
     get_image_gen_provider,
 )
+from pythinker.providers.registry import find_by_name
 from pythinker.utils.artifacts import (
     ArtifactError,
     generated_image_tool_result,
@@ -89,6 +90,10 @@ class ImageGenerationTool(Tool):
     def _provider_config(self) -> "ProviderConfig | None":
         return self.provider_configs.get(self.config.provider)
 
+    def _provider_allows_missing_api_key(self) -> bool:
+        spec = find_by_name(self.config.provider)
+        return bool(spec and (spec.is_local or spec.is_direct or spec.is_oauth))
+
     def _provider_client(self) -> ImageGenerationProvider | None:
         provider = self._provider_config()
         cls = get_image_gen_provider(self.config.provider)
@@ -146,7 +151,7 @@ class ImageGenerationTool(Tool):
         if client is None:
             return f"Error: unsupported image generation provider '{self.config.provider}'"
         provider = self._provider_config()
-        if not provider or not provider.api_key:
+        if not self._provider_allows_missing_api_key() and (not provider or not provider.api_key):
             return self._missing_api_key_error()
 
         requested = count or 1
