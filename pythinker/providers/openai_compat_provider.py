@@ -845,6 +845,15 @@ class OpenAICompatProvider(LLMProvider):
             for tc in (delta.tool_calls or []) if delta else []:
                 _accum_tc(tc, getattr(tc, "index", 0))
 
+        # Some providers reuse the same tool_call id for parallel tool calls in
+        # streaming mode. Deduplicate before building the response so downstream
+        # tool messages don't collide on a shared id.
+        seen_tc_ids: set[str] = set()
+        for b in tc_bufs.values():
+            if not b["id"] or b["id"] in seen_tc_ids:
+                b["id"] = _short_tool_id()
+            seen_tc_ids.add(b["id"])
+
         return LLMResponse(
             content="".join(content_parts) or None,
             tool_calls=[
