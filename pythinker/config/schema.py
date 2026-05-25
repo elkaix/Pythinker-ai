@@ -93,7 +93,7 @@ class ModelPresetConfig(Base):
 class AgentDefaults(Base):
     """Default agent configuration."""
 
-    workspace: str = "~/.pythinker/workspace"
+    workspace: str = "~/.pythinker-ai/workspace"
     model_preset: str | None = None  # Active preset name — takes precedence over fields below
     model: str = "openai-codex/gpt-5.5"
     alternate_models: list[str] = Field(
@@ -378,7 +378,7 @@ class LoggingConfig(Base):
     """Loguru sink configuration.
 
     ``level`` is the persistent default (read from config.json on startup);
-    the ``--verbose`` / ``--quiet`` CLI flags and the ``PYTHINKER_LOG_LEVEL``
+    the ``--verbose`` / ``--quiet`` CLI flags and the ``PYTHINKER_AI_LOG_LEVEL``
     env var override it at runtime. Without this, loguru's out-of-the-box
     sink fires at DEBUG, which floods the gateway's stdout with internal
     lifecycle events on every channel handshake.
@@ -704,4 +704,4 @@ class Config(BaseSettings):
                 return spec.default_api_base
         return None
 
-    model_config = ConfigDict(env_prefix="PYTHINKER_", env_nested_delimiter="__")
+    model_config = ConfigDict(env_prefix="PYTHINKER_AI_", env_nested_delimiter="__")

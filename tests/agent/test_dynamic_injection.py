@@ -118,7 +118,7 @@ def test_agent_run_spec_default_dynamic_injection_provider_is_none():
 
 
 def _make_plan_workspace(tmp_path: Path, body: str = "1. step one\n2. step two\n") -> Path:
-    plan_dir = tmp_path / ".pythinker"
+    plan_dir = tmp_path / ".pythinker-ai"
     plan_dir.mkdir(parents=True)
     (plan_dir / "plan.md").write_text(body, encoding="utf-8")
     return tmp_path

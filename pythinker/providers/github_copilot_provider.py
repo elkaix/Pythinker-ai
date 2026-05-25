@@ -201,7 +201,7 @@ class GitHubCopilotProvider(OpenAICompatProvider):
 
         github_token = _load_github_token()
         if not github_token or not github_token.access:
-            raise RuntimeError("GitHub Copilot is not logged in. Run: pythinker provider login github-copilot")
+            raise RuntimeError("GitHub Copilot is not logged in. Run: pythinker-ai provider login github-copilot")
 
         # Run the token exchange under the cross-process refresh lock so that
         # concurrent pythinker processes (e.g., serve + gateway) don't race

@@ -170,7 +170,7 @@ async def prompt_api_key(
 
     _printable_ascii = re.compile(r"[^\x21-\x7e]")
 
-    hint_lines = [f"Saves to ~/.pythinker/config.json under providers.{env_key}."]
+    hint_lines = [f"Saves to ~/.pythinker-ai/config.json under providers.{env_key}."]
     if signup_url:
         hint_lines.append(f"Get a key at: {signup_url}")
     screen = InputDialogScreen(

@@ -8,11 +8,11 @@ echo "=== Building Docker image ==="
 docker build -t "$IMAGE_NAME" .
 
 echo ""
-echo "=== Running 'pythinker onboard' ==="
+echo "=== Running 'pythinker-ai onboard' ==="
 docker run --name pythinker-test-run "$IMAGE_NAME" onboard
 
 echo ""
-echo "=== Running 'pythinker status' ==="
+echo "=== Running 'pythinker-ai status' ==="
 STATUS_OUTPUT=$(docker commit pythinker-test-run pythinker-test-onboarded > /dev/null && \
     docker run --rm pythinker-test-onboarded status 2>&1) || true
 

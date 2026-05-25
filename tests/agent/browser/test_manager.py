@@ -164,7 +164,7 @@ async def test_launch_mode_sandbox_failure_recommends_cdp_mode(tmp_path):
     """Sandbox failures inside hardened containers must surface actionable guidance.
 
     The plan's Container/sandbox section explicitly requires the error to
-    recommend `cdp` mode and mention the `PYTHINKER_BROWSER_NO_SANDBOX=1`
+    recommend `cdp` mode and mention the `PYTHINKER_AI_BROWSER_NO_SANDBOX=1`
     escape hatch as a deliberate local override, not a hardened default.
     """
     cfg = BrowserConfig(enable=True, mode="launch")
@@ -185,7 +185,7 @@ async def test_launch_mode_sandbox_failure_recommends_cdp_mode(tmp_path):
     assert "Chromium's sandbox could not start" in msg
     assert "mode='cdp'" in msg
     assert "pythinker-browser" in msg
-    assert "PYTHINKER_BROWSER_NO_SANDBOX=1" in msg
+    assert "PYTHINKER_AI_BROWSER_NO_SANDBOX=1" in msg
 
 
 async def test_parallel_acquire_for_distinct_keys_does_not_serialize_beyond_startup(

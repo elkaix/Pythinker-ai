@@ -42,7 +42,7 @@ For unauthenticated raw WebSocket clients, add to `config.json` under
 ### 2. Start pythinker
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 You should see:

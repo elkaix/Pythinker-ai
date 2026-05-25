@@ -27,7 +27,7 @@ def _isolate_home(tmp_path, monkeypatch):
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("HOMEDRIVE", tmp_path.drive or "")
     monkeypatch.setenv("HOMEPATH", str(tmp_path).removeprefix(tmp_path.drive or ""))
-    monkeypatch.delenv("PYTHINKER_AGENT_ID", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_AGENT_ID", raising=False)
     from pythinker.config import loader
 
     loader._current_config_path = None  # noqa: SLF001
@@ -44,7 +44,7 @@ def test_step_skips_when_no_agents_dir(tmp_path):
 
 def test_step_skips_when_agents_dir_empty(tmp_path):
     """Empty agents/ dir is treated like single-config — no behavior change."""
-    (tmp_path / ".pythinker" / "agents").mkdir(parents=True)
+    (tmp_path / ".pythinker-ai" / "agents").mkdir(parents=True)
     ctx = _WizardContext(draft=Config())
     result = _step_agent_id(ctx)
     assert result.status == "skip"
@@ -52,10 +52,10 @@ def test_step_skips_when_agents_dir_empty(tmp_path):
 
 def test_step_non_interactive_uses_resolved_active(tmp_path, monkeypatch):
     """Non-interactive runs honour env-var resolution silently."""
-    agents_root = tmp_path / ".pythinker" / "agents"
+    agents_root = tmp_path / ".pythinker-ai" / "agents"
     (agents_root / "research").mkdir(parents=True)
     (agents_root / "research" / "config.json").write_text("{}")
-    monkeypatch.setenv("PYTHINKER_AGENT_ID", "research")
+    monkeypatch.setenv("PYTHINKER_AI_AGENT_ID", "research")
 
     ctx = _WizardContext(draft=Config(), non_interactive=True)
     result = _step_agent_id(ctx)
@@ -65,7 +65,7 @@ def test_step_non_interactive_uses_resolved_active(tmp_path, monkeypatch):
 
 def test_step_interactive_use_current(tmp_path, monkeypatch):
     """Picking 'Use current' plumbs the resolved active agent through."""
-    agents_root = tmp_path / ".pythinker" / "agents"
+    agents_root = tmp_path / ".pythinker-ai" / "agents"
     (agents_root / "default").mkdir(parents=True)
     (agents_root / "default" / "config.json").write_text("{}")
 
@@ -82,7 +82,7 @@ def test_step_interactive_use_current(tmp_path, monkeypatch):
 
 def test_step_interactive_pick_different(tmp_path, monkeypatch):
     """Picking 'Pick a different agent' opens a sub-picker over existing ids."""
-    agents_root = tmp_path / ".pythinker" / "agents"
+    agents_root = tmp_path / ".pythinker-ai" / "agents"
     for name in ("research", "coding"):
         (agents_root / name).mkdir(parents=True)
         (agents_root / name / "config.json").write_text("{}")
@@ -101,8 +101,8 @@ def test_step_interactive_pick_different(tmp_path, monkeypatch):
 
 def test_step_interactive_create_scaffolds_dir(tmp_path, monkeypatch):
     """Picking 'Create' prompts for an id and creates the dir."""
-    (tmp_path / ".pythinker" / "agents" / "research").mkdir(parents=True)
-    (tmp_path / ".pythinker" / "agents" / "research" / "config.json").write_text("{}")
+    (tmp_path / ".pythinker-ai" / "agents" / "research").mkdir(parents=True)
+    (tmp_path / ".pythinker-ai" / "agents" / "research" / "config.json").write_text("{}")
 
     ctx = _WizardContext(draft=Config())
     with monkeypatch.context() as m:
@@ -118,7 +118,7 @@ def test_step_interactive_create_scaffolds_dir(tmp_path, monkeypatch):
 
     assert result.status == "continue"
     assert ctx.agent_id == "writing"
-    new_dir = tmp_path / ".pythinker" / "agents" / "writing"
+    new_dir = tmp_path / ".pythinker-ai" / "agents" / "writing"
     assert new_dir.is_dir()
     assert (new_dir / "config.json").read_text() == "{}\n"
     assert (new_dir / "workspace").is_dir()
@@ -126,8 +126,8 @@ def test_step_interactive_create_scaffolds_dir(tmp_path, monkeypatch):
 
 def test_step_create_invalid_id_returns_back(tmp_path, monkeypatch):
     """Invalid ids (path-separator etc.) round-trip via ``back``."""
-    (tmp_path / ".pythinker" / "agents" / "research").mkdir(parents=True)
-    (tmp_path / ".pythinker" / "agents" / "research" / "config.json").write_text("{}")
+    (tmp_path / ".pythinker-ai" / "agents" / "research").mkdir(parents=True)
+    (tmp_path / ".pythinker-ai" / "agents" / "research" / "config.json").write_text("{}")
 
     ctx = _WizardContext(draft=Config())
     with monkeypatch.context() as m:
@@ -148,8 +148,8 @@ def test_step_sets_config_path_override(tmp_path, monkeypatch):
     """After picking an agent, get_config_path() resolves to its config.json."""
     from pythinker.config.loader import get_config_path
 
-    (tmp_path / ".pythinker" / "agents" / "research").mkdir(parents=True)
-    (tmp_path / ".pythinker" / "agents" / "research" / "config.json").write_text("{}")
+    (tmp_path / ".pythinker-ai" / "agents" / "research").mkdir(parents=True)
+    (tmp_path / ".pythinker-ai" / "agents" / "research" / "config.json").write_text("{}")
 
     ctx = _WizardContext(draft=Config())
     with monkeypatch.context() as m:
@@ -157,11 +157,11 @@ def test_step_sets_config_path_override(tmp_path, monkeypatch):
             "pythinker.cli.onboard_views.clack.select",
             lambda *a, **kw: "__use_current__",
         )
-        m.setenv("PYTHINKER_AGENT_ID", "research")
+        m.setenv("PYTHINKER_AI_AGENT_ID", "research")
         result = _step_agent_id(ctx)
 
     assert result.status == "continue"
-    assert get_config_path() == tmp_path / ".pythinker" / "agents" / "research" / "config.json"
+    assert get_config_path() == tmp_path / ".pythinker-ai" / "agents" / "research" / "config.json"
 
 
 def test_pre_save_diff_title_includes_agent_id(monkeypatch):

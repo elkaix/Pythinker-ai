@@ -184,7 +184,7 @@ def _step_model_presets(ctx: _WizardContext) -> StepResult:
 
     Skipped when the wizard is running non-interactively or under the
     QuickStart flow — the user can return to the section by re-running
-    ``pythinker onboard`` later.
+    ``pythinker-ai onboard`` later.
     """
     from pythinker.cli import onboard as _onboard
     from pythinker.cli.onboard_views import clack

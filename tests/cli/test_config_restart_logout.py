@@ -1,9 +1,9 @@
 """Tests for the pythinker-style commands ported in this batch:
-``pythinker config get/set/unset``, ``pythinker restart gateway|api``,
-``pythinker auth logout``.
+``pythinker-ai config get/set/unset``, ``pythinker-ai restart gateway|api``,
+``pythinker-ai auth logout``.
 
 Each test isolates state under ``tmp_path`` so the developer's real
-``~/.pythinker/config.json`` and OAuth tokens are never touched.
+``~/.pythinker-ai/config.json`` and OAuth tokens are never touched.
 """
 
 from __future__ import annotations

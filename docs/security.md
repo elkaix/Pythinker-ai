@@ -1,4 +1,4 @@
-# Security model — `pythinker gateway`
+# Security model — `pythinker-ai gateway`
 
 Pythinker's gateway speaks two surfaces to the outside world:
 
@@ -55,7 +55,7 @@ programmatic client:
   "websocket": {
     "host": "127.0.0.1",
     "port": 8765,
-    "token": "<32-byte secret from `pythinker token`>"
+    "token": "<32-byte secret from `pythinker-ai token`>"
   }
 }
 ```
@@ -69,7 +69,7 @@ programmatic client:
 Generate the token with the bundled helper — never invent your own:
 
 ```bash
-pythinker token
+pythinker-ai token
 # → nbwt_NEzRk6JOEThXp3WNLqcqJzN1jvP4RGD5wmnWx4hghRk
 ```
 
@@ -80,7 +80,7 @@ pythinker token
   "websocket": {
     "host": "0.0.0.0",
     "port": 8765,
-    "token": "<token from `pythinker token`>",
+    "token": "<token from `pythinker-ai token`>",
     "ssl_certfile": "/etc/letsencrypt/live/example.com/fullchain.pem",
     "ssl_keyfile":  "/etc/letsencrypt/live/example.com/privkey.pem",
     "allowed_origins": ["https://example.com"],
@@ -113,7 +113,7 @@ Internet ── https://your-domain.example ──┐
                                   ─ Rate limiting
                                           │
                                           ▼
-                              http://127.0.0.1:8765   ← pythinker gateway
+                              http://127.0.0.1:8765   ← pythinker-ai gateway
 ```
 
 Pythinker's config stays in mode 1 or 2 (loopback bind, optional static
@@ -180,8 +180,8 @@ mitigations:
   loguru stderr sink (`pythinker/utils/log.py`), so audit lines appear on
   the gateway's stderr rather than in the dashboard's Logs feed. To
   surface them in the WebUI, point `runtime.telemetry_jsonl_path` at a
-  file or run `pythinker gateway` with stderr captured into
-  `~/.pythinker/logs/*.log` — the Logs tab tails both.
+  file or run `pythinker-ai gateway` with stderr captured into
+  `~/.pythinker-ai/logs/*.log` — the Logs tab tails both.
 
 ## Compatibility table
 
@@ -198,13 +198,13 @@ It's available behind the flag for trusted private LAN dev only.
 
 ## Generating a secret
 
-`pythinker token` prints a fresh 256-bit url-safe random token. Use it for
+`pythinker-ai token` prints a fresh 256-bit url-safe random token. Use it for
 both `channels.websocket.token` and `channels.websocket.token_issue_secret`
 when needed:
 
 ```bash
-pythinker token                # 32-byte default (256 bits)
-pythinker token --bytes 48     # 384 bits, longer URL
+pythinker-ai token                # 32-byte default (256 bits)
+pythinker-ai token --bytes 48     # 384 bits, longer URL
 ```
 
 Never embed memorable phrases as tokens. Static tokens should be at least
@@ -215,7 +215,7 @@ Never embed memorable phrases as tokens. Static tokens should be at least
 1. Bind: `host: 0.0.0.0` (or a specific LAN IP) — yes
 2. TLS: `ssl_certfile` + `ssl_keyfile` configured (use `mkcert` for a
    trusted local CA on your LAN) — yes
-3. Static token: `token: <pythinker token output>` — yes
+3. Static token: `token: <pythinker-ai token output>` — yes
 4. Origin allowlist: `allowed_origins: ["https://your-host.local"]` — yes
 5. Client allowlist: `allow_from: ["my-laptop", "my-phone"]` — yes
 6. `allow_insecure_remote: false` — leave at default

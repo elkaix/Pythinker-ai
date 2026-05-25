@@ -175,8 +175,8 @@ CHANNEL_INSTRUCTIONS = {
         "3) Set bridge_port; first run prints a QR code — scan it from your phone",
     ],
     "websocket": [
-        "WebSocket runs as part of `pythinker gateway` (no separate creds).",
+        "WebSocket runs as part of `pythinker-ai gateway` (no separate creds).",
         "Set 'enabled' = true and (optionally) 'token' to require auth from clients.",
-        "Use `pythinker token` to generate a strong random token.",
+        "Use `pythinker-ai token` to generate a strong random token.",
     ],
 }

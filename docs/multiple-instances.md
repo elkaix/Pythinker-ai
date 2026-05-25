@@ -10,9 +10,9 @@ If you want each instance to have its own dedicated workspace from the start, pa
 
 ```bash
 # Create separate instance configs and workspaces
-pythinker onboard --config ~/.pythinker-telegram/config.json --workspace ~/.pythinker-telegram/workspace
-pythinker onboard --config ~/.pythinker-discord/config.json --workspace ~/.pythinker-discord/workspace
-pythinker onboard --config ~/.pythinker-slack/config.json --workspace ~/.pythinker-slack/workspace
+pythinker-ai onboard --config ~/.pythinker-telegram/config.json --workspace ~/.pythinker-telegram/workspace
+pythinker-ai onboard --config ~/.pythinker-discord/config.json --workspace ~/.pythinker-discord/workspace
+pythinker-ai onboard --config ~/.pythinker-slack/config.json --workspace ~/.pythinker-slack/workspace
 ```
 
 **Configure each instance:**
@@ -23,13 +23,13 @@ Edit `~/.pythinker-telegram/config.json`, `~/.pythinker-discord/config.json`, et
 
 ```bash
 # Instance A - Telegram bot
-pythinker gateway --config ~/.pythinker-telegram/config.json
+pythinker-ai gateway --config ~/.pythinker-telegram/config.json
 
 # Instance B - Discord bot
-pythinker gateway --config ~/.pythinker-discord/config.json
+pythinker-ai gateway --config ~/.pythinker-discord/config.json
 
 # Instance C - Slack bot with custom port
-pythinker gateway --config ~/.pythinker-slack/config.json --port 18792
+pythinker-ai gateway --config ~/.pythinker-slack/config.json --port 18792
 ```
 
 ## Path Resolution
@@ -39,14 +39,14 @@ When using `--config`, pythinker derives its runtime data directory from the con
 To open a CLI session against one of these instances locally:
 
 ```bash
-pythinker agent -c ~/.pythinker-telegram/config.json -m "Hello from Telegram instance"
-pythinker agent -c ~/.pythinker-discord/config.json -m "Hello from Discord instance"
+pythinker-ai agent -c ~/.pythinker-telegram/config.json -m "Hello from Telegram instance"
+pythinker-ai agent -c ~/.pythinker-discord/config.json -m "Hello from Discord instance"
 
 # Optional one-off workspace override
-pythinker agent -c ~/.pythinker-telegram/config.json -w /tmp/pythinker-telegram-test
+pythinker-ai agent -c ~/.pythinker-telegram/config.json -w /tmp/pythinker-telegram-test
 ```
 
-> `pythinker agent` starts a local CLI agent using the selected workspace/config. It does not attach to or proxy through an already running `pythinker gateway` process.
+> `pythinker-ai agent` starts a local CLI agent using the selected workspace/config. It does not attach to or proxy through an already running `pythinker-ai gateway` process.
 
 | Component | Resolved From | Example |
 |-----------|---------------|---------|
@@ -93,8 +93,8 @@ Example config:
 Start separate instances:
 
 ```bash
-pythinker gateway --config ~/.pythinker-telegram/config.json
-pythinker gateway --config ~/.pythinker-discord/config.json
+pythinker-ai gateway --config ~/.pythinker-telegram/config.json
+pythinker-ai gateway --config ~/.pythinker-discord/config.json
 ```
 
 Each gateway instance also exposes a lightweight HTTP health endpoint on
@@ -108,7 +108,7 @@ public or LAN-facing address.
 Override workspace for one-off runs when needed:
 
 ```bash
-pythinker gateway --config ~/.pythinker-telegram/config.json --workspace /tmp/pythinker-telegram-test
+pythinker-ai gateway --config ~/.pythinker-telegram/config.json --workspace /tmp/pythinker-telegram-test
 ```
 
 ## Common Use Cases

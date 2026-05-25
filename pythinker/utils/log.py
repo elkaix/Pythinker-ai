@@ -2,8 +2,8 @@
 
 # Resolution order, highest priority first:
 #   1. Explicit ``level`` argument (CLI flags: --verbose / --quiet)
-#   2. ``PYTHINKER_LOG_LEVEL`` environment variable
-#   3. ``Config.logging.level`` (from ~/.pythinker/config.json)
+#   2. ``PYTHINKER_AI_LOG_LEVEL`` environment variable
+#   3. ``Config.logging.level`` (from ~/.pythinker-ai/config.json)
 #   4. ``"INFO"`` as a baked-in safe default
 # Idempotent: re-calling ``configure_logging`` replaces the existing sink, so
 # a two-phase boot (early INFO before config load, then reconfigure after) is
@@ -43,7 +43,7 @@ def configure_logging(
     """
     resolved = (
         _normalize(level)
-        or _normalize(os.environ.get("PYTHINKER_LOG_LEVEL"))
+        or _normalize(os.environ.get("PYTHINKER_AI_LOG_LEVEL"))
         or _normalize(getattr(getattr(config, "logging", None), "level", None))
         or "INFO"
     )

@@ -34,7 +34,7 @@ async def test_login_lists_all_oauth_providers() -> None:
     # Both registered OAuth providers must appear in the listing.
     assert "OpenAI Codex" in out.content
     assert "Github Copilot" in out.content
-    assert "pythinker provider login" in out.content
+    assert "pythinker-ai provider login" in out.content
     assert out.metadata["render_as"] == "text"
 
 
@@ -55,14 +55,14 @@ async def test_login_non_oauth_provider_explains() -> None:
 async def test_login_specific_provider_shows_state_and_command() -> None:
     out = await cmd_login(_ctx("/login openai-codex", args="openai-codex"))
     assert "OpenAI Codex" in out.content
-    assert "pythinker provider login openai-codex" in out.content
+    assert "pythinker-ai provider login openai-codex" in out.content
 
 
 async def test_login_accepts_underscore_form() -> None:
     out = await cmd_login(_ctx("/login github_copilot", args="github_copilot"))
     assert "Github Copilot" in out.content
     # Output normalises back to dash form for the suggested CLI command.
-    assert "pythinker provider login github-copilot" in out.content
+    assert "pythinker-ai provider login github-copilot" in out.content
 
 
 # ---------- /logout ----------
@@ -104,7 +104,7 @@ async def test_logout_deletes_token_file(tmp_path) -> None:
         out = await cmd_logout(_ctx("/logout openai-codex", args="openai-codex"))
     assert not token_file.exists()
     assert "logged out" in out.content
-    assert "pythinker provider login openai-codex" in out.content
+    assert "pythinker-ai provider login openai-codex" in out.content
 
 
 async def test_logout_unlink_failure_surfaces_error(tmp_path) -> None:

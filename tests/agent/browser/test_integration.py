@@ -6,16 +6,16 @@ import pytest
 
 pytestmark = [pytest.mark.browser]
 
-if os.environ.get("PYTHINKER_BROWSER_INTEGRATION") != "1":
+if os.environ.get("PYTHINKER_AI_BROWSER_INTEGRATION") != "1":
     pytest.skip(
-        "Integration test gated by PYTHINKER_BROWSER_INTEGRATION=1",
+        "Integration test gated by PYTHINKER_AI_BROWSER_INTEGRATION=1",
         allow_module_level=True,
     )
 
 
 @pytest.fixture(scope="module")
 def cdp_url():
-    return os.environ.get("PYTHINKER_BROWSER_CDP", "http://127.0.0.1:9222")
+    return os.environ.get("PYTHINKER_AI_BROWSER_CDP", "http://127.0.0.1:9222")
 
 
 @pytest.fixture(scope="module")

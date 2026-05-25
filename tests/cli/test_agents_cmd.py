@@ -27,7 +27,7 @@ def _isolate_home(tmp_path, monkeypatch):
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("HOMEDRIVE", tmp_path.drive or "")
     monkeypatch.setenv("HOMEPATH", str(tmp_path).removeprefix(tmp_path.drive or ""))
-    monkeypatch.delenv("PYTHINKER_AGENT_ID", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_AGENT_ID", raising=False)
     # Reset the loader's cached config-path override between tests.
     from pythinker.config import loader
 
@@ -47,8 +47,8 @@ def test_list_empty(runner, tmp_path):
 
 
 def test_list_legacy_default(runner, tmp_path):
-    """A single ~/.pythinker/config.json shows up as 'default (legacy)'."""
-    legacy = tmp_path / ".pythinker" / "config.json"
+    """A single ~/.pythinker-ai/config.json shows up as 'default (legacy)'."""
+    legacy = tmp_path / ".pythinker-ai" / "config.json"
     legacy.parent.mkdir(parents=True)
     legacy.write_text('{"agents":{"defaults":{"model":"openai-codex/gpt-5.5"}}}')
     result = runner.invoke(agents_app, ["list"])
@@ -60,14 +60,14 @@ def test_list_legacy_default(runner, tmp_path):
 def test_create_scaffolds_dir_and_config(runner, tmp_path):
     result = runner.invoke(agents_app, ["create", "research"])
     assert result.exit_code == 0, result.output
-    target = tmp_path / ".pythinker" / "agents" / "research"
+    target = tmp_path / ".pythinker-ai" / "agents" / "research"
     assert target.is_dir()
     assert (target / "config.json").is_file()
     assert (target / "workspace").is_dir()
 
 
 def test_create_refuses_to_overwrite(runner, tmp_path):
-    target = tmp_path / ".pythinker" / "agents" / "coding"
+    target = tmp_path / ".pythinker-ai" / "agents" / "coding"
     target.mkdir(parents=True)
     result = runner.invoke(agents_app, ["create", "coding"])
     assert result.exit_code == 1
@@ -76,7 +76,7 @@ def test_create_refuses_to_overwrite(runner, tmp_path):
 
 def test_create_with_from_copies_config(runner, tmp_path):
     """`--from` copies the source agent's config.json + memory artifacts."""
-    src_dir = tmp_path / ".pythinker" / "agents" / "research"
+    src_dir = tmp_path / ".pythinker-ai" / "agents" / "research"
     src_dir.mkdir(parents=True)
     (src_dir / "config.json").write_text('{"copied":"yes"}')
     (src_dir / "workspace").mkdir()
@@ -85,7 +85,7 @@ def test_create_with_from_copies_config(runner, tmp_path):
     result = runner.invoke(agents_app, ["create", "coding", "--from", "research"])
     assert result.exit_code == 0, result.output
 
-    new_dir = tmp_path / ".pythinker" / "agents" / "coding"
+    new_dir = tmp_path / ".pythinker-ai" / "agents" / "coding"
     assert (new_dir / "config.json").read_text() == '{"copied":"yes"}'
     assert (new_dir / "workspace" / "MEMORY.md").read_text() == "seed memory"
 
@@ -94,17 +94,17 @@ def test_create_with_missing_from_fails_clean(runner, tmp_path):
     result = runner.invoke(agents_app, ["create", "coding", "--from", "missing"])
     assert result.exit_code == 1
     # Failed copy must roll back the just-created dir.
-    assert not (tmp_path / ".pythinker" / "agents" / "coding").exists()
+    assert not (tmp_path / ".pythinker-ai" / "agents" / "coding").exists()
 
 
 def test_switch_writes_marker(runner, tmp_path):
-    target = tmp_path / ".pythinker" / "agents" / "research"
+    target = tmp_path / ".pythinker-ai" / "agents" / "research"
     target.mkdir(parents=True)
     (target / "config.json").write_text("{}")
 
     result = runner.invoke(agents_app, ["switch", "research"])
     assert result.exit_code == 0, result.output
-    marker = tmp_path / ".pythinker" / "current-agent"
+    marker = tmp_path / ".pythinker-ai" / "current-agent"
     assert marker.read_text(encoding="utf-8").strip() == "research"
 
 
@@ -118,7 +118,7 @@ def test_switch_default_writes_marker_and_warns(runner, tmp_path):
     """`switch default` is allowed even without a per-agent dir."""
     result = runner.invoke(agents_app, ["switch", "default"])
     assert result.exit_code == 0, result.output
-    marker = tmp_path / ".pythinker" / "current-agent"
+    marker = tmp_path / ".pythinker-ai" / "current-agent"
     assert marker.read_text(encoding="utf-8").strip() == "default"
 
 
@@ -129,7 +129,7 @@ def test_round_trip_create_switch_resolves_per_agent_config(runner, tmp_path):
     runner.invoke(agents_app, ["create", "research"])
     runner.invoke(agents_app, ["switch", "research"])
 
-    expected = tmp_path / ".pythinker" / "agents" / "research" / "config.json"
+    expected = tmp_path / ".pythinker-ai" / "agents" / "research" / "config.json"
     assert get_config_path() == expected
 
 
@@ -140,10 +140,10 @@ def test_delete_default_is_refused(runner, tmp_path):
 
 
 def test_delete_active_agent_is_refused(runner, tmp_path, monkeypatch):
-    target = tmp_path / ".pythinker" / "agents" / "research"
+    target = tmp_path / ".pythinker-ai" / "agents" / "research"
     target.mkdir(parents=True)
     (target / "config.json").write_text("{}")
-    monkeypatch.setenv("PYTHINKER_AGENT_ID", "research")
+    monkeypatch.setenv("PYTHINKER_AI_AGENT_ID", "research")
 
     result = runner.invoke(agents_app, ["delete", "research", "--confirm", "research"])
     assert result.exit_code == 1
@@ -151,7 +151,7 @@ def test_delete_active_agent_is_refused(runner, tmp_path, monkeypatch):
 
 
 def test_delete_without_confirm_is_refused(runner, tmp_path):
-    target = tmp_path / ".pythinker" / "agents" / "research"
+    target = tmp_path / ".pythinker-ai" / "agents" / "research"
     target.mkdir(parents=True)
     (target / "config.json").write_text("{}")
 
@@ -162,7 +162,7 @@ def test_delete_without_confirm_is_refused(runner, tmp_path):
 
 
 def test_delete_with_wrong_confirm_is_refused(runner, tmp_path):
-    target = tmp_path / ".pythinker" / "agents" / "research"
+    target = tmp_path / ".pythinker-ai" / "agents" / "research"
     target.mkdir(parents=True)
     (target / "config.json").write_text("{}")
 
@@ -172,7 +172,7 @@ def test_delete_with_wrong_confirm_is_refused(runner, tmp_path):
 
 
 def test_delete_with_correct_confirm_succeeds(runner, tmp_path):
-    target = tmp_path / ".pythinker" / "agents" / "research"
+    target = tmp_path / ".pythinker-ai" / "agents" / "research"
     target.mkdir(parents=True)
     (target / "config.json").write_text("{}")
 

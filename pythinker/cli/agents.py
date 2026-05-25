@@ -3,7 +3,7 @@
 Phase 2 PR-2 of `.agents/plans/2026-05-05-onboard-phase-2-multi-agent.md`.
 This module owns:
 
-  * ``agents list`` — show every per-agent dir under ``~/.pythinker/agents/``,
+  * ``agents list`` — show every per-agent dir under ``~/.pythinker-ai/agents/``,
     plus the legacy single-config row when no per-agent dir exists.
   * ``agents create <id> [--from <other>]`` — scaffold a new agent dir
     with ``config.json`` + ``workspace/``. Refuses to overwrite an
@@ -33,7 +33,7 @@ from pythinker.config.paths import (
 )
 
 app = typer.Typer(
-    help="Manage local Pythinker agents (~/.pythinker/agents/<id>/).",
+    help="Manage local Pythinker agents (~/.pythinker-ai/agents/<id>/).",
     no_args_is_help=True,
 )
 
@@ -43,11 +43,11 @@ _RESERVED_NAMES = {"default"}
 
 
 def _agents_root() -> Path:
-    return Path.home() / ".pythinker" / "agents"
+    return Path.home() / ".pythinker-ai" / "agents"
 
 
 def _marker_path() -> Path:
-    return Path.home() / ".pythinker" / "current-agent"
+    return Path.home() / ".pythinker-ai" / "current-agent"
 
 
 def _read_agent_model(config_path: Path) -> str:
@@ -74,7 +74,7 @@ def _read_agent_model(config_path: Path) -> str:
 
 @app.command("list")
 def agents_list() -> None:
-    """List every agent under ``~/.pythinker/agents/`` plus the legacy default."""
+    """List every agent under ``~/.pythinker-ai/agents/`` plus the legacy default."""
     active = current_agent_id()
     table = Table(title="Pythinker agents")
     table.add_column("Active", style="green")
@@ -93,7 +93,7 @@ def agents_list() -> None:
             mark = "✓" if child.name == active else ""
             rows.append((mark, child.name, str(cfg), model or "(unset)"))
 
-    legacy = Path.home() / ".pythinker" / "config.json"
+    legacy = Path.home() / ".pythinker-ai" / "config.json"
     if not rows and legacy.is_file():
         # No per-agent dirs yet — surface the single-config user as the
         # "default" agent so ``agents list`` is never empty when a config
@@ -102,7 +102,7 @@ def agents_list() -> None:
         rows.append(("✓", "default (legacy)", str(legacy), model or "(unset)"))
 
     if not rows:
-        console.print("[yellow]No agents found. Run `pythinker onboard` to create one.[/yellow]")
+        console.print("[yellow]No agents found. Run `pythinker-ai onboard` to create one.[/yellow]")
         return
 
     for r in rows:
@@ -117,7 +117,7 @@ def agents_create(
         None, "--from", help="Copy config + workspace from another agent id."
     ),
 ) -> None:
-    """Scaffold ``~/.pythinker/agents/<id>/{config.json, workspace/}``."""
+    """Scaffold ``~/.pythinker-ai/agents/<id>/{config.json, workspace/}``."""
     _validate_id(agent_id)
 
     target = agent_dir(agent_id)
@@ -162,7 +162,7 @@ def agents_create(
 def agents_switch(
     agent_id: str = typer.Argument(..., help="Agent id to make active."),
 ) -> None:
-    """Write ``~/.pythinker/current-agent`` so subsequent commands use ``<id>``."""
+    """Write ``~/.pythinker-ai/current-agent`` so subsequent commands use ``<id>``."""
     _validate_id(agent_id)
 
     if agent_id == "default":
@@ -173,8 +173,8 @@ def agents_switch(
         marker.write_text("default\n", encoding="utf-8")
         console.print(
             f"[green]✓[/green] Active agent set to {agent_id!r} "
-            f"(legacy ~/.pythinker/config.json will be used until "
-            f"~/.pythinker/agents/default/ exists)."
+            f"(legacy ~/.pythinker-ai/config.json will be used until "
+            f"~/.pythinker-ai/agents/default/ exists)."
         )
         return
 
@@ -182,7 +182,7 @@ def agents_switch(
     target = agent_dir(agent_id)
     if not target.is_dir() or not cfg.is_file() or cfg.parent != target:
         # cfg.parent != target catches the legacy fallback: agent_config_path
-        # returns ~/.pythinker/config.json when the agent dir is missing.
+        # returns ~/.pythinker-ai/config.json when the agent dir is missing.
         console.print(
             f"[red]Agent {agent_id!r} has no config at {target / 'config.json'}.\n"
             f"Create it with: pythinker agents create {agent_id}[/red]"
@@ -207,14 +207,14 @@ def agents_delete(
         help="Pass the same agent id again to confirm deletion.",
     ),
 ) -> None:
-    """Remove ``~/.pythinker/agents/<id>/`` (config + workspace)."""
+    """Remove ``~/.pythinker-ai/agents/<id>/`` (config + workspace)."""
     _validate_id(agent_id)
 
     if agent_id in _RESERVED_NAMES:
         console.print(
             f"[red]Refusing to delete reserved agent {agent_id!r}. "
             f"This is the legacy fallback and is not stored under "
-            f"~/.pythinker/agents/.[/red]"
+            f"~/.pythinker-ai/agents/.[/red]"
         )
         raise typer.Exit(1)
 

@@ -129,9 +129,9 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${RUNNER_OS_FAMILY}" = "windows" ]; then
-            ./dist/pythinker/pythinker.exe --version
+            ./dist/pythinker/pythinker-ai.exe --version
           else
-            ./dist/pythinker/pythinker --version
+            ./dist/pythinker/pythinker-ai --version
           fi
 
       - name: Pack tarball (non-Windows)

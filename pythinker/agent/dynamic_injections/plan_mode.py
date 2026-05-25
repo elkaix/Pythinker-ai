@@ -2,7 +2,7 @@
 
 Audit §4 Phase 5. Pythinker has no ``EnterPlanMode`` / ``ExitPlanMode``
 tools today, so this provider is a scaffolding implementation: it reads
-``${workspace}/.pythinker/plan.md`` (created by the user / wizard) and,
+``${workspace}/.pythinker-ai/plan.md`` (created by the user / wizard) and,
 when present, periodically re-injects the plan as a reminder so plan
 discipline survives long sessions.
 
@@ -22,13 +22,13 @@ from pythinker.agent.dynamic_injection import DynamicInjection, DynamicInjection
 _FULL_REMINDER_HEADER = "## Active plan (re-injected for context)"
 _SPARSE_REMINDER = (
     "Reminder: a plan is active for this session — "
-    "stay on the numbered steps in `${workspace}/.pythinker/plan.md`. "
+    "stay on the numbered steps in `${workspace}/.pythinker-ai/plan.md`. "
     "If the plan needs to change, surface the change before deviating."
 )
 
 
 class PlanModeProvider(DynamicInjectionProvider):
-    """Re-inject ``${workspace}/.pythinker/plan.md`` on a cadence.
+    """Re-inject ``${workspace}/.pythinker-ai/plan.md`` on a cadence.
 
     No-op when the plan file does not exist — operators opt in by
     writing the file (or having ``/init`` write it for them).
@@ -41,7 +41,7 @@ class PlanModeProvider(DynamicInjectionProvider):
         sparse_every: int = 5,
         max_full_chars: int = 4000,
     ) -> None:
-        self._plan_path = Path(workspace) / ".pythinker" / "plan.md"
+        self._plan_path = Path(workspace) / ".pythinker-ai" / "plan.md"
         self._sparse_every = max(1, sparse_every)
         self._max_full_chars = max(256, max_full_chars)
         # Per-session iteration counter — keys = session_key, values = counter.

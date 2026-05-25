@@ -2,56 +2,56 @@
 
 | Command | Description |
 |---------|-------------|
-| `pythinker onboard` | Initialize config & workspace at `~/.pythinker/` (interactive) |
-| `pythinker onboard --flow quickstart` | Non-interactive QuickStart flow |
-| `pythinker onboard --flow manual` | Manual provider & auth selection flow |
-| `pythinker onboard --non-interactive` | Non-interactive mode (with other flags) |
-| `pythinker onboard --flow manual --auth --auth-method service_account` | Select a provider, auth method, and default model |
-| `pythinker onboard -c <config> -w <workspace>` | Initialize or refresh a specific instance config and workspace |
-| `pythinker agent -m "..."` | Chat with the agent |
-| `pythinker agent -w <workspace>` | Chat against a specific workspace |
-| `pythinker agent -w <workspace> -c <config>` | Chat against a specific workspace/config |
-| `pythinker agent` | Interactive chat mode |
-| `pythinker agent --no-markdown` | Show plain-text replies |
-| `pythinker agent --logs` | Show runtime logs during chat |
-| `pythinker tui` (alias `pythinker chat`) | Full-screen interactive chat |
-| `pythinker serve` | Start the OpenAI-compatible API |
-| `pythinker gateway` | Start the gateway |
-| `pythinker status` | Show status |
-| `pythinker doctor` | Diagnose install, config, and authentication state |
-| `pythinker update` | Check for and install pythinker updates from PyPI |
-| `pythinker upgrade` | Convenience alias of `pythinker update -y --restart` |
-| `pythinker token` | Generate a strong random token (e.g. for the WebSocket channel) |
-| `pythinker provider login openai-codex` | OAuth login for providers |
-| `pythinker channels login <channel>` | Authenticate a channel interactively |
-| `pythinker channels status` | Show channel state (registry view) |
-| `pythinker channels list` | Show enabled / configured state for every channel adapter |
-| `pythinker auth list` | Show authentication state for every provider in the registry |
-| `pythinker auth logout <provider>` | Delete the stored OAuth token for an OAuth provider |
-| `pythinker config get <path>` | Print one config value (dotted path) |
-| `pythinker config set <path> <value>` | Write one config value back to `~/.pythinker/config.json` |
-| `pythinker config unset <path>` | Reset one field to its schema default |
-| `pythinker restart gateway` | Stop the running gateway and re-exec a fresh one |
-| `pythinker restart api` | Stop the running API server and re-exec a fresh one |
+| `pythinker-ai onboard` | Initialize config & workspace at `~/.pythinker-ai/` (interactive) |
+| `pythinker-ai onboard --flow quickstart` | Non-interactive QuickStart flow |
+| `pythinker-ai onboard --flow manual` | Manual provider & auth selection flow |
+| `pythinker-ai onboard --non-interactive` | Non-interactive mode (with other flags) |
+| `pythinker-ai onboard --flow manual --auth --auth-method service_account` | Select a provider, auth method, and default model |
+| `pythinker-ai onboard -c <config> -w <workspace>` | Initialize or refresh a specific instance config and workspace |
+| `pythinker-ai agent -m "..."` | Chat with the agent |
+| `pythinker-ai agent -w <workspace>` | Chat against a specific workspace |
+| `pythinker-ai agent -w <workspace> -c <config>` | Chat against a specific workspace/config |
+| `pythinker-ai agent` | Interactive chat mode |
+| `pythinker-ai agent --no-markdown` | Show plain-text replies |
+| `pythinker-ai agent --logs` | Show runtime logs during chat |
+| `pythinker-ai tui` (alias `pythinker-ai chat`) | Full-screen interactive chat |
+| `pythinker-ai serve` | Start the OpenAI-compatible API |
+| `pythinker-ai gateway` | Start the gateway |
+| `pythinker-ai status` | Show status |
+| `pythinker-ai doctor` | Diagnose install, config, and authentication state |
+| `pythinker-ai update` | Check for and install pythinker updates from PyPI |
+| `pythinker-ai upgrade` | Convenience alias of `pythinker-ai update -y --restart` |
+| `pythinker-ai token` | Generate a strong random token (e.g. for the WebSocket channel) |
+| `pythinker-ai provider login openai-codex` | OAuth login for providers |
+| `pythinker-ai channels login <channel>` | Authenticate a channel interactively |
+| `pythinker-ai channels status` | Show channel state (registry view) |
+| `pythinker-ai channels list` | Show enabled / configured state for every channel adapter |
+| `pythinker-ai auth list` | Show authentication state for every provider in the registry |
+| `pythinker-ai auth logout <provider>` | Delete the stored OAuth token for an OAuth provider |
+| `pythinker-ai config get <path>` | Print one config value (dotted path) |
+| `pythinker-ai config set <path> <value>` | Write one config value back to `~/.pythinker-ai/config.json` |
+| `pythinker-ai config unset <path>` | Reset one field to its schema default |
+| `pythinker-ai restart gateway` | Stop the running gateway and re-exec a fresh one |
+| `pythinker-ai restart api` | Stop the running API server and re-exec a fresh one |
 | `pythinker backup create` | Atomically copy `config.json` to a timestamped backup |
 | `pythinker backup list` | Show all on-disk backups |
 | `pythinker backup verify <path>` | Round-trip a backup through the schema |
-| `pythinker backup restore <path>` | Restore a backup to `~/.pythinker/config.json` |
+| `pythinker backup restore <path>` | Restore a backup to `~/.pythinker-ai/config.json` |
 | `pythinker cleanup plan` | Dry-run: list every file/dir a cleanup would delete |
 | `pythinker cleanup run` | Execute the cleanup (requires `--confirm reset`) |
 
 Interactive mode exits: `exit`, `quit`, `/exit`, `/quit`, `:q`, or `Ctrl+D`.
 
-## `pythinker onboard`
+## `pythinker-ai onboard`
 
-Walk a fresh user from zero to a saved `~/.pythinker/config.json` via
+Walk a fresh user from zero to a saved `~/.pythinker-ai/config.json` via
 the linear wizard. It starts with a compact terminal setup graphic, then
 asks about provider + auth, default model, workspace, gateway, and
 channels; renders a redacted pre-save diff; runs a post-save health
 check; and optionally starts the gateway and opens the WebUI.
 
 ```
-pythinker onboard [--workspace DIR] [--config PATH] [--non-interactive]
+pythinker-ai onboard [--workspace DIR] [--config PATH] [--non-interactive]
                   [--flow quickstart|manual] [--auth PROVIDER]
                   [--auth-method ID] [--yes-security] [--start-gateway]
                   [--skip-gateway] [--open-webui] [--reset SCOPE]
@@ -61,7 +61,7 @@ pythinker onboard [--workspace DIR] [--config PATH] [--non-interactive]
 | Flag | Default | Notes |
 |---|---|---|
 | `--workspace`, `-w` | from config | Override `agents.defaults.workspace` for this run. |
-| `--config`, `-c` | `~/.pythinker/config.json` | Config file to write. |
+| `--config`, `-c` | `~/.pythinker-ai/config.json` | Config file to write. |
 | `--non-interactive` | off | Run with no prompts; uses defaults + flags. Exits non-zero on missing precondition. |
 | `--flow` | unset | `quickstart` (minimal prompts, sensible defaults) or `manual` (full picker). |
 | `--auth` | unset | Provider name (e.g. `openai_codex`) or `skip`. |
@@ -75,16 +75,16 @@ pythinker onboard [--workspace DIR] [--config PATH] [--non-interactive]
 Interactive runs render a pre-save diff before asking Save? /
 Discard?, with secret-bearing fields auto-redacted. Post-save runs a
 health check (workspace writable, default model, provider auth, gateway
-port) and ends with next commands for `pythinker tui`, `pythinker agent`,
-`pythinker gateway`, and `pythinker doctor`.
+port) and ends with next commands for `pythinker-ai tui`, `pythinker-ai agent`,
+`pythinker-ai gateway`, and `pythinker-ai doctor`.
 
-## `pythinker agent`
+## `pythinker-ai agent`
 
 One-shot or interactive REPL chat against the configured agent loop.
 Bypasses the gateway and runs the agent in-process.
 
 ```
-pythinker agent [--message TEXT] [--session KEY] [--workspace DIR]
+pythinker-ai agent [--message TEXT] [--session KEY] [--workspace DIR]
                 [--config PATH] [--markdown/--no-markdown]
                 [--logs/--no-logs]
 ```
@@ -94,19 +94,19 @@ pythinker agent [--message TEXT] [--session KEY] [--workspace DIR]
 | `--message`, `-m` | unset | Send a single message and exit. Without it, drops into a REPL. |
 | `--session`, `-s` | `cli:direct` | Session id (`channel:chat_id` shape). |
 | `--workspace`, `-w` | from config | Workspace root for memory + tools. |
-| `--config`, `-c` | `~/.pythinker/config.json` | Config file. |
+| `--config`, `-c` | `~/.pythinker-ai/config.json` | Config file. |
 | `--markdown` / `--no-markdown` | `--markdown` | Render assistant output as Markdown vs plain text. |
 | `--logs` / `--no-logs` | `--no-logs` | Show pythinker runtime logs (`INFO`+) inline during chat. |
 
 REPL exits: `exit`, `quit`, `/exit`, `/quit`, `:q`, or `Ctrl+D`. For a
-full-screen interface use `pythinker tui` instead.
+full-screen interface use `pythinker-ai tui` instead.
 
-## `pythinker serve`
+## `pythinker-ai serve`
 
 Start the OpenAI-compatible HTTP server (`/v1/chat/completions`).
 
 ```
-pythinker serve [--port PORT] [--host HOST] [--timeout SECONDS]
+pythinker-ai serve [--port PORT] [--host HOST] [--timeout SECONDS]
                 [--verbose] [--quiet] [--workspace DIR] [--config PATH]
 ```
 
@@ -118,19 +118,19 @@ pythinker serve [--port PORT] [--host HOST] [--timeout SECONDS]
 | `--verbose`, `-v` | off | DEBUG-level logs. |
 | `--quiet`, `-q` | off | WARNING-level logs. |
 | `--workspace`, `-w` | from config | Override workspace root. |
-| `--config`, `-c` | `~/.pythinker/config.json` | Config file. |
+| `--config`, `-c` | `~/.pythinker-ai/config.json` | Config file. |
 
 Pre-flight refuses to start if the port is already bound. The server
-reuses the same `AgentLoop` machinery as `pythinker gateway` and
-`pythinker agent`; the only difference is the wire protocol.
+reuses the same `AgentLoop` machinery as `pythinker-ai gateway` and
+`pythinker-ai agent`; the only difference is the wire protocol.
 
-## `pythinker gateway`
+## `pythinker-ai gateway`
 
 Start the multi-channel gateway + WebSocket server. This is the
 process every chat platform connects to.
 
 ```
-pythinker gateway [--port PORT] [--workspace DIR] [--verbose]
+pythinker-ai gateway [--port PORT] [--workspace DIR] [--verbose]
                   [--quiet] [--config PATH]
 ```
 
@@ -140,37 +140,37 @@ pythinker gateway [--port PORT] [--workspace DIR] [--verbose]
 | `--workspace`, `-w` | from config | Override workspace root. |
 | `--verbose`, `-v` | off | DEBUG-level logs. |
 | `--quiet`, `-q` | off | WARNING-level logs. |
-| `--config`, `-c` | `~/.pythinker/config.json` | Config file. |
+| `--config`, `-c` | `~/.pythinker-ai/config.json` | Config file. |
 
 Pre-flight refuses to start if the port is already bound. The gateway
 serves the WebUI from `pythinker/web/dist`, exposes the WebSocket
 multiplex protocol, and bridges every enabled channel into the shared
-agent loop. Use `pythinker restart gateway` to bounce a running
+agent loop. Use `pythinker-ai restart gateway` to bounce a running
 instance without losing the port.
 
-## `pythinker status`
+## `pythinker-ai status`
 
 Print a one-shot summary: config path, default provider/model,
 workspace, enabled channels, gateway and API ports, and whether OAuth
-tokens are present. Lower-detail than `pythinker doctor` — does not
+tokens are present. Lower-detail than `pythinker-ai doctor` — does not
 perform connectivity checks.
 
 ```
-pythinker status
+pythinker-ai status
 ```
 
 Takes no flags. Always exits 0; intended for "did my last config edit
 land?" sanity checks at the host shell.
 
-## `pythinker channels`
+## `pythinker-ai channels`
 
 Per-channel inspection, login, and pairing helpers.
 
 ```
-pythinker channels status [--config PATH]
-pythinker channels list   [--config PATH]
-pythinker channels login  <channel-name> [--force] [--config PATH]
-pythinker channels pair   [channel-name] [--ttl SECONDS] [--label TEXT]
+pythinker-ai channels status [--config PATH]
+pythinker-ai channels list   [--config PATH]
+pythinker-ai channels login  <channel-name> [--force] [--config PATH]
+pythinker-ai channels pair   [channel-name] [--ttl SECONDS] [--label TEXT]
 ```
 
 | Subcommand | Purpose |
@@ -197,15 +197,15 @@ pythinker plugins list
 Takes no flags. Plugin channels are loaded by Python's entry-point
 machinery, so a freshly `pip install`'d third-party channel package
 shows up here without any config changes — but it still has to be
-enabled in `~/.pythinker/config.json` before it actually runs.
+enabled in `~/.pythinker-ai/config.json` before it actually runs.
 
-## `pythinker provider`
+## `pythinker-ai provider`
 
 OAuth login for providers that don't use a static API key. Currently
 `openai-codex` (ChatGPT Pro/Plus subscription) and `github-copilot`.
 
 ```
-pythinker provider login <provider-name>
+pythinker-ai provider login <provider-name>
 ```
 
 | Subcommand | Purpose |
@@ -219,12 +219,12 @@ the wizard prompts for paste of the redirect URL — bare codes are
 refused (CSRF state must be present).
 
 To delete a stored token without re-running login, use
-`pythinker auth logout <provider-name>`.
+`pythinker-ai auth logout <provider-name>`.
 
 ## `pythinker agents`
 
-Manage the multi-agent layout under `~/.pythinker/agents/<id>/`. A
-single-config install (`~/.pythinker/config.json` only) keeps working
+Manage the multi-agent layout under `~/.pythinker-ai/agents/<id>/`. A
+single-config install (`~/.pythinker-ai/config.json` only) keeps working
 unchanged — these subcommands are opt-in.
 
 ```
@@ -237,24 +237,24 @@ pythinker agents delete <id> --confirm <id>
 | Subcommand | Purpose |
 |---|---|
 | `list` | Tabular `active + id + config-path + default-model` view. Falls back to a single `default (legacy)` row when no per-agent dir exists. |
-| `create <id>` | Scaffold `~/.pythinker/agents/<id>/{config.json, workspace/}`. `--from <other>` copies the source agent's `config.json` plus its `MEMORY.md` / `SOUL.md` / `USER.md` if present. Refuses to overwrite. |
-| `switch <id>` | Write `~/.pythinker/current-agent` so subsequent invocations resolve to that agent's config. Refuses ids that don't have a config (except `default`, which is special-cased to mean "use the legacy single-config path"). |
+| `create <id>` | Scaffold `~/.pythinker-ai/agents/<id>/{config.json, workspace/}`. `--from <other>` copies the source agent's `config.json` plus its `MEMORY.md` / `SOUL.md` / `USER.md` if present. Refuses to overwrite. |
+| `switch <id>` | Write `~/.pythinker-ai/current-agent` so subsequent invocations resolve to that agent's config. Refuses ids that don't have a config (except `default`, which is special-cased to mean "use the legacy single-config path"). |
 | `delete <id> --confirm <id>` | Remove the agent dir. Refuses to delete `default`, refuses to delete the currently-active agent, and requires `--confirm <id>` to match the id being deleted. |
 
 Active-agent resolution order (when no `--config` override is in
-effect): `$PYTHINKER_AGENT_ID` env var → `~/.pythinker/current-agent`
+effect): `$PYTHINKER_AI_AGENT_ID` env var → `~/.pythinker-ai/current-agent`
 file → the literal `default`. If the resolved per-agent dir doesn't
-exist, the loader falls back to `~/.pythinker/config.json`.
+exist, the loader falls back to `~/.pythinker-ai/config.json`.
 
 OAuth tokens stay shared at `~/.local/share/oauth-cli-kit/auth/` and
 `~/.local/share/pythinker/auth/` regardless of the active agent.
 
-## `pythinker tui` (alias `pythinker chat`)
+## `pythinker-ai tui` (alias `pythinker-ai chat`)
 
 Open the full-screen TUI chat against the configured agent loop.
 
 ```
-pythinker tui [--workspace DIR] [--session KEY] [--config PATH]
+pythinker-ai tui [--workspace DIR] [--session KEY] [--config PATH]
               [--theme NAME] [--logs FILE]
 ```
 
@@ -262,12 +262,12 @@ pythinker tui [--workspace DIR] [--session KEY] [--config PATH]
 |---|---|---|
 | `--workspace`, `-w` | from config | Workspace root |
 | `--session`, `-s` | `cli:tui` | Session key |
-| `--config`, `-c` | `~/.pythinker/config.json` | Config file |
+| `--config`, `-c` | `~/.pythinker-ai/config.json` | Config file |
 | `--theme` | `cli.tui.theme` (`default`) | Override TUI theme for this run only |
-| `--logs` | `~/.pythinker/logs/tui-<pid>.log` | Where loguru records go for the TUI's lifetime |
+| `--logs` | `~/.pythinker-ai/logs/tui-<pid>.log` | Where loguru records go for the TUI's lifetime |
 
-`pythinker tui` is interactive-only; for one-shot scripted use, run
-`pythinker agent -m "..."`.
+`pythinker-ai tui` is interactive-only; for one-shot scripted use, run
+`pythinker-ai agent -m "..."`.
 
 **Slash commands:** `/help`, `/exit` (alias `/quit`), `/clear`,
 `/new`, `/sessions` (alias `/session`), `/model` (alias `/models`),
@@ -302,21 +302,21 @@ you open `/mcp` or run `/mcp reconnect`.
 **Logs:** the TUI redirects all loguru output to the log file for its
 lifetime. To watch logs live, `tail -f` the file in another terminal.
 
-## `pythinker doctor`
+## `pythinker-ai doctor`
 
 Diagnose install, config, and authentication state. Returns a non-zero
 exit code when something is broken so it can be wired into CI / health
 checks.
 
 ```
-pythinker doctor [--non-interactive]
+pythinker-ai doctor [--non-interactive]
 ```
 
 | Flag | Default | Notes |
 |---|---|---|
 | `--non-interactive` | off | Terse output suitable for CI / scripting. |
 
-## `pythinker update`
+## `pythinker-ai update`
 
 Check for and install pythinker updates from PyPI. Detects how
 pythinker was installed (pip, uv tool, pipx) and picks the matching
@@ -324,19 +324,19 @@ upgrade command; refuses to auto-upgrade installs it can't safely
 manage and prints the suggested manual command instead.
 
 ```
-pythinker update [--check] [-y/--yes] [--restart] [--prerelease] [--target VERSION]
+pythinker-ai update [--check] [-y/--yes] [--restart] [--prerelease] [--target VERSION]
 ```
 
 | Flag | Default | Notes |
 |---|---|---|
 | `--check` | off | Check only; don't install. |
 | `-y`, `--yes` | off | Skip confirmation. |
-| `--restart` | off | POSIX only: re-exec pythinker after a successful upgrade. |
+| `--restart` | off | POSIX only: re-exec pythinker-ai after a successful upgrade. |
 | `--prerelease` | off | Include pre-releases when picking the latest version. |
-| `--target VERSION` | unset | Install **exactly** this PEP 440 version (e.g. `2.0.0`). Refused on editable / container / unknown installs. **Required** to cross a major version — `pythinker upgrade` will refuse `1.x → 2.x` without an explicit `--target`. |
+| `--target VERSION` | unset | Install **exactly** this PEP 440 version (e.g. `2.0.0`). Refused on editable / container / unknown installs. **Required** to cross a major version — `pythinker-ai upgrade` will refuse `1.x → 2.x` without an explicit `--target`. |
 
 Concurrent runs are guarded by a file lock under
-`~/.pythinker/update/.lock` so two upgrades can't race.
+`~/.pythinker-ai/update/.lock` so two upgrades can't race.
 
 ### Command semantics — exact-version vs latest-stable
 
@@ -344,9 +344,9 @@ The two paths differ in **what** they install:
 
 | Intent | Command |
 |---|---|
-| Install / pin exactly `2.0.0` | `pythinker update --target 2.0.0 -y` |
-| Stay at the latest stable release | `pythinker upgrade` |
-| Just check what's out there | `pythinker update --check` |
+| Install / pin exactly `2.0.0` | `pythinker-ai update --target 2.0.0 -y` |
+| Stay at the latest stable release | `pythinker-ai upgrade` |
+| Just check what's out there | `pythinker-ai update --check` |
 
 Per install method, `--target` translates to:
 
@@ -361,21 +361,21 @@ Per install method, `--target` translates to:
 Plain `pip install -U pythinker-ai==2.0.0` works too, but it's
 semantically noisy: the **exact pin controls the version**, not `-U`.
 
-## `pythinker upgrade`
+## `pythinker-ai upgrade`
 
-Convenience alias of `pythinker update -y --restart`: by default this
+Convenience alias of `pythinker-ai update -y --restart`: by default this
 upgrades and restarts in one step. Always picks the latest stable; will
 **refuse to cross a major version** (e.g. `1.9.x → 2.0.0`) — re-run with
-`pythinker update --target 2.0.0` to opt in explicitly.
+`pythinker-ai update --target 2.0.0` to opt in explicitly.
 
 ```
-pythinker upgrade [-y/--yes] [--no-restart] [--prerelease]
+pythinker-ai upgrade [-y/--yes] [--no-restart] [--prerelease]
 ```
 
 | Flag | Default | Notes |
 |---|---|---|
 | `-y`, `--yes` | off | Kept for CLI symmetry; an implicit `-y` is always passed to `update`. |
-| `--no-restart` | off | Don't re-exec pythinker after upgrading. |
+| `--no-restart` | off | Don't re-exec pythinker-ai after upgrading. |
 | `--prerelease` | off | Include pre-releases when picking the latest version. |
 
 ## `pythinker release`
@@ -391,7 +391,7 @@ Cheap checks always run:
 
 - **pep440-version** — `pyproject.toml` `[project] version` parses as PEP 440.
 - **init-fallback** — `pythinker/__init__.py` hardcoded fallback equals the
-  `pyproject.toml` version (drift makes `pythinker --version` lie in
+  `pyproject.toml` version (drift makes `pythinker-ai --version` lie in
   source-only checkouts).
 - **changelog-section** — `CHANGELOG.md` has a `## [VERSION] - YYYY-MM-DD`
   header for the current version (or `## [VERSION]`). Promotes a stalled
@@ -409,7 +409,7 @@ Heavy checks (opt-in via `--build`):
 Exit codes: `0` on pass (warnings allowed unless `--strict`), `1` on any
 fail. Run before `git tag v…` and before `gh release create`.
 
-## `pythinker token`
+## `pythinker-ai token`
 
 Generate a cryptographically strong random token, suitable for
 `channels.websocket.token` / `channels.websocket.token_issue_secret`.
@@ -417,43 +417,43 @@ Uses `secrets.token_urlsafe`, so the result is URL-safe and can be
 passed in a query string on the WebSocket handshake.
 
 ```
-pythinker token [--bytes N]
+pythinker-ai token [--bytes N]
 ```
 
 | Flag | Default | Notes |
 |---|---|---|
 | `--bytes`, `-b` | `32` | Byte length before url-safe encoding (16–64). 32 = 256 bits. |
 
-## `pythinker auth`
+## `pythinker-ai auth`
 
 Provider authentication state. Read-only inspection plus an explicit
 logout for OAuth providers.
 
 ```
-pythinker auth list   [--config PATH]
-pythinker auth logout <provider> [-y/--yes]
+pythinker-ai auth list   [--config PATH]
+pythinker-ai auth logout <provider> [-y/--yes]
 ```
 
 - **`auth list`** — Show authentication state for every provider in the
   registry. Never triggers an OAuth flow; tokens are inspected from
   on-disk storage only. State column values: `AUTH`, `MISSING`,
-  `ERROR`, `NOT-CONFIGURED`. Use `pythinker provider login <name>` to
+  `ERROR`, `NOT-CONFIGURED`. Use `pythinker-ai provider login <name>` to
   refresh missing or expired credentials.
 - **`auth logout <provider>`** — Delete the stored OAuth token for
   `provider` (e.g. `openai_codex`, `github_copilot`). Confirms before
   unlinking unless `-y` is given. API-key providers are not
-  applicable; use `pythinker config unset providers.<name>.api_key`
+  applicable; use `pythinker-ai config unset providers.<name>.api_key`
   instead.
 
-## `pythinker config`
+## `pythinker-ai config`
 
 Get / set / unset a single config field by dotted path. Reads and
-writes `~/.pythinker/config.json` directly.
+writes `~/.pythinker-ai/config.json` directly.
 
 ```
-pythinker config get <path>
-pythinker config set <path> <value>
-pythinker config unset <path>
+pythinker-ai config get <path>
+pythinker-ai config set <path> <value>
+pythinker-ai config unset <path>
 ```
 
 - Dotted paths accept both snake_case and camelCase at every segment
@@ -467,27 +467,27 @@ pythinker config unset <path>
 - All three commands print a "restart the gateway/api" hint after
   writes — config is loaded once at startup.
 
-## `pythinker restart`
+## `pythinker-ai restart`
 
 Stop a running pythinker service and re-exec a fresh one in the
 foreground. Locates listeners with `ss -ltnp`; SIGTERMs them and
 escalates to SIGKILL after `--timeout`.
 
 ```
-pythinker restart gateway [-p/--port N] [-c/--config PATH] [--no-start]
-pythinker restart api     [-p/--port N] [-c/--config PATH] [--no-start]
+pythinker-ai restart gateway [-p/--port N] [-c/--config PATH] [--no-start]
+pythinker-ai restart api     [-p/--port N] [-c/--config PATH] [--no-start]
 ```
 
 | Flag | Default | Notes |
 |---|---|---|
 | `-p`, `--port` | from config | Override gateway/api port. |
-| `-c`, `--config` | `~/.pythinker/config.json` | Config file. |
+| `-c`, `--config` | `~/.pythinker-ai/config.json` | Config file. |
 | `--no-start` | off | Stop only — don't restart. |
 
 ## `pythinker backup`
 
-Snapshot, list, verify, and restore `~/.pythinker/config.json`.
-Backups live under `~/.pythinker/backups/` as
+Snapshot, list, verify, and restore `~/.pythinker-ai/config.json`.
+Backups live under `~/.pythinker-ai/backups/` as
 `config.<YYYYMMDD-HHMMSS>[.<label>].json`. The list view also surfaces
 wizard-generated `config.json.bak.<ts>` files in the parent directory
 so both stores are visible at once.

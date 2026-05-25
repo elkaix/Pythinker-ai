@@ -73,7 +73,7 @@ WORKDIR /app
 
 # Create non-root user and config directory
 RUN useradd -m -u 1000 -s /bin/bash pythinker && \
-    mkdir -p /home/pythinker/.pythinker && \
+    mkdir -p /home/pythinker/.pythinker-ai && \
     chown -R pythinker:pythinker /home/pythinker /app
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh

@@ -185,7 +185,7 @@ class TestUnifiedSessionConfig:
         assert config.agents.defaults.unified_session is True
 
     def test_onboard_generated_config_contains_unified_session(self, tmp_path: Path):
-        """save_config() writes 'unifiedSession' into config.json (simulates pythinker onboard)."""
+        """save_config() writes 'unifiedSession' into config.json (simulates pythinker-ai onboard)."""
         from pythinker.config.loader import save_config
 
         config = Config()

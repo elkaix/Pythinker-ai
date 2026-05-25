@@ -1,4 +1,4 @@
-"""Confirm `pythinker tui` and `pythinker chat` are registered Typer
+"""Confirm `pythinker-ai tui` and `pythinker-ai chat` are registered Typer
 subcommands and resolve to the same handler."""
 from __future__ import annotations
 

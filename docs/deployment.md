@@ -3,14 +3,14 @@
 ## Docker
 
 > [!TIP]
-> The `-v ~/.pythinker:/home/pythinker/.pythinker` flag mounts your local config directory into the container, so your config and workspace persist across container restarts.
-> The container runs as user `pythinker` (UID 1000). If you get **Permission denied**, fix ownership on the host first: `sudo chown -R 1000:1000 ~/.pythinker`, or pass `--user $(id -u):$(id -g)` to match your host UID. Podman users can use `--userns=keep-id` instead.
+> The `-v ~/.pythinker-ai:/home/pythinker/.pythinker-ai` flag mounts your local config directory into the container, so your config and workspace persist across container restarts.
+> The container runs as user `pythinker` (UID 1000). If you get **Permission denied**, fix ownership on the host first: `sudo chown -R 1000:1000 ~/.pythinker-ai`, or pass `--user $(id -u):$(id -g)` to match your host UID. Podman users can use `--userns=keep-id` instead.
 
 ### Docker Compose
 
 ```bash
 docker compose run --rm pythinker-cli onboard   # first-time setup
-vim ~/.pythinker/config.json                     # add API keys
+vim ~/.pythinker-ai/config.json                     # add API keys
 docker compose up -d pythinker-gateway           # start gateway
 ```
 
@@ -31,17 +31,17 @@ docker tag ghcr.io/mohamed-elkholy95/pythinker-ai:latest pythinker
 docker build -t pythinker .
 
 # Initialize config (first time only)
-docker run -v ~/.pythinker:/home/pythinker/.pythinker --rm pythinker onboard
+docker run -v ~/.pythinker-ai:/home/pythinker/.pythinker-ai --rm pythinker-ai onboard
 
 # Edit config on host to add API keys
-vim ~/.pythinker/config.json
+vim ~/.pythinker-ai/config.json
 
 # Run gateway (connects to enabled channels, e.g. Telegram/Discord/Slack)
-docker run -v ~/.pythinker:/home/pythinker/.pythinker -p 18790:18790 pythinker gateway
+docker run -v ~/.pythinker-ai:/home/pythinker/.pythinker-ai -p 18790:18790 pythinker-ai gateway
 
 # Or run a single command
-docker run -v ~/.pythinker:/home/pythinker/.pythinker --rm pythinker agent -m "Hello!"
-docker run -v ~/.pythinker:/home/pythinker/.pythinker --rm pythinker status
+docker run -v ~/.pythinker-ai:/home/pythinker/.pythinker-ai --rm pythinker-ai agent -m "Hello!"
+docker run -v ~/.pythinker-ai:/home/pythinker/.pythinker-ai --rm pythinker-ai status
 ```
 
 ## Linux Service
@@ -63,7 +63,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/pythinker gateway
+ExecStart=%h/.local/bin/pythinker-ai gateway
 Restart=always
 RestartSec=10
 NoNewPrivileges=yes
@@ -106,7 +106,7 @@ headless-server installs.
 
 ### Package-first launch mode
 
-Enable the tool in `~/.pythinker/config.json`:
+Enable the tool in `~/.pythinker-ai/config.json`:
 
 ```json
 {
@@ -129,7 +129,7 @@ installer equivalent to:
 python -m playwright install chromium
 ```
 
-Use `pythinker doctor` to check whether browser tooling is enabled, whether CDP
+Use `pythinker-ai doctor` to check whether browser tooling is enabled, whether CDP
 is reachable when configured, and whether managed Chromium is already present.
 
 For restricted networks, corporate proxies, or regions where Playwright's
@@ -176,7 +176,7 @@ Launch mode first tries Chromium's normal sandbox. Pythinker does not add
 `--no-sandbox` automatically. If launch fails because the Chromium sandbox
 cannot initialize inside a container, prefer `mode="cdp"` with the
 `pythinker-browser` service. For local debugging only, setting
-`PYTHINKER_BROWSER_NO_SANDBOX=1` adds `--no-sandbox`; this is an explicit
+`PYTHINKER_AI_BROWSER_NO_SANDBOX=1` adds `--no-sandbox`; this is an explicit
 escape hatch, not the recommended hardened deployment.
 
 ### Network policy
@@ -189,6 +189,6 @@ internal CIDRs (e.g. Tailscale, Docker bridge), set `tools.ssrf_whitelist`.
 ### `pythinker-gateway` integration
 
 When the `browser` profile is active, `pythinker-gateway` can discover the
-service via the `PYTHINKER_TOOLS__WEB__BROWSER__CDP_URL` environment variable
-and `PYTHINKER_TOOLS__WEB__BROWSER__MODE=cdp`. Without those settings, enabled
+service via the `PYTHINKER_AI_TOOLS__WEB__BROWSER__CDP_URL` environment variable
+and `PYTHINKER_AI_TOOLS__WEB__BROWSER__MODE=cdp`. Without those settings, enabled
 browser tooling uses package-first launch mode.

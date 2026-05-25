@@ -74,7 +74,7 @@ def test_start_task_can_reregister_supplied_task_id(tmp_path: Path) -> None:
 
 def test_rejects_task_ids_that_escape_output_dir(tmp_path: Path) -> None:
     store = TaskStore(tmp_path)
-    escaped_output = tmp_path / ".pythinker" / "leak.txt"
+    escaped_output = tmp_path / ".pythinker-ai" / "leak.txt"
     escaped_output.write_text("secret", encoding="utf-8")
 
     with pytest.raises(ValueError, match="invalid task id"):
@@ -247,7 +247,7 @@ def test_finish_task_trims_terminal_records_after_active_tasks_complete(tmp_path
 
 
 def test_orphaned_outputs_are_loaded_on_startup(tmp_path: Path) -> None:
-    output_dir = tmp_path / ".pythinker" / "task-results"
+    output_dir = tmp_path / ".pythinker-ai" / "task-results"
     output_dir.mkdir(parents=True)
     (output_dir / "a_existing.txt").write_text("saved output", encoding="utf-8")
 
@@ -310,14 +310,14 @@ def test_trim_removes_output_file_for_evicted_terminal_record(tmp_path: Path) ->
     store.finish_task(second.task_id, status="completed")
 
     assert store.get("a_first") is None
-    assert not (tmp_path / ".pythinker" / "task-results" / "a_first.txt").exists()
-    assert (tmp_path / ".pythinker" / "task-results" / "a_second.txt").exists()
+    assert not (tmp_path / ".pythinker-ai" / "task-results" / "a_first.txt").exists()
+    assert (tmp_path / ".pythinker-ai" / "task-results" / "a_second.txt").exists()
 
 
 def test_orphaned_outputs_trim_keeps_newest_by_mtime(tmp_path: Path) -> None:
     import os
 
-    output_dir = tmp_path / ".pythinker" / "task-results"
+    output_dir = tmp_path / ".pythinker-ai" / "task-results"
     output_dir.mkdir(parents=True)
     older = output_dir / "a_older.txt"
     newer = output_dir / "a_newer.txt"

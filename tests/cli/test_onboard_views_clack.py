@@ -210,7 +210,7 @@ def test_multiselect_none_selected_shows_none():
 def test_text_returns_string():
     with patch("pythinker.cli.onboard_views.clack.questionary") as q:
         q.text.return_value.ask.return_value = "hello"
-        out = _capture(clack.text, "Workspace?", default="~/.pythinker/workspace")
+        out = _capture(clack.text, "Workspace?", default="~/.pythinker-ai/workspace")
     assert "●  Workspace?" in out
     assert "│  hello" in out
 

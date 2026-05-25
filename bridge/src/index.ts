@@ -10,7 +10,7 @@
  *   npm run build && npm start
  *   
  * Or with custom settings:
- *   BRIDGE_PORT=3001 AUTH_DIR=~/.pythinker/whatsapp npm start
+ *   BRIDGE_PORT=3001 AUTH_DIR=~/.pythinker-ai/whatsapp npm start
  *
  * To avoid the large terminal QR code, provide a digits-only phone number:
  *   WHATSAPP_PAIRING_PHONE=15551234567 npm start
@@ -96,7 +96,7 @@ function installConsoleRedaction(): void {
 installConsoleRedaction();
 
 const PORT = parseInt(process.env.BRIDGE_PORT || '3001', 10);
-const AUTH_DIR = process.env.AUTH_DIR || join(homedir(), '.pythinker', 'whatsapp-auth');
+const AUTH_DIR = process.env.AUTH_DIR || join(homedir(), '.pythinker-ai', 'whatsapp-auth');
 const TOKEN = process.env.BRIDGE_TOKEN?.trim();
 const PAIRING_PHONE = process.env.WHATSAPP_PAIRING_PHONE?.replace(/\D/g, '') || undefined;
 

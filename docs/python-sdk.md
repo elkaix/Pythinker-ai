@@ -19,7 +19,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-`Pythinker.from_config()` reuses your normal `~/.pythinker/config.json`, so the SDK follows the same provider, model, tools, and workspace defaults as the CLI unless you override them.
+`Pythinker.from_config()` reuses your normal `~/.pythinker-ai/config.json`, so the SDK follows the same provider, model, tools, and workspace defaults as the CLI unless you override them.
 
 ## Common Patterns
 
@@ -29,7 +29,7 @@ asyncio.run(main())
 from pythinker import Pythinker
 
 bot = Pythinker.from_config(
-    config_path="~/.pythinker/config.json",
+    config_path="~/.pythinker-ai/config.json",
     workspace="/my/project",
 )
 ```
@@ -68,7 +68,7 @@ Create a `Pythinker` instance from a config file.
 
 | Param | Type | Default | Description |
 |-------|------|---------|-------------|
-| `config_path` | `str \| Path \| None` | `None` | Path to `config.json`. Defaults to `~/.pythinker/config.json`. |
+| `config_path` | `str \| Path \| None` | `None` | Path to `config.json`. Defaults to `~/.pythinker-ai/config.json`. |
 | `workspace` | `str \| Path \| None` | `None` | Override the workspace directory from config. |
 
 Raises `FileNotFoundError` if an explicit config path does not exist.

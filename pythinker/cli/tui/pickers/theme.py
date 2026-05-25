@@ -2,7 +2,7 @@
 
 This is the one picker that persists immediately to disk: writes
 config.cli.tui.theme via config.loader.save_config so the choice survives
-the next pythinker tui invocation.
+the next pythinker-ai tui invocation.
 """
 
 from __future__ import annotations

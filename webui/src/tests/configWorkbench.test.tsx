@@ -135,7 +135,7 @@ describe("ConfigWorkbench", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /export as env/i }));
     expect(writeText).toHaveBeenCalledWith(
-      expect.stringContaining("PYTHINKER_AGENTS_DEFAULTS_MODEL="),
+      expect.stringContaining("PYTHINKER_AI_AGENTS_DEFAULTS_MODEL="),
     );
     expect(writeText).not.toHaveBeenCalledWith(expect.stringContaining("sk-"));
   });
@@ -271,6 +271,6 @@ describe("ConfigWorkbench", () => {
     expect(banner).toHaveTextContent(/providers, agents/);
 
     await userEvent.click(screen.getByRole("button", { name: /copy restart command/i }));
-    expect(writeText).toHaveBeenCalledWith("pythinker restart");
+    expect(writeText).toHaveBeenCalledWith("pythinker-ai restart");
   });
 });

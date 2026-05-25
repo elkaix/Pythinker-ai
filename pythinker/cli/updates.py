@@ -27,11 +27,11 @@ from pythinker.utils.update import (
 
 
 def _updates_enabled(config: Config | None = None) -> bool:
-    if os.environ.get("PYTHINKER_NO_UPDATE_CHECK") == "1":
+    if os.environ.get("PYTHINKER_AI_NO_UPDATE_CHECK") == "1":
         return False
     # New 2.7.0 env var matching the public README. Both names are honored so
     # users who learned one don't get bitten by the other.
-    if os.environ.get("PYTHINKER_CLI_NO_AUTO_UPDATE") == "1":
+    if os.environ.get("PYTHINKER_AI_CLI_NO_AUTO_UPDATE") == "1":
         return False
     if config is None:
         return True

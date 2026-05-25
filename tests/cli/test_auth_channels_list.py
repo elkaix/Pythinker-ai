@@ -1,4 +1,4 @@
-"""Tests for the ``pythinker auth list`` and ``pythinker channels list`` commands.
+"""Tests for the ``pythinker-ai auth list`` and ``pythinker-ai channels list`` commands.
 
 Pin the contract that matters:
 
@@ -154,7 +154,7 @@ def test_channel_state_none_block():
 
 
 # ---------------------------------------------------------------------------
-# CLI integration — `pythinker auth list` / `pythinker channels list`
+# CLI integration — `pythinker-ai auth list` / `pythinker-ai channels list`
 # ---------------------------------------------------------------------------
 
 

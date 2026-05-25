@@ -1,7 +1,7 @@
 """One-time GitHub star prompt shown at first interactive launch.
 
 TTY-only, gh-CLI-only, state-file-gated, mark-before-ask. Adds a
-PYTHINKER_NO_STAR_PROMPT env-var escape hatch and probes `gh auth
+PYTHINKER_AI_NO_STAR_PROMPT env-var escape hatch and probes `gh auth
 status` (not `gh --version`) so an installed-but-logged-out gh skips
 silently.
 """
@@ -22,7 +22,7 @@ REPO = "mohamed-elkholy95/Pythinker-ai"
 PROMPT_TEXT = "[pythinker] Enjoying Pythinker? Star it on GitHub? [Y/n] "
 SUCCESS_TEXT = "[pythinker] Thanks for the star!"
 FAILURE_PREFIX = "[pythinker] Could not star repository automatically: "
-ENV_OPT_OUT = "PYTHINKER_NO_STAR_PROMPT"
+ENV_OPT_OUT = "PYTHINKER_AI_NO_STAR_PROMPT"
 GH_AUTH_TIMEOUT_S = 3
 GH_STAR_TIMEOUT_S = 10
 _NO_WINDOW = getattr(subprocess, "CREATE_NO_WINDOW", 0)

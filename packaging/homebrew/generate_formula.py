@@ -83,14 +83,11 @@ def main(target_pkg: str) -> int:
     out.append("")
     out.append('  depends_on "python@3.12"')
     out.append("")
-    # Both pythinker-ai and the sibling pythinker-code formula install a
-    # `bin/pythinker` console script (see [project.scripts] in each
-    # project's pyproject.toml). Without `conflicts_with`, the second
-    # `brew install` crashes with the opaque error:
-    #   "Could not symlink bin/pythinker, target already exists".
-    out.append('  conflicts_with "pythinker-code",')
-    out.append('    because: "both install a `pythinker` executable into bin/"')
-    out.append("")
+    # pythinker-ai installs a `bin/pythinker-ai` console script, while the
+    # sibling pythinker-code formula installs `bin/pythinker` (see
+    # [project.scripts] in each project's pyproject.toml). The executable
+    # names differ, so the two formulae can be installed side by side with
+    # no symlink collision — no `conflicts_with` needed.
     out.append("  def install")
     out.append("    # Provision a plain venv and let pip resolve prebuilt wheels for")
     out.append("    # the Rust/C-extension dependency tree (cryptography, pydantic-core,")
@@ -127,14 +124,14 @@ def main(target_pkg: str) -> int:
     out.append('      "--no-binary=dulwich", "--no-deps", "--no-warn-script-location",')
     out.append('      "dulwich"')
     out.append("")
-    out.append('    bin.install_symlink libexec/"bin/pythinker"')
+    out.append('    bin.install_symlink libexec/"bin/pythinker-ai"')
     out.append("  end")
     out.append("")
     out.append("  test do")
     # No version match — the install line is unpinned, so the
     # installed pythinker-ai may be newer than `version` parsed from
     # the formula's `url`. Just confirm the CLI runs.
-    out.append('    system bin/"pythinker", "--version"')
+    out.append('    system bin/"pythinker-ai", "--version"')
     out.append("  end")
     out.append("end")
     print("\n".join(out))

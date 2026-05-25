@@ -7,7 +7,7 @@ Two surfaces:
 * Side-effect wrappers (``fetch_pypi_metadata``, ``check_for_update``) — perform
   the network request and read/write the cache file under ``get_update_dir()``.
 
-Notify-only by default. ``pythinker update`` does the actual upgrade behind a
+Notify-only by default. ``pythinker-ai update`` does the actual upgrade behind a
 ``filelock``; long-running daemons just emit a one-line banner.
 """
 
@@ -37,8 +37,8 @@ DEFAULT_TIMEOUT_S = 3.0
 DEFAULT_CACHE_TTL_S = 24 * 3600
 DEFAULT_FAILURE_TTL_S = 15 * 60  # short TTL on PyPI failure so transient outages don't pin users
 
-ENV_DISABLE = "PYTHINKER_NO_UPDATE_CHECK"
-ENV_NO_AUTO_UPDATE = "PYTHINKER_CLI_NO_AUTO_UPDATE"
+ENV_DISABLE = "PYTHINKER_AI_NO_UPDATE_CHECK"
+ENV_NO_AUTO_UPDATE = "PYTHINKER_AI_CLI_NO_AUTO_UPDATE"
 
 CACHE_FILENAME = "state.json"
 LOCK_FILENAME = ".lock"
@@ -55,7 +55,7 @@ class InstallMethod(str, enum.Enum):
     EDITABLE = "editable"
     CONTAINER = "container"
     # Native installers added in 2.7.0. Each one ships from the GitHub Release
-    # alongside the PyPI wheel; the in-app `pythinker update` command verifies
+    # alongside the PyPI wheel; the in-app `pythinker-ai update` command verifies
     # SHA-256 of the downloaded asset before re-running the installer.
     HOMEBREW = "homebrew"
     DEB = "deb"
@@ -236,10 +236,10 @@ def _query_linux_package_owner(exe_path: Path) -> str | None:
     import subprocess
 
     # The frozen binary lives under /usr/lib/pythinker for both .deb and .rpm;
-    # the launcher at /usr/bin/pythinker is what dpkg/rpm tracks. Resolve to
+    # the launcher at /usr/bin/pythinker-ai is what dpkg/rpm tracks. Resolve to
     # one of those before querying.
     candidates: list[Path] = [exe_path]
-    launcher = Path("/usr/bin/pythinker")
+    launcher = Path("/usr/bin/pythinker-ai")
     if launcher.exists():
         candidates.append(launcher)
 
@@ -405,12 +405,12 @@ def suggested_upgrade_command(method: InstallMethod) -> str:
         return f"docker pull <image>  # or rebuild the image with the new {PACKAGE_NAME} version"
     if method is InstallMethod.DEB:
         return (
-            f"# `pythinker update` downloads + verifies + installs the matching "
+            f"# `pythinker-ai update` downloads + verifies + installs the matching "
             f"{PACKAGE_NAME}_<ver>_$(dpkg --print-architecture).deb  (needs sudo)"
         )
     if method is InstallMethod.RPM:
         return (
-            f"# `pythinker update` downloads + verifies + installs the matching "
+            f"# `pythinker-ai update` downloads + verifies + installs the matching "
             f"{PACKAGE_NAME}-<ver>.$(uname -m).rpm  (needs sudo)"
         )
     if method is InstallMethod.NATIVE_TARBALL:
@@ -419,7 +419,7 @@ def suggested_upgrade_command(method: InstallMethod) -> str:
         )
     if method is InstallMethod.WINDOWS_EXE:
         return (
-            "# `pythinker update` downloads PythinkerSetup-<ver>.exe "
+            "# `pythinker-ai update` downloads PythinkerSetup-<ver>.exe "
             "and runs it silently (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)"
         )
     return f"pip install --upgrade {PACKAGE_NAME}"

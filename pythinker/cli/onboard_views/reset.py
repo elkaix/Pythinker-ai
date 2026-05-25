@@ -25,10 +25,10 @@ class ResetScope(enum.IntEnum):
 
 
 SCOPE_OPTIONS = [
-    ("config", "Config only", "Wipe ~/.pythinker/config.json (keep credentials, sessions)."),
+    ("config", "Config only", "Wipe ~/.pythinker-ai/config.json (keep credentials, sessions)."),
     ("credentials", "+ credentials", "Also delete OAuth tokens (oauth_cli_kit files)."),
-    ("sessions", "+ sessions", "Also delete ~/.pythinker/sessions/ (chat history, MEMORY/SOUL/USER)."),
-    ("full", "Full reset", "Also delete ~/.pythinker/api-workspace/ and any docker volumes."),
+    ("sessions", "+ sessions", "Also delete ~/.pythinker-ai/sessions/ (chat history, MEMORY/SOUL/USER)."),
+    ("full", "Full reset", "Also delete ~/.pythinker-ai/api-workspace/ and any docker volumes."),
 ]
 
 

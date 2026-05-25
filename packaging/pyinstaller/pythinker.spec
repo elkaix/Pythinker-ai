@@ -130,7 +130,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="pythinker",
+    name="pythinker-ai",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

@@ -168,7 +168,7 @@ def _step_run_auth(ctx: _WizardContext) -> StepResult:
                 what=f"Browser-login for {spec.display_name} failed: {exc}",
                 why="Without a credential we cannot continue — the wizard will abort.",
                 how=(
-                    f"Re-run `pythinker onboard` and retry, or use an API key flow if "
+                    f"Re-run `pythinker-ai onboard` and retry, or use an API key flow if "
                     f"{spec.display_name} supports one."
                 ),
             )

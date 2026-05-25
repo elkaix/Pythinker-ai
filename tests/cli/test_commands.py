@@ -52,7 +52,7 @@ def _stub_wizard_save(monkeypatch, final_cfg=None, should_save=True):
 
 
 def test_onboard_non_interactive_fresh_install_saves_config(tmp_path, monkeypatch):
-    """`pythinker onboard --non-interactive` on a fresh install saves config via the wizard."""
+    """`pythinker-ai onboard --non-interactive` on a fresh install saves config via the wizard."""
     config_path = tmp_path / "config.json"
     monkeypatch.setattr("pythinker.config.loader.get_config_path", lambda: config_path)
     monkeypatch.setattr("pythinker.channels.registry.discover_all", lambda: {})
@@ -65,7 +65,7 @@ def test_onboard_non_interactive_fresh_install_saves_config(tmp_path, monkeypatc
 
 
 def test_onboard_non_interactive_discard_does_not_save(tmp_path, monkeypatch):
-    """`pythinker onboard --non-interactive` with wizard discard leaves disk untouched."""
+    """`pythinker-ai onboard --non-interactive` with wizard discard leaves disk untouched."""
     config_path = tmp_path / "config.json"
     monkeypatch.setattr("pythinker.config.loader.get_config_path", lambda: config_path)
     monkeypatch.setattr("pythinker.channels.registry.discover_all", lambda: {})
@@ -141,7 +141,7 @@ def test_onboard_uses_explicit_config_path(tmp_path, monkeypatch):
 
 
 def test_onboard_default_runs_wizard_and_save_persists(tmp_path, monkeypatch):
-    """`pythinker onboard` (no flags) launches the wizard; on save, the result hits disk."""
+    """`pythinker-ai onboard` (no flags) launches the wizard; on save, the result hits disk."""
     config_path = tmp_path / "config.json"
     monkeypatch.setattr("pythinker.config.loader.get_config_path", lambda: config_path)
     monkeypatch.setattr("pythinker.channels.registry.discover_all", lambda: {})
@@ -158,7 +158,7 @@ def test_onboard_default_runs_wizard_and_save_persists(tmp_path, monkeypatch):
 
 
 def test_onboard_default_wizard_discard_does_not_save(tmp_path, monkeypatch):
-    """`pythinker onboard` + wizard returning should_save=False leaves disk untouched."""
+    """`pythinker-ai onboard` + wizard returning should_save=False leaves disk untouched."""
     config_path = tmp_path / "config.json"
     monkeypatch.setattr("pythinker.config.loader.get_config_path", lambda: config_path)
     monkeypatch.setattr("pythinker.channels.registry.discover_all", lambda: {})

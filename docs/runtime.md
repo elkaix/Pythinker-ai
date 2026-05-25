@@ -7,14 +7,14 @@ something in the new `runtime` config block.
 
 ## Quick start
 
-Add this to `~/.pythinker/config.json`:
+Add this to `~/.pythinker-ai/config.json`:
 
 ```json
 {
   "runtime": {
     "policyEnabled": false,
     "telemetrySink": "jsonl",
-    "telemetryJsonlPath": "/home/you/.pythinker/events.jsonl",
+    "telemetryJsonlPath": "/home/you/.pythinker-ai/events.jsonl",
     "sessionCacheMax": 512,
     "maxToolCallsPerTurn": 50,
     "maxWallClockS": 120.0,
@@ -57,7 +57,7 @@ Loki, OpenTelemetry forwarder).
 {
   "runtime": {
     "policyEnabled": true,
-    "manifestsDir": "/home/you/.pythinker/agents"
+    "manifestsDir": "/home/you/.pythinker-ai/agents"
   }
 }
 ```

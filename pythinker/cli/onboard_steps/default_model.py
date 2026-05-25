@@ -125,7 +125,7 @@ def _step_workspace(ctx: _WizardContext) -> StepResult:
     default = (
         ctx.workspace_override
         or ctx.draft.agents.defaults.workspace
-        or "~/.pythinker/workspace"
+        or "~/.pythinker-ai/workspace"
     )
 
     while True:

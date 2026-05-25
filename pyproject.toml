@@ -1,6 +1,6 @@
 [project]
 name = "pythinker-ai"
-version = "2.7.0"
+version = "2.7.1"
 description = "Pythinker — a tiny agent framework with built-in chat channels, memory, MCP, and an OpenAI-compatible API."
 readme = { file = "README.md", content-type = "text/markdown" }
 requires-python = ">=3.11"
@@ -156,7 +156,7 @@ Issues = "https://github.com/mohamed-elkholy95/Pythinker-ai/issues"
 Changelog = "https://github.com/mohamed-elkholy95/Pythinker-ai/releases"
 
 [project.scripts]
-pythinker = "pythinker.cli.commands:app"
+pythinker-ai = "pythinker.cli.commands:app"
 
 [build-system]
 requires = ["hatchling"]

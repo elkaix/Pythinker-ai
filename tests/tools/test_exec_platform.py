@@ -40,11 +40,11 @@ class TestBuildEnvUnix:
 
     def test_secrets_excluded(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "sk-secret")
-        monkeypatch.setenv("PYTHINKER_TOKEN", "tok-secret")
+        monkeypatch.setenv("PYTHINKER_AI_TOKEN", "tok-secret")
         with patch("pythinker.agent.tools.shell._IS_WINDOWS", False):
             env = ExecTool()._build_env()
         assert "OPENAI_API_KEY" not in env
-        assert "PYTHINKER_TOKEN" not in env
+        assert "PYTHINKER_AI_TOKEN" not in env
         for v in env.values():
             assert "secret" not in v.lower()
 
@@ -64,11 +64,11 @@ class TestBuildEnvWindows:
 
     def test_secrets_excluded(self, monkeypatch):
         monkeypatch.setenv("OPENAI_API_KEY", "sk-secret")
-        monkeypatch.setenv("PYTHINKER_TOKEN", "tok-secret")
+        monkeypatch.setenv("PYTHINKER_AI_TOKEN", "tok-secret")
         with patch("pythinker.agent.tools.shell._IS_WINDOWS", True):
             env = ExecTool()._build_env()
         assert "OPENAI_API_KEY" not in env
-        assert "PYTHINKER_TOKEN" not in env
+        assert "PYTHINKER_AI_TOKEN" not in env
         for v in env.values():
             assert "secret" not in v.lower()
 

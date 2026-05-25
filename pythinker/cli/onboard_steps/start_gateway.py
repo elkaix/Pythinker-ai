@@ -12,7 +12,7 @@ from pythinker.cli.onboard_types import StepResult, _WizardContext
 def _step_start_gateway(ctx: _WizardContext) -> StepResult:
     """Step 16 — optionally hand control to the gateway in the foreground.
 
-    Replaces the wizard process with ``pythinker gateway`` via ``os.execvp``
+    Replaces the wizard process with ``pythinker-ai gateway`` via ``os.execvp``
     so the user sees gateway logs directly, can Ctrl-C cleanly, and no
     orphan PID is left behind. Background spawning was the previous
     behavior — it produced two long-running UX issues:
@@ -46,7 +46,7 @@ def _step_start_gateway(ctx: _WizardContext) -> StepResult:
             default="yes",
         )
         if chosen == "no":
-            clack.print_status("Start it later with: pythinker gateway")
+            clack.print_status("Start it later with: pythinker-ai gateway")
             return StepResult(status="continue")
 
     # Resolve port (best-effort; default 18790).
@@ -98,7 +98,7 @@ def _step_start_gateway(ctx: _WizardContext) -> StepResult:
                 "failed to launch — your settings are saved, just not yet running."
             ),
             how=(
-                "Start it manually with `pythinker gateway`. If that also fails, "
+                "Start it manually with `pythinker-ai gateway`. If that also fails, "
                 "check that the configured port is free and that the python "
                 "interpreter is on PATH."
             ),

@@ -69,7 +69,7 @@ def _step_summary_confirm(ctx: _WizardContext) -> StepResult:
             why="The wizard reached the save step but the filesystem refused the write.",
             how=(
                 f"Check that {cfg_path.parent} exists and is writable, then re-run "
-                "`pythinker onboard`. Common fixes: `mkdir -p` the parent, fix permissions, "
+                "`pythinker-ai onboard`. Common fixes: `mkdir -p` the parent, fix permissions, "
                 "or pass `--config <other-path>` to land elsewhere."
             ),
         )

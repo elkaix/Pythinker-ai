@@ -59,7 +59,7 @@ Edit the latest generated artifact:
 ```text
 generate_image(
   prompt="Use the reference image. Keep the same robot and composition, but change the palette to warm orange and add a subtle sunrise background.",
-  reference_images=["/home/user/.pythinker/media/generated/2026-05-08/img_ab12cd34ef56.png"],
+  reference_images=["/home/user/.pythinker-ai/media/generated/2026-05-08/img_ab12cd34ef56.png"],
   aspect_ratio="1:1",
   image_size="1K"
 )

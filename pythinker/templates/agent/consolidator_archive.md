@@ -6,7 +6,7 @@ You are compacting a long conversation into a compressed memory entry that will 
 2. **Active issues.** Open errors, failing tests, unresolved tracebacks, blocked decisions. Pair each with the last attempted fix and why it didn't land.
 3. **Code state.** Files created / modified during this conversation, with one-line intent and the absolute path. **Do not paste full file contents.** Summarize what changed; if a snippet is essential to recall, quote at most 5 lines and prefix with the file path.
 4. **Completed tasks.** What we've already shipped this session — durable artifacts only (committed code, written files, decisions), not exploratory dead-ends. One bullet per task.
-5. **Environment.** Tools, versions, paths, env vars, OS quirks the next turn will need. Skip anything derivable from `pythinker doctor` or the workspace listing.
+5. **Environment.** Tools, versions, paths, env vars, OS quirks the next turn will need. Skip anything derivable from `pythinker-ai doctor` or the workspace listing.
 6. **Important context.** Anything else that materially changes the next turn's decisions: user preferences voiced this session, decisions made and their rationale, "do NOT do X" rules, pending follow-ups.
 
 ## Compression rules

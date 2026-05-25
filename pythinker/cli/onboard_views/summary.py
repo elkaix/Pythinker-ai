@@ -160,7 +160,7 @@ def render_existing_summary(cfg: Config) -> None:
         default_provider = "(none)"
 
     body = [
-        "Path:        ~/.pythinker/config.json",
+        "Path:        ~/.pythinker-ai/config.json",
         f"Provider:    {default_provider}",
         f"Model:       {cfg.agents.defaults.model or '(none)'}",
     ]
@@ -172,7 +172,7 @@ def render_pre_save(cfg: Config) -> None:
     """Step 14 — Ready to save panel (full diff vs. defaults)."""
     from pythinker.providers.registry import PROVIDERS
     body = [
-        "~/.pythinker/config.json",
+        "~/.pythinker-ai/config.json",
         "",
     ]
     # Resolve current provider/model/workspace defensively.

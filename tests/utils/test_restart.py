@@ -14,9 +14,9 @@ from pythinker.utils.restart import (
 
 
 def test_set_and_consume_restart_notice_env_roundtrip(monkeypatch):
-    monkeypatch.delenv("PYTHINKER_RESTART_NOTIFY_CHANNEL", raising=False)
-    monkeypatch.delenv("PYTHINKER_RESTART_NOTIFY_CHAT_ID", raising=False)
-    monkeypatch.delenv("PYTHINKER_RESTART_STARTED_AT", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_RESTART_NOTIFY_CHANNEL", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_RESTART_NOTIFY_CHAT_ID", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_RESTART_STARTED_AT", raising=False)
 
     set_restart_notice_to_env(channel="feishu", chat_id="oc_123")
 
@@ -28,9 +28,9 @@ def test_set_and_consume_restart_notice_env_roundtrip(monkeypatch):
 
     # Consumed values should be cleared from env.
     assert consume_restart_notice_from_env() is None
-    assert "PYTHINKER_RESTART_NOTIFY_CHANNEL" not in os.environ
-    assert "PYTHINKER_RESTART_NOTIFY_CHAT_ID" not in os.environ
-    assert "PYTHINKER_RESTART_STARTED_AT" not in os.environ
+    assert "PYTHINKER_AI_RESTART_NOTIFY_CHANNEL" not in os.environ
+    assert "PYTHINKER_AI_RESTART_NOTIFY_CHAT_ID" not in os.environ
+    assert "PYTHINKER_AI_RESTART_STARTED_AT" not in os.environ
 
 
 def test_format_restart_completed_message_with_elapsed(monkeypatch):

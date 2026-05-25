@@ -27,21 +27,21 @@ npx --yes clawhub@latest search "web scraping" --limit 5
 ## Install
 
 ```bash
-npx --yes clawhub@latest install <slug> --workdir ~/.pythinker/workspace
+npx --yes clawhub@latest install <slug> --workdir ~/.pythinker-ai/workspace
 ```
 
-Replace `<slug>` with the skill name from search results. This places the skill into `~/.pythinker/workspace/skills/`, where pythinker loads workspace skills from. Always include `--workdir`.
+Replace `<slug>` with the skill name from search results. This places the skill into `~/.pythinker-ai/workspace/skills/`, where pythinker loads workspace skills from. Always include `--workdir`.
 
 ## Update
 
 ```bash
-npx --yes clawhub@latest update --all --workdir ~/.pythinker/workspace
+npx --yes clawhub@latest update --all --workdir ~/.pythinker-ai/workspace
 ```
 
 ## List installed
 
 ```bash
-npx --yes clawhub@latest list --workdir ~/.pythinker/workspace
+npx --yes clawhub@latest list --workdir ~/.pythinker-ai/workspace
 ```
 
 ## Notes
@@ -49,5 +49,5 @@ npx --yes clawhub@latest list --workdir ~/.pythinker/workspace
 - Requires Node.js (`npx` comes with it).
 - No API key needed for search and install.
 - Login (`npx --yes clawhub@latest login`) is only required for publishing.
-- `--workdir ~/.pythinker/workspace` is critical — without it, skills install to the current directory instead of the pythinker workspace.
+- `--workdir ~/.pythinker-ai/workspace` is critical — without it, skills install to the current directory instead of the pythinker workspace.
 - After install, remind the user to start a new session to load the skill.

@@ -44,7 +44,7 @@ class Pythinker:
 
         Args:
             config_path: Path to ``config.json``.  Defaults to
-                ``~/.pythinker/config.json``.
+                ``~/.pythinker-ai/config.json``.
             workspace: Override the workspace directory from config.
         """
         from pythinker.config.loader import load_config, resolve_config_env_vars
@@ -76,7 +76,7 @@ class Pythinker:
         defaults = config.agents.defaults
 
         # Hot-reload loader: rebuild the snapshot from disk on each turn so
-        # `~/.pythinker/config.json` edits to model/provider/api_key land at
+        # `~/.pythinker-ai/config.json` edits to model/provider/api_key land at
         # the next turn boundary without re-instantiating the SDK.
         snapshot_loader = lambda: load_provider_snapshot(resolved)  # noqa: E731
 

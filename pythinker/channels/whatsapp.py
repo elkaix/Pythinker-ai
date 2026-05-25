@@ -800,23 +800,23 @@ def _ensure_bridge_setup() -> Path:
     Returns the bridge directory. Raises RuntimeError if npm is not found
     or bridge cannot be built.
 
-    PYTHINKER_BRIDGE_SOURCE_DIR overrides the install location for dev
+    PYTHINKER_AI_BRIDGE_SOURCE_DIR overrides the install location for dev
     workflows: when set, the bridge runs directly from that path so
     `npm run build` in the repo takes effect on next restart without a
     re-deploy. The directory must already contain a built `dist/index.js`.
     """
     from pythinker.config.paths import get_bridge_install_dir
 
-    dev_dir = os.environ.get("PYTHINKER_BRIDGE_SOURCE_DIR")
+    dev_dir = os.environ.get("PYTHINKER_AI_BRIDGE_SOURCE_DIR")
     if dev_dir:
         dev_path = Path(dev_dir).expanduser().resolve()
         if not (dev_path / "package.json").exists():
             raise RuntimeError(
-                f"PYTHINKER_BRIDGE_SOURCE_DIR={dev_path} has no package.json"
+                f"PYTHINKER_AI_BRIDGE_SOURCE_DIR={dev_path} has no package.json"
             )
         if not (dev_path / "dist" / "index.js").exists():
             raise RuntimeError(
-                f"PYTHINKER_BRIDGE_SOURCE_DIR={dev_path}: dist/index.js missing; "
+                f"PYTHINKER_AI_BRIDGE_SOURCE_DIR={dev_path}: dist/index.js missing; "
                 "run `npm install && npm run build` in that directory first"
             )
         logger.info("Using dev WhatsApp bridge from {}", dev_path)

@@ -1,6 +1,6 @@
 # pythinker webui
 
-The browser front-end for the pythinker gateway. It is built with Vite + React 18 +
+The browser front-end for the pythinker-ai gateway. It is built with Vite + React 18 +
 TypeScript + Tailwind 3 + shadcn/ui, talks to the gateway over the WebSocket
 multiplex protocol, and reads session metadata from the embedded REST surface
 on the same port.
@@ -37,7 +37,7 @@ pip install -e .
 
 ### 2. Enable the WebSocket channel
 
-In `~/.pythinker/config.json`:
+In `~/.pythinker-ai/config.json`:
 
 ```json
 { "channels": { "websocket": { "enabled": true } } }
@@ -48,7 +48,7 @@ In `~/.pythinker/config.json`:
 In one terminal:
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 ### 4. Start the WebUI dev server
@@ -69,7 +69,7 @@ traffic to `http://127.0.0.1:8765`.
 If your gateway listens on a non-default port, point the dev server at it:
 
 ```bash
-PYTHINKER_API_URL=http://127.0.0.1:9000 bun run dev
+PYTHINKER_AI_API_URL=http://127.0.0.1:9000 bun run dev
 ```
 
 ## Build for packaged runtime
@@ -80,7 +80,7 @@ bun run build
 ```
 
 This writes the production assets to `../pythinker/web/dist`, which is the
-directory served by `pythinker gateway` and bundled into the Python wheel.
+directory served by `pythinker-ai gateway` and bundled into the Python wheel.
 
 If you are cutting a release, run the build before packaging so the published
 wheel contains the current WebUI assets.
@@ -143,7 +143,7 @@ Three small, additive indicators surface what the agent is doing:
 - **Inline model switcher**: the model name in the composer footer is a
   dropdown that lists the active default plus any
   `agents.defaults.alternate_models` entries from
-  `~/.pythinker/config.json`. Picking an alternate sets a per-chat
+  `~/.pythinker-ai/config.json`. Picking an alternate sets a per-chat
   override persisted on `Session.metadata['model_override']`. The agent
   loop reads it on every turn; "Use default" clears it. Same-provider
   switching only.
@@ -198,7 +198,7 @@ Phase 5 layers ergonomic and accessibility improvements across the surface:
   WebSocket envelope (base64-encoded webm/mp4/wav), and pastes the
   returned transcript into the composer. Active when
   `channels.transcription_provider` and the matching API key (Groq or
-  OpenAI Whisper) are set in `~/.pythinker/config.json`; bootstrap's
+  OpenAI Whisper) are set in `~/.pythinker-ai/config.json`; bootstrap's
   `voice_enabled` flag flips automatically. Disabled with an
   explanatory tooltip otherwise.
 

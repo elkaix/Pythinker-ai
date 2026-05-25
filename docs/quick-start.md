@@ -35,20 +35,20 @@ Then re-run `uv tool install pythinker-ai`.
 
 ```bash
 uv tool upgrade pythinker-ai     # or: pipx upgrade pythinker-ai
-pythinker --version
+pythinker-ai --version
 ```
 
 **Using WhatsApp?** Rebuild the local bridge after upgrading:
 
 ```bash
-rm -rf ~/.pythinker/bridge
-pythinker channels login whatsapp
+rm -rf ~/.pythinker-ai/bridge
+pythinker-ai channels login whatsapp
 ```
 
 ### Verify install
 
 ```bash
-pythinker doctor
+pythinker-ai doctor
 ```
 
 `doctor` checks Python version, install path + `PATH` membership, config validity, workspace writability, and OAuth token presence for your default provider. If anything is wrong, it prints the exact command to fix it. Run this first whenever something doesn't work.
@@ -56,15 +56,15 @@ pythinker doctor
 ## Quick Start
 
 ```bash
-pythinker onboard                           # guided setup; writes ~/.pythinker/config.json
-pythinker tui                               # full-screen chat
+pythinker-ai onboard                           # guided setup; writes ~/.pythinker-ai/config.json
+pythinker-ai tui                               # full-screen chat
 ```
 
-That's it. `pythinker onboard` walks through a visual terminal wizard: welcome/security notice, QuickStart vs Manual, provider/auth, model, workspace, optional channels, redacted review, and a post-save health check. QuickStart defaults to **OpenAI Codex via ChatGPT OAuth** when you choose that provider.
+That's it. `pythinker-ai onboard` walks through a visual terminal wizard: welcome/security notice, QuickStart vs Manual, provider/auth, model, workspace, optional channels, redacted review, and a post-save health check. QuickStart defaults to **OpenAI Codex via ChatGPT OAuth** when you choose that provider.
 
 ### Using a different provider or model?
 
-Edit `~/.pythinker/config.json`:
+Edit `~/.pythinker-ai/config.json`:
 
 ```json
 {
@@ -80,13 +80,13 @@ Provider is auto-detected from the model prefix (`openai-codex/…`, `anthropic/
 
 ### Full-screen TUI chat
 
-For a richer interactive experience, run `pythinker tui` (alias
-`pythinker chat`). It opens a full-screen chat with slash-command
+For a richer interactive experience, run `pythinker-ai tui` (alias
+`pythinker-ai chat`). It opens a full-screen chat with slash-command
 pickers for sessions, models, providers, and themes. The onboarding
-success screen recommends this first. The CLI `pythinker agent` remains
+success screen recommends this first. The CLI `pythinker-ai agent` remains
 the right tool for one-shot prompts and scripts.
 
 ### Troubleshooting
 
-- **`pythinker` command not found** — run `python -m pythinker doctor` for a diagnosis; usually `~/.local/bin` isn't on your `PATH`. `uv tool update-shell` fixes it.
-- **Anything else broken** — `pythinker doctor` is the one-stop diagnostic. Paste its output in a GitHub issue if you need help.
+- **`pythinker` command not found** — run `python -m pythinker-ai doctor` for a diagnosis; usually `~/.local/bin` isn't on your `PATH`. `uv tool update-shell` fixes it.
+- **Anything else broken** — `pythinker-ai doctor` is the one-stop diagnostic. Paste its output in a GitHub issue if you need help.

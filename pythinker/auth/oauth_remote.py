@@ -108,7 +108,7 @@ def run_oauth_with_hint(
 ) -> _T:
     """Emit an SSH-awareness hint, then delegate to `login_fn`.
 
-    This is the unified entry point used by both ``pythinker provider login``
+    This is the unified entry point used by both ``pythinker-ai provider login``
     and the onboarding wizard.  ``login_fn`` must accept ``print_fn`` and
     ``prompt_fn`` keyword arguments (matching ``oauth_cli_kit``'s
     ``login_oauth_interactive`` signature as well as

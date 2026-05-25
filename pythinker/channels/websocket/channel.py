@@ -1055,7 +1055,7 @@ class WebSocketChannel(BaseChannel):
                 "WebSocket channel refuses to expose token_issue_path on a "
                 f"non-loopback host ({self.config.host!r}) without "
                 "token_issue_secret set. Generate a strong secret with "
-                "`pythinker token` and set channels.websocket.token_issue_secret."
+                "`pythinker-ai token` and set channels.websocket.token_issue_secret."
             )
 
         async def process_request(

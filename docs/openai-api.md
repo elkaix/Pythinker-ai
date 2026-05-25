@@ -4,7 +4,7 @@ pythinker can expose a minimal OpenAI-compatible endpoint for local integrations
 
 ```bash
 pip install "pythinker-ai[api]"
-pythinker serve
+pythinker-ai serve
 ```
 
 By default, the API binds to `127.0.0.1:8900`. You can change this in `config.json`.

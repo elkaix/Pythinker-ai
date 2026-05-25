@@ -190,7 +190,7 @@ _WIZARD_STEPS.extend([_step_banner, _step_intro])
 # then start_gateway which replaces the wizard process when accepted.
 
 
-# --- Step 2.5: Agent-id picker (only renders when ~/.pythinker/agents/ exists) ---
+# --- Step 2.5: Agent-id picker (only renders when ~/.pythinker-ai/agents/ exists) ---
 # Phase 2 PR-3. On a single-config install (no agents/ dir) the step short-
 # circuits to ``skip`` so the rest of the wizard is byte-identical to today.
 from pythinker.cli.onboard_steps.agent_id import _step_agent_id  # noqa: F401, E402
@@ -378,7 +378,7 @@ def _get_questionary():
     if questionary is None:
         raise RuntimeError(
             "Interactive onboarding requires the optional 'questionary' dependency. "
-            "Install project dependencies and rerun with 'pythinker onboard'."
+            "Install project dependencies and rerun with 'pythinker-ai onboard'."
         )
     return questionary
 
@@ -1247,7 +1247,7 @@ def _get_provider_info() -> dict[str, tuple[str, bool, bool, str]]:
     # _configure_provider routes them to the OAuth login flow instead of an
     # API-key prompt. Filtering them out hid the Codex / Copilot login paths
     # from users who only see the wizard — they had no way to discover that
-    # `pythinker provider login openai-codex` exists.
+    # `pythinker-ai provider login openai-codex` exists.
     return {
         spec.name: (
             spec.display_name or spec.name,
@@ -1268,7 +1268,7 @@ def _get_provider_names() -> dict[str, str]:
 def _run_oauth_login(spec) -> None:
     """Trigger the OAuth login flow for an `is_oauth=True` ProviderSpec.
 
-    Same logic as the `pythinker provider login <name>` CLI command, but
+    Same logic as the `pythinker-ai provider login <name>` CLI command, but
     callable from inside the wizard. Status is rendered through the clack
     timeline helpers so each event (✓ authenticated, ✗ failure, paste
     prompts) sits on the persistent ``│`` bar, keeping the diamond column
@@ -1377,7 +1377,7 @@ def _configure_provider(config: Config, provider_name: str) -> None:
 
     OAuth providers (openai-codex, github-copilot) bypass the API-key prompt
     entirely and dispatch to the OAuth login flow — same handlers that
-    `pythinker provider login <name>` uses, so the wizard and CLI surface
+    `pythinker-ai provider login <name>` uses, so the wizard and CLI surface
     the same auth experience.
     """
     from pythinker.providers.registry import PROVIDERS, signup_url_required
@@ -2224,7 +2224,7 @@ def _configure_web_search(config: Config) -> None:
 
 
 def required_headless_flags(cfg: Config | None) -> list[str]:
-    """Return the minimum flag set needed for ``pythinker onboard
+    """Return the minimum flag set needed for ``pythinker-ai onboard
     --non-interactive`` to complete without prompting, given the current
     state of ``cfg`` (or a fresh ``Config()`` when ``cfg`` is None).
 

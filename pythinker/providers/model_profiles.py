@@ -5,7 +5,7 @@ import re
 from dataclasses import dataclass
 
 from pythinker.providers.model_metadata import (
-    PYTHINKER_PROVIDER_PREFIXES,
+    PYTHINKER_AI_PROVIDER_PREFIXES,
     ModelMetadata,
     get_model_metadata,
 )
@@ -37,7 +37,7 @@ _STATIC = {
 def _extract_provider(model: str) -> tuple[str | None, str]:
     parts = model.split("/")
     provider: str | None = None
-    while parts and parts[0].replace("-", "_").lower() in PYTHINKER_PROVIDER_PREFIXES:
+    while parts and parts[0].replace("-", "_").lower() in PYTHINKER_AI_PROVIDER_PREFIXES:
         provider = parts.pop(0).replace("-", "_").lower()
     canonical = "/".join(parts) if parts else model
     return provider, canonical.lower()

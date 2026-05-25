@@ -21,7 +21,7 @@ def test_render_actionable_emits_what_why_how_in_one_panel():
         render_actionable,
         what="Could not write config",
         why="Wizard reached save step but FS refused",
-        how="Check perms on ~/.pythinker and retry",
+        how="Check perms on ~/.pythinker-ai and retry",
     )
     assert "Error" in out
     assert "What:" in out

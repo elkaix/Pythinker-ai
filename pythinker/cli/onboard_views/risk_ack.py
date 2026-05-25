@@ -26,7 +26,7 @@ def show_and_confirm(*, yes_security: bool, non_interactive: bool) -> bool:
         return True
 
     if non_interactive:
-        sys.stderr.write("pythinker onboard --non-interactive requires --yes-security\n")
+        sys.stderr.write("pythinker-ai onboard --non-interactive requires --yes-security\n")
         sys.exit(1)
 
     # Use a select-style Yes/No instead of clack.confirm so the prompt

@@ -10,7 +10,7 @@ the switch will succeed:
 
   ✓ ready          — credentials present (api_key or oauth token file)
   ⚠ needs setup    — credentials missing; we surface the signup_url and
-                     the exact `pythinker config set` command instead of
+                     the exact `pythinker-ai config set` command instead of
                      attempting the switch and hitting an obscure error
                      deep inside the provider factory
   · direct/local   — no auth required (custom or ollama / lm_studio)
@@ -55,11 +55,11 @@ def _provider_status(spec, config) -> tuple[str, str]:
         docs = getattr(spec, "docs_url", "") or ""
         parts: list[str] = [str(exc).strip()]
         if getattr(spec, "is_oauth", False):
-            parts.append(f"Run `pythinker auth login --provider {name}`")
+            parts.append(f"Run `pythinker-ai auth login --provider {name}`")
         else:
             parts.append(
-                f"Set providers.{name}.api_key in ~/.pythinker/config.json "
-                f"(or `pythinker config set providers.{name}.api_key <KEY>`)"
+                f"Set providers.{name}.api_key in ~/.pythinker-ai/config.json "
+                f"(or `pythinker-ai config set providers.{name}.api_key <KEY>`)"
             )
         if signup:
             parts.append(f"Sign up: {signup}")

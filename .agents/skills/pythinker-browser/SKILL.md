@@ -50,10 +50,10 @@ updating docs/templates that explain browser automation.
 - `cdp`: connects to an external Chromium DevTools endpoint. Use this for
   hardened Docker/noVNC deployments or when Chromium lifecycle must be isolated.
 - Sandbox errors in launch mode should recommend CDP mode first. Only mention
-  `PYTHINKER_BROWSER_NO_SANDBOX=1` as an explicit local escape hatch.
+  `PYTHINKER_AI_BROWSER_NO_SANDBOX=1` as an explicit local escape hatch.
 - Slow first browser action usually means Chromium provisioning. Check
   `provisionTimeoutS`, proxy variables, and `PLAYWRIGHT_DOWNLOAD_HOST`.
-- `PYTHINKER_BROWSER_HEADFUL=1` is for local headed debugging only.
+- `PYTHINKER_AI_BROWSER_HEADFUL=1` is for local headed debugging only.
 
 ## SSRF and State Debugging
 

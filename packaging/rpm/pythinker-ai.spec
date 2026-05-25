@@ -7,7 +7,7 @@
 # %{version} and %{rpm_arch} are passed via --define on the command line.
 
 %global pkgname     pythinker-ai
-%global appname     pythinker
+%global appname     pythinker-ai
 %global libdir      /usr/lib/pythinker
 
 # Skip auto-strip / auto-debuginfo for the frozen bundle (PyInstaller binaries
@@ -41,7 +41,7 @@ cp -a %{_builddir}/bundle/. %{buildroot}%{libdir}/
 
 cat >%{buildroot}%{_bindir}/%{appname} <<'LAUNCH'
 #!/bin/sh
-exec /usr/lib/pythinker/pythinker "$@"
+exec /usr/lib/pythinker/pythinker-ai "$@"
 LAUNCH
 chmod 0755 %{buildroot}%{_bindir}/%{appname}
 

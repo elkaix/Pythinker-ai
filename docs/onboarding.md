@@ -1,13 +1,13 @@
 # Onboarding
 
-`pythinker onboard` initializes `~/.pythinker/config.json`. It has three flows.
+`pythinker-ai onboard` initializes `~/.pythinker-ai/config.json`. It has three flows.
 
 ## Quickstart (default on first run)
 
 ```bash
-pythinker onboard
+pythinker-ai onboard
 # or:
-pythinker onboard --flow quickstart
+pythinker-ai onboard --flow quickstart
 ```
 
 Walks through: auth choice → credentials → preflight → done.
@@ -15,7 +15,7 @@ Walks through: auth choice → credentials → preflight → done.
 ## Manual (default when a config exists)
 
 ```bash
-pythinker onboard --flow manual
+pythinker-ai onboard --flow manual
 ```
 
 Full questionary menu: provider, channel, agent settings, gateway, tools.
@@ -24,25 +24,25 @@ Full questionary menu: provider, channel, agent settings, gateway, tools.
 
 ```bash
 # Plaintext key
-pythinker onboard --non-interactive \
+pythinker-ai onboard --non-interactive \
   --auth-choice openai-api-key \
   --openai-api-key "$OPENAI_API_KEY"
 
 # Env-var reference — writes "${OPENAI_API_KEY}" into config.json
 export OPENAI_API_KEY="sk-..."
-pythinker onboard --non-interactive \
+pythinker-ai onboard --non-interactive \
   --auth-choice openai-api-key \
   --secret-input-mode ref
 
 # Custom endpoint
-pythinker onboard --non-interactive \
+pythinker-ai onboard --non-interactive \
   --auth-choice custom-api-key \
   --custom-base-url "https://llm.example.com/v1" \
   --custom-model-id "foo-large" \
   --custom-api-key "$CUSTOM_API_KEY"
 
 # OAuth
-pythinker onboard --non-interactive --auth-choice openai-codex
+pythinker-ai onboard --non-interactive --auth-choice openai-codex
 ```
 
 ## Flags
@@ -54,4 +54,4 @@ pythinker onboard --non-interactive --auth-choice openai-codex
 - `--skip-preflight` — do not ping the model after saving.
 - `--accept-risk` — save config even when preflight fails.
 
-See `pythinker onboard --help` for per-provider key flags.
+See `pythinker-ai onboard --help` for per-provider key flags.

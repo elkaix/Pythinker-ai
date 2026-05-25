@@ -299,7 +299,7 @@ async def test_check_for_update_uses_cache_within_ttl(httpx_mock, isolated_cache
 
 
 async def test_check_for_update_disabled_via_env(isolated_cache, monkeypatch):
-    monkeypatch.setenv("PYTHINKER_NO_UPDATE_CHECK", "1")
+    monkeypatch.setenv("PYTHINKER_AI_NO_UPDATE_CHECK", "1")
     info = await check_for_update(force_refresh=True)
     assert info.checked_ok is False
     assert info.error_kind == "disabled"
@@ -419,11 +419,11 @@ def test_suggested_target_command_native_tarball_points_to_install_script():
 
 
 def test_no_auto_update_env_disables_startup_check(monkeypatch):
-    """PYTHINKER_CLI_NO_AUTO_UPDATE=1 short-circuits the banner."""
+    """PYTHINKER_AI_CLI_NO_AUTO_UPDATE=1 short-circuits the banner."""
     from pythinker.cli.updates import _updates_enabled
 
-    monkeypatch.setenv("PYTHINKER_CLI_NO_AUTO_UPDATE", "1")
-    monkeypatch.delenv("PYTHINKER_NO_UPDATE_CHECK", raising=False)
+    monkeypatch.setenv("PYTHINKER_AI_CLI_NO_AUTO_UPDATE", "1")
+    monkeypatch.delenv("PYTHINKER_AI_NO_UPDATE_CHECK", raising=False)
     assert _updates_enabled(None) is False
 
 

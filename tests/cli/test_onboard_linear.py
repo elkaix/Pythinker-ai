@@ -588,7 +588,7 @@ def test_step_summary_save_io_failure_renders_actionable_panel(tmp_path, monkeyp
 
 
 def test_print_required_flags_cli_short_circuits_with_zero_exit():
-    """``pythinker onboard --print-required-flags`` exits 0 after writing the
+    """``pythinker-ai onboard --print-required-flags`` exits 0 after writing the
     flag set to stdout. No wizard run, no save attempt."""
     from typer.testing import CliRunner
 
@@ -1019,7 +1019,7 @@ def test_step_provider_picker_non_interactive_skip():
 def test_build_provider_options_oauth_rows_carry_oauth_hint():
     """OAuth providers render with 'OAuth · …' in the hint column so the user
     can spot one-click flows in the picker without reading external docs.
-    Mirrors the pythinker provider-flow option.hint decoration."""
+    Mirrors the pythinker-ai provider-flow option.hint decoration."""
     from pythinker.cli.onboard import _build_provider_options
 
     options = _build_provider_options()
@@ -1921,7 +1921,7 @@ def test_step_start_gateway_no_skips_handoff(monkeypatch):
 
 
 def test_step_start_gateway_yes_replaces_process_with_gateway(monkeypatch):
-    """Picking 'yes' must hand control to ``pythinker gateway`` via os.execvp.
+    """Picking 'yes' must hand control to ``pythinker-ai gateway`` via os.execvp.
 
     Real os.execvp would never return; the patch makes it a no-op so the
     function falls through. What's pinned: the call happened, with the

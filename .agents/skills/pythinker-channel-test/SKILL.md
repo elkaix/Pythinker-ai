@@ -70,7 +70,7 @@ needs.
 | WhatsApp | `whatsapp.py` + `bridge/` | Baileys connection state machine; bridge is a thin Node relay (force-included into the wheel as `pythinker/bridge/`) |
 | MS Teams | `msteams.py` | JWT validation in `validate_jwt`; check token expiry |
 | WebSocket | `websocket.py` (~1637 LOC) | Signed media URL secret regenerates on restart — old links 401 by design. Image limits: `_MAX_IMAGES_PER_MESSAGE=4`, `_MAX_IMAGE_BYTES=8 MB`, MIME `{png,jpeg,webp,gif}` |
-| Email | `email.py` | SMTP vs IMAP creds in `~/.pythinker/credentials/`; MIME whitelist |
+| Email | `email.py` | SMTP vs IMAP creds in `~/.pythinker-ai/credentials/`; MIME whitelist |
 
 ## Outbound Dispatch
 

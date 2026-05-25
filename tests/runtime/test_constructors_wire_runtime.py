@@ -45,7 +45,7 @@ def test_pythinker_from_config_forwards_runtime_block(tmp_path):
 
 
 def test_serve_session_manager_honours_session_cache_max(tmp_path, monkeypatch):
-    """`pythinker serve` must build SessionManager with the configured cap.
+    """`pythinker-ai serve` must build SessionManager with the configured cap.
 
     Regression: `serve` and `gateway` constructed `SessionManager(workspace)`
     without `cache_max`, so AgentLoop's `session_cache_max` parameter never

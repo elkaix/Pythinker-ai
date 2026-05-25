@@ -4,7 +4,7 @@ import path from "node:path";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
-  const target = env.PYTHINKER_API_URL ?? "http://127.0.0.1:8765";
+  const target = env.PYTHINKER_AI_API_URL ?? "http://127.0.0.1:8765";
   const wsTarget = target.replace(/^http/, "ws");
 
   return {

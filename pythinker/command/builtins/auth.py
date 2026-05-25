@@ -1,6 +1,6 @@
 """Auth-related slash commands: ``/login`` and ``/logout``.
 
-Mirror the ``pythinker provider login`` and ``pythinker auth logout`` CLI
+Mirror the ``pythinker-ai provider login`` and ``pythinker-ai auth logout`` CLI
 subcommands so users can manage OAuth credentials from any chat surface
 (WebUI, Telegram, interactive CLI). The login flow itself is browser- /
 device-code-driven and cannot be completed inside a chat turn, so
@@ -127,14 +127,14 @@ async def cmd_login(ctx: CommandContext) -> OutboundMessage:
             body = (
                 f"{spec.label} is not an OAuth provider — it uses an API key.\n"
                 f"Set it in your config under providers.{spec.name}.api_key "
-                f"(or re-run `pythinker onboard`)."
+                f"(or re-run `pythinker-ai onboard`)."
             )
             return _outbound(msg, body)
         state, detail = _auth_state(spec)
         body = (
             f"{spec.label}: {state} — {detail}\n"
             f"\nRun on the host where pythinker is installed:\n"
-            f"  pythinker provider login {spec.name.replace('_', '-')}"
+            f"  pythinker-ai provider login {spec.name.replace('_', '-')}"
         )
         return _outbound(msg, body)
 
@@ -147,7 +147,7 @@ async def cmd_login(ctx: CommandContext) -> OutboundMessage:
         lines.append(f"  • {spec.label}: {state} — {detail}")
     lines.append("")
     lines.append("To (re-)authenticate, run on the pythinker host:")
-    lines.append(f"  pythinker provider login <provider>   ({_supported_names()})")
+    lines.append(f"  pythinker-ai provider login <provider>   ({_supported_names()})")
     return _outbound(msg, "\n".join(lines))
 
 
@@ -194,7 +194,7 @@ async def cmd_logout(ctx: CommandContext) -> OutboundMessage:
         return _outbound(msg, f"Could not delete {path}: {exc}")
     body = (
         f"✓ {spec.label} logged out.\n"
-        f"Re-auth with: pythinker provider login "
+        f"Re-auth with: pythinker-ai provider login "
         f"{spec.name.replace('_', '-')}"
     )
     return _outbound(msg, body)

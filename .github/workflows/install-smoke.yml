@@ -68,18 +68,18 @@ jobs:
           uv tool install --reinstall "$WHEEL"
           uv tool update-shell || true
 
-      - name: Verify pythinker --version
+      - name: Verify pythinker-ai --version
         shell: bash
         run: |
           export PATH="$(uv tool dir --bin):$PATH"
-          pythinker --version
+          pythinker-ai --version
 
-      - name: Run pythinker doctor (fresh install, no config)
+      - name: Run pythinker-ai doctor (fresh install, no config)
         shell: bash
         run: |
           export PATH="$(uv tool dir --bin):$PATH"
           set +e
-          pythinker doctor --non-interactive
+          pythinker-ai doctor --non-interactive
           code=$?
           set -e
           # Fresh install has no config — doctor should exit 1 (config missing).
@@ -90,17 +90,17 @@ jobs:
           fi
           echo "doctor (fresh) exit code: $code"
 
-      - name: Run pythinker onboard (non-interactive)
+      - name: Run pythinker-ai onboard (non-interactive)
         shell: bash
         run: |
           export PATH="$(uv tool dir --bin):$PATH"
-          pythinker onboard --non-interactive --flow quickstart --yes-security --skip-gateway
-      - name: Run pythinker doctor (post-config, realistic state)
+          pythinker-ai onboard --non-interactive --flow quickstart --yes-security --skip-gateway
+      - name: Run pythinker-ai doctor (post-config, realistic state)
         shell: bash
         run: |
           export PATH="$(uv tool dir --bin):$PATH"
           set +e
-          pythinker doctor --non-interactive
+          pythinker-ai doctor --non-interactive
           code=$?
           set -e
           # Post-config: default provider is openai-codex (OAuth); no token in CI
@@ -115,8 +115,8 @@ jobs:
         shell: bash
         run: |
           export PATH="$(uv tool dir --bin):$PATH"
-          pythinker --version
-          test -f "$HOME/.pythinker/config.json"             || { echo "config.json not created by onboard"; exit 1; }
+          pythinker-ai --version
+          test -f "$HOME/.pythinker-ai/config.json"             || { echo "config.json not created by onboard"; exit 1; }
 
   install-smoke-required:
     name: Install Smoke Required

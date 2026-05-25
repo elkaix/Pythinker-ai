@@ -1,10 +1,10 @@
 # Configuration
 
-Config file: `~/.pythinker/config.json`
+Config file: `~/.pythinker-ai/config.json`
 
 > [!NOTE]
 > If your config file is older than the current schema, you can refresh it without overwriting your existing values:
-> run `pythinker onboard`, then answer `N` when asked whether to overwrite the config.
+> run `pythinker-ai onboard`, then answer `N` when asked whether to overwrite the config.
 > pythinker will merge in missing default fields and keep your current settings.
 
 ## Environment Variables for Secrets
@@ -51,7 +51,7 @@ internet-facing admin console. If you expose the WebUI over a network, put it
 behind real authentication such as a reverse proxy, VPN, or SSO gateway.
 
 The WebUI channel is enabled by default on `127.0.0.1:8765`, so
-`pythinker gateway` serves the browser UI for the local machine without opening
+`pythinker-ai gateway` serves the browser UI for the local machine without opening
 an external network listener. Keep `channels.websocket.host` on loopback for
 local-only admin access. Binding it to a non-loopback address requires TLS or
 the explicit `channels.websocket.allowInsecureRemote=true` development opt-in.
@@ -72,7 +72,7 @@ The dashboard shows:
 ### Admin Dashboard Config Workbench
 
 The Admin Dashboard Config tab renders a service-aware Config Workbench backed
-by the same runtime config stored in `~/.pythinker/config.json`. Fields modeled
+by the same runtime config stored in `~/.pythinker-ai/config.json`. Fields modeled
 by Pythinker's Pydantic schema render as typed controls, dynamic/plugin-backed
 maps render as dynamic key/value editors, and secret-backed paths use a
 write-only replacement modal. Applying changes uses the existing admin config
@@ -85,7 +85,7 @@ new value; leaving a secret blank means “leave unchanged” in the UI.
 
 Config writes are schema-validated before saving. Pythinker creates a
 timestamped `config.json.bak.<timestamp>` backup next to the config file before
-each successful dashboard or CLI `pythinker config set/unset` write. Most
+each successful dashboard or CLI `pythinker-ai config set/unset` write. Most
 changes require a gateway/API restart; model/provider edits use the existing
 runtime hot-swap path where available, but the dashboard still labels config
 edits as restart-required unless explicitly proven hot-reloadable.
@@ -121,7 +121,7 @@ The Workbench also includes operational checks for local administrators:
 > [!TIP]
 > - **Voice transcription**: Voice messages (Telegram, WhatsApp) are automatically transcribed using Whisper. By default Groq is used (free tier). Set `"transcriptionProvider": "openai"` under `channels` to use OpenAI Whisper instead, and optionally set `"transcriptionLanguage": "en"` (or another ISO-639-1 code) for more accurate transcription. The API key is picked from the matching provider config. Transient transcription failures are retried; invalid credentials and other permanent errors fail fast.
 > - **MiniMax Coding Plan**: Exclusive discount links for the pythinker community: [Overseas](https://platform.minimax.io/subscribe/coding-plan?code=9txpdXw04g&source=link) · [Mainland China](https://platform.minimaxi.com/subscribe/token-plan?code=GILTJpMTqZ&source=link)
-> - **MiniMax wizard**: Run `pythinker onboard`, pick `[P] LLM Provider` → `MiniMax`. The wizard asks region (Global / Mainland China), opens the [token plan portal](https://platform.minimax.io/user-center/payment/token-plan) in your browser, and lets you pick **endpoint flavor** (`OpenAI-compatible` / `Anthropic-compatible` / **Both — recommended**) and **plan tier** (Standard → `MiniMax-M2.7` / Highspeed → `MiniMax-M2.7-highspeed`). Pick `Both` to wire `providers.minimax` *and* `providers.minimax_anthropic` with the same key.
+> - **MiniMax wizard**: Run `pythinker-ai onboard`, pick `[P] LLM Provider` → `MiniMax`. The wizard asks region (Global / Mainland China), opens the [token plan portal](https://platform.minimax.io/user-center/payment/token-plan) in your browser, and lets you pick **endpoint flavor** (`OpenAI-compatible` / `Anthropic-compatible` / **Both — recommended**) and **plan tier** (Standard → `MiniMax-M2.7` / Highspeed → `MiniMax-M2.7-highspeed`). Pick `Both` to wire `providers.minimax` *and* `providers.minimax_anthropic` with the same key.
 > - **MiniMax thinking modes**: `providers.minimax` supports thinking via `reasoningEffort` — pythinker injects `extra_body={"reasoning_split": true}` automatically (`pythinker/providers/openai_compat_provider.py:415`). `providers.minimax_anthropic` exposes **native Anthropic thinking blocks** (visible reasoning content in the response). Pick `Both` in the wizard to keep either mode reachable at runtime.
 > - **VolcEngine / BytePlus Coding Plan**: Use dedicated providers `volcengineCodingPlan` or `byteplusCodingPlan` instead of the pay-per-use `volcengine` / `byteplus` providers.
 > - **Zhipu Coding Plan**: If you're on Zhipu's coding plan, set `"apiBase": "https://open.bigmodel.cn/api/coding/paas/v4"` in your zhipu provider config.
@@ -157,8 +157,8 @@ The Workbench also includes operational checks for local administrators:
 | `skywork` | LLM (Skywork / APIFree gateway) | [apifree.ai](https://www.apifree.ai) |
 | `ovms` | LLM (local, OpenVINO Model Server) | [docs.openvino.ai](https://docs.openvino.ai/2026/model-server/ovms_docs_llm_quickstart.html) |
 | `vllm` | LLM (local, any OpenAI-compatible server) | — |
-| `openai_codex` | LLM (Codex, OAuth) | `pythinker provider login openai-codex` |
-| `github_copilot` | LLM (GitHub Copilot, OAuth) | `pythinker provider login github-copilot` |
+| `openai_codex` | LLM (Codex, OAuth) | `pythinker-ai provider login openai-codex` |
+| `github_copilot` | LLM (GitHub Copilot, OAuth) | `pythinker-ai provider login github-copilot` |
 | `qianfan` | LLM (Baidu Qianfan) | [cloud.baidu.com](https://cloud.baidu.com/doc/qianfan/s/Hmh4suq26) |
 
 <details>
@@ -195,14 +195,14 @@ environment names the credential.
 <summary><b>OpenAI Codex (OAuth)</b></summary>
 
 Codex uses OAuth instead of API keys. Requires a ChatGPT Plus or Pro account.
-No `providers.openaiCodex` block is needed in `config.json`; `pythinker provider login` stores the OAuth session outside config.
+No `providers.openaiCodex` block is needed in `config.json`; `pythinker-ai provider login` stores the OAuth session outside config.
 
 **1. Login:**
 ```bash
-pythinker provider login openai-codex
+pythinker-ai provider login openai-codex
 ```
 
-**2. Set model** (merge into `~/.pythinker/config.json`):
+**2. Set model** (merge into `~/.pythinker-ai/config.json`):
 ```json
 {
   "agents": {
@@ -215,13 +215,13 @@ pythinker provider login openai-codex
 
 **3. Chat:**
 ```bash
-pythinker agent -m "Hello!"
+pythinker-ai agent -m "Hello!"
 
 # Target a specific workspace/config locally
-pythinker agent -c ~/.pythinker-telegram/config.json -m "Hello!"
+pythinker-ai agent -c ~/.pythinker-telegram/config.json -m "Hello!"
 
 # One-off workspace override on top of that config
-pythinker agent -c ~/.pythinker-telegram/config.json -w /tmp/pythinker-telegram-test -m "Hello!"
+pythinker-ai agent -c ~/.pythinker-telegram/config.json -w /tmp/pythinker-telegram-test -m "Hello!"
 ```
 
 > Docker users: use `docker run -it` for interactive OAuth login.
@@ -233,14 +233,14 @@ pythinker agent -c ~/.pythinker-telegram/config.json -w /tmp/pythinker-telegram-
 <summary><b>GitHub Copilot (OAuth)</b></summary>
 
 GitHub Copilot uses OAuth instead of API keys. Requires a [GitHub account with a plan](https://github.com/features/copilot/plans) configured.
-No `providers.githubCopilot` block is needed in `config.json`; `pythinker provider login` stores the OAuth session outside config.
+No `providers.githubCopilot` block is needed in `config.json`; `pythinker-ai provider login` stores the OAuth session outside config.
 
 **1. Login:**
 ```bash
-pythinker provider login github-copilot
+pythinker-ai provider login github-copilot
 ```
 
-**2. Set model** (merge into `~/.pythinker/config.json`):
+**2. Set model** (merge into `~/.pythinker-ai/config.json`):
 ```json
 {
   "agents": {
@@ -253,13 +253,13 @@ pythinker provider login github-copilot
 
 **3. Chat:**
 ```bash
-pythinker agent -m "Hello!"
+pythinker-ai agent -m "Hello!"
 
 # Target a specific workspace/config locally
-pythinker agent -c ~/.pythinker-telegram/config.json -m "Hello!"
+pythinker-ai agent -c ~/.pythinker-telegram/config.json -m "Hello!"
 
 # One-off workspace override on top of that config
-pythinker agent -c ~/.pythinker-telegram/config.json -w /tmp/pythinker-telegram-test -m "Hello!"
+pythinker-ai agent -c ~/.pythinker-telegram/config.json -w /tmp/pythinker-telegram-test -m "Hello!"
 ```
 
 > Docker users: use `docker run -it` for interactive OAuth login.
@@ -325,7 +325,7 @@ Run a local model with Ollama, then add to config:
 ollama run llama3.2
 ```
 
-**2. Add to config** (partial — merge into `~/.pythinker/config.json`):
+**2. Add to config** (partial — merge into `~/.pythinker-ai/config.json`):
 ```json
 {
   "providers": {
@@ -357,7 +357,7 @@ ollama run llama3.2
 - Load a model (e.g., Llama, Mistral, Qwen)
 - Click "Start Server" (default port: 1234)
 
-**2. Add to config** (partial — merge into `~/.pythinker/config.json`):
+**2. Add to config** (partial — merge into `~/.pythinker-ai/config.json`):
 ```json
 {
   "providers": {
@@ -433,7 +433,7 @@ docker run -d \
   --target_device GPU
 ```
 
-**3. Add to config** (partial — merge into `~/.pythinker/config.json`):
+**3. Add to config** (partial — merge into `~/.pythinker-ai/config.json`):
 
 ```json
 {
@@ -465,7 +465,7 @@ Run your own model with vLLM or any OpenAI-compatible server, then add to config
 vllm serve meta-llama/Llama-3.1-8B-Instruct --port 8000
 ```
 
-**2. Add to config** (partial — merge into `~/.pythinker/config.json`):
+**2. Add to config** (partial — merge into `~/.pythinker-ai/config.json`):
 
 *Provider (set API key to null for local servers):*
 ```json
@@ -505,7 +505,7 @@ ProviderSpec(
     name="myprovider",                   # config field name
     keywords=("myprovider", "mymodel"),  # model-name keywords for auto-matching
     env_key="MYPROVIDER_API_KEY",        # env var name
-    display_name="My Provider",          # shown in `pythinker status`
+    display_name="My Provider",          # shown in `pythinker-ai status`
     default_api_base="https://api.myprovider.com/v1",  # OpenAI-compatible endpoint
 )
 ```
@@ -518,7 +518,7 @@ class ProvidersConfig(BaseModel):
     myprovider: ProviderConfig = ProviderConfig()
 ```
 
-That's it! Environment variables, model routing, config matching, and `pythinker status` display will all work automatically.
+That's it! Environment variables, model routing, config matching, and `pythinker-ai status` display will all work automatically.
 
 **Common `ProviderSpec` options:**
 
@@ -537,7 +537,7 @@ That's it! Environment variables, model routing, config matching, and `pythinker
 
 ## Channel Settings
 
-Global settings that apply to all channels. Configure under the `channels` section in `~/.pythinker/config.json`:
+Global settings that apply to all channels. Configure under the `channels` section in `~/.pythinker-ai/config.json`:
 
 ```json
 {
@@ -588,7 +588,7 @@ When a channel `send()` raises, pythinker retries at the channel-manager layer. 
 > { "tools": { "web": { "proxy": "http://127.0.0.1:7890" } } }
 > ```
 
-pythinker supports multiple web search providers. Configure in `~/.pythinker/config.json` under `tools.web.search`.
+pythinker supports multiple web search providers. Configure in `~/.pythinker-ai/config.json` under `tools.web.search`.
 
 By default, web tools are enabled and web search uses `duckduckgo`, so search works out of the box without an API key.
 
@@ -721,18 +721,18 @@ connect to an externally managed Chromium service such as the Docker
 Environment variables (Pydantic-Settings, double underscore for nesting):
 
 ```bash
-PYTHINKER_TOOLS__WEB__BROWSER__ENABLE=true
-PYTHINKER_TOOLS__WEB__BROWSER__MODE=launch
-PYTHINKER_TOOLS__WEB__BROWSER__CDP_URL=http://pythinker-browser:9222
-PYTHINKER_TOOLS__WEB__BROWSER__DEFAULT_TIMEOUT_MS=15000
+PYTHINKER_AI_TOOLS__WEB__BROWSER__ENABLE=true
+PYTHINKER_AI_TOOLS__WEB__BROWSER__MODE=launch
+PYTHINKER_AI_TOOLS__WEB__BROWSER__CDP_URL=http://pythinker-browser:9222
+PYTHINKER_AI_TOOLS__WEB__BROWSER__DEFAULT_TIMEOUT_MS=15000
 ```
 
 Launch-mode debug/escape-hatch environment variables:
 
-- `PYTHINKER_BROWSER_HEADFUL=1` runs managed Chromium headed for local debugging.
-- `PYTHINKER_BROWSER_NO_SANDBOX=1` adds `--no-sandbox` only when you explicitly accept that trade-off. Prefer `mode="cdp"` with an isolated browser service for hardened containers.
+- `PYTHINKER_AI_BROWSER_HEADFUL=1` runs managed Chromium headed for local debugging.
+- `PYTHINKER_AI_BROWSER_NO_SANDBOX=1` adds `--no-sandbox` only when you explicitly accept that trade-off. Prefer `mode="cdp"` with an isolated browser service for hardened containers.
 
-Run `pythinker doctor` to verify browser configuration. If Playwright Chromium
+Run `pythinker-ai doctor` to verify browser configuration. If Playwright Chromium
 is missing and auto-provisioning is disabled or cannot reach the download host,
 run:
 
@@ -819,7 +819,7 @@ Use `enabledTools` to register only a subset of tools from an MCP server:
 
 MCP tools are automatically discovered and registered on startup. The LLM can use them alongside built-in tools — no extra configuration needed.
 
-In `pythinker tui`, `/mcp` refreshes this section from disk before showing the
+In `pythinker-ai tui`, `/mcp` refreshes this section from disk before showing the
 overlay. `/mcp reconnect` closes existing MCP sessions, unregisters old MCP
 capabilities, and reconnects from the current `tools.mcpServers` config so
 server removals, credential rotations, and same-name config edits take effect
@@ -963,7 +963,7 @@ The `agents.defaults` block governs the agent's runtime parameters. The most com
 
 | Key (disk, camelCase) | Python (snake_case) | Default | Description |
 |---|---|---|---|
-| `workspace` | `workspace` | `~/.pythinker/workspace` | Filesystem root for tool I/O and session storage. |
+| `workspace` | `workspace` | `~/.pythinker-ai/workspace` | Filesystem root for tool I/O and session storage. |
 | `model` | `model` | `openai-codex/gpt-5.5` | Active model id, prefixed with the provider name. |
 | `alternateModels` | `alternate_models` | `[]` | Same-provider model ids surfaced in the WebUI model-switcher dropdown. The active `model` should not appear here — it's added implicitly. |
 | `provider` | `provider` | `auto` | Provider key (e.g. `anthropic`, `openrouter`) or `auto` to derive from the `model` prefix. |
@@ -971,7 +971,7 @@ The `agents.defaults` block governs the agent's runtime parameters. The most com
 | `contextWindowTokens` | `context_window_tokens` | *(auto)* | Soft prompt-budget used by the consolidator and the runner's `_snip_history`. When unset, derived from the model profile (`gpt-5.5` → 272 000 on the Codex OAuth profile, `gpt-5.4` → 128 000, Claude 4.x → ≥200 000). Set explicitly only to lower the cap below what the model supports; values above the provider cap are clamped down. |
 | `temperature` | `temperature` | `0.1` | Sampling temperature. Some providers override this internally (e.g. Moonshot's reasoning models force `1.0`). |
 | `maxToolIterations` | `max_tool_iterations` | `200` | Hard ceiling on per-turn tool loop iterations. |
-| `maxToolResultChars` | `max_tool_result_chars` | `16000` | Per-tool-result truncation budget; spillovers go to `.pythinker/tool-results/`. |
+| `maxToolResultChars` | `max_tool_result_chars` | `16000` | Per-tool-result truncation budget; spillovers go to `.pythinker-ai/tool-results/`. |
 | `reasoningEffort` | `reasoning_effort` | `null` | One of `minimal` / `low` / `medium` / `high` / `xhigh` — enables LLM thinking mode where supported. |
 | `timezone` | `timezone` | `UTC` | IANA timezone (see [Timezone](#timezone) below). |
 | `unifiedSession` | `unified_session` | `false` | Share one session across all channels (see [Unified Session](#unified-session)). |
@@ -1028,11 +1028,11 @@ Runtime startup stays offline by default. Maintainers refresh the checked-in met
 
 | Key (disk, camelCase) | Python (snake_case) | Default | Description |
 |---|---|---|---|
-| `level` | `level` | `INFO` | Persistent default for the [loguru](https://loguru.readthedocs.io/) sink. One of `TRACE`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. The CLI's `--verbose` / `--quiet` flags and the `PYTHINKER_LOG_LEVEL` environment variable override this at runtime. Without an explicit value, loguru's default sink fires at DEBUG and floods the gateway's stdout with internal lifecycle events on every channel handshake. |
+| `level` | `level` | `INFO` | Persistent default for the [loguru](https://loguru.readthedocs.io/) sink. One of `TRACE`, `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. The CLI's `--verbose` / `--quiet` flags and the `PYTHINKER_AI_LOG_LEVEL` environment variable override this at runtime. Without an explicit value, loguru's default sink fires at DEBUG and floods the gateway's stdout with internal lifecycle events on every channel handshake. |
 
 ## Updates
 
-Self-update behavior for `pythinker update` / `pythinker upgrade` and the
+Self-update behavior for `pythinker-ai update` / `pythinker-ai upgrade` and the
 periodic update banner shown by the CLI.
 
 ```json
@@ -1049,17 +1049,17 @@ periodic update banner shown by the CLI.
 
 | Key (disk, camelCase) | Python (snake_case) | Default | Description |
 |---|---|---|---|
-| `check` | `check` | `true` | Periodically poll PyPI for a newer release. Set to `false` to disable all update checks (also silences `pythinker update`'s implicit pre-flight). |
+| `check` | `check` | `true` | Periodically poll PyPI for a newer release. Set to `false` to disable all update checks (also silences `pythinker-ai update`'s implicit pre-flight). |
 | `notify` | `notify` | `true` | When a newer release is found, print a one-line update banner at CLI startup. Independent of `check` only in that `notify=false` keeps the check itself but suppresses the banner. |
 | `auto` | `auto` | `"off"` | Auto-upgrade policy. `"off"` = no automatic install (default; only the banner appears). `"patch"` = automatically install patch-level releases (no minor/major bumps). |
-| `checkIntervalH` | `check_interval_h` | `24` | Hours between automatic checks. The check is rate-limited via `~/.pythinker/update/` so multiple `pythinker` invocations don't hammer PyPI. |
-| `prereleases` | `prereleases` | `false` | Include pre-releases when picking the latest version. The `--prerelease` flag on `pythinker update` / `pythinker upgrade` overrides this for one run. |
+| `checkIntervalH` | `check_interval_h` | `24` | Hours between automatic checks. The check is rate-limited via `~/.pythinker-ai/update/` so multiple `pythinker` invocations don't hammer PyPI. |
+| `prereleases` | `prereleases` | `false` | Include pre-releases when picking the latest version. The `--prerelease` flag on `pythinker-ai update` / `pythinker-ai upgrade` overrides this for one run. |
 
 ## CLI Settings
 
 ### `cli.tui.theme`
 
-Default TUI theme. Used when launching `pythinker tui` without
+Default TUI theme. Used when launching `pythinker-ai tui` without
 `--theme`.
 
 ```json

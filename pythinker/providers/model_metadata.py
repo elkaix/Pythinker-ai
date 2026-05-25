@@ -45,7 +45,7 @@ class ModelMetadata:
     long_context_output_multiplier: float | None = None
     is_alias: bool = False
 
-PYTHINKER_PROVIDER_PREFIXES = frozenset({"openai", "openai_codex", "openai-codex", "azure_openai", "azure-openai", "anthropic", "github_copilot", "github-copilot", "gemini", "openrouter", "aihubmix", "litellm", "vercel_ai_gateway", "deepseek", "zhipu", "dashscope", "moonshot", "minimax", "minimax_anthropic", "mistral", "stepfun", "xiaomi_mimo", "vllm", "ollama", "lm_studio", "ovms", "groq", "qianfan", "xai", "cerebras", "together", "fireworks", "huggingface", "siliconflow", "volcengine", "byteplus", "custom"})
+PYTHINKER_AI_PROVIDER_PREFIXES = frozenset({"openai", "openai_codex", "openai-codex", "azure_openai", "azure-openai", "anthropic", "github_copilot", "github-copilot", "gemini", "openrouter", "aihubmix", "litellm", "vercel_ai_gateway", "deepseek", "zhipu", "dashscope", "moonshot", "minimax", "minimax_anthropic", "mistral", "stepfun", "xiaomi_mimo", "vllm", "ollama", "lm_studio", "ovms", "groq", "qianfan", "xai", "cerebras", "together", "fireworks", "huggingface", "siliconflow", "volcengine", "byteplus", "custom"})
 def _metadata_from_row(row: dict[str, Any], *, alias: bool = False) -> ModelMetadata:
     data = dict(row)
     data["aliases"] = tuple(data.get("aliases") or ())
@@ -71,7 +71,7 @@ def _candidate_keys(model: str) -> list[tuple[str | None, str]]:
             candidates.append((None, prefix))
             continue
         normalized = prefix.replace("-", "_").lower()
-        if normalized in PYTHINKER_PROVIDER_PREFIXES:
+        if normalized in PYTHINKER_AI_PROVIDER_PREFIXES:
             candidates.append((normalized, rest))
         candidates.append((prefix.lower(), rest))
     candidates.append((None, parts[-1]))

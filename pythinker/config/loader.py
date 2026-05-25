@@ -28,11 +28,11 @@ def get_config_path() -> Path:
     Resolution order:
       1. Explicit override set via ``set_config_path()`` (used by ``--config`` /
          tests).
-      2. The current agent's config (``~/.pythinker/agents/<id>/config.json``)
-         when ``$PYTHINKER_AGENT_ID`` or the ``current-agent`` marker file
+      2. The current agent's config (``~/.pythinker-ai/agents/<id>/config.json``)
+         when ``$PYTHINKER_AI_AGENT_ID`` or the ``current-agent`` marker file
          resolves to an agent dir that exists. Falls through to (3) when the
          agent dir is absent so single-config installs keep working.
-      3. Legacy single-config path ``~/.pythinker/config.json``.
+      3. Legacy single-config path ``~/.pythinker-ai/config.json``.
     """
     if _current_config_path:
         return _current_config_path

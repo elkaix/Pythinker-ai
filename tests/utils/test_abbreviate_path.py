@@ -61,7 +61,7 @@ class TestAbbreviatePathWindows:
 
     def test_windows_home(self):
         home = os.path.expanduser("~")
-        path = os.path.join(home, ".pythinker", "workspace", "log.txt")
+        path = os.path.join(home, ".pythinker-ai", "workspace", "log.txt")
         result = abbreviate_path(path)
         assert result.startswith("~/")
         assert "log.txt" in result

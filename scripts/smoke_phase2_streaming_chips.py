@@ -17,7 +17,7 @@ Usage::
 
     uv run python scripts/smoke_phase2_streaming_chips.py
 
-Requires the local pythinker config to have a working provider (the script
+Requires the local pythinker-ai config to have a working provider (the script
 uses whatever ``agents.defaults`` resolves to). Reads no secrets; writes
 events to stdout only. Safe to run repeatedly.
 """
@@ -57,7 +57,7 @@ PROMPT = (
 
 async def main() -> int:
     config = load_config()
-    override = os.environ.get("PYTHINKER_SMOKE_MODEL")
+    override = os.environ.get("PYTHINKER_AI_SMOKE_MODEL")
     if override:
         config.agents.defaults.model = override
         # Drop any preset that would shadow the override.

@@ -63,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
           # Source-only checkouts read this fallback; drift makes
-          # `pythinker --version` lie until install. The local
+          # `pythinker-ai --version` lie until install. The local
           # `pythinker release check` runs the same gate.
           FALLBACK=$(python -c "import re,sys;m=re.search(r'_read_pyproject_version\(\)\s*or\s*\"([^\"]+)\"', open('pythinker/__init__.py').read()); print(m.group(1) if m else '')")
           if [ -z "$FALLBACK" ]; then
@@ -212,22 +212,22 @@ jobs:
           uv tool install --reinstall "pythinker-ai==${PACKAGE_VERSION}"
           uv tool update-shell || true
 
-      - name: Verify pythinker --version
+      - name: Verify pythinker-ai --version
         shell: bash
         env:
           PACKAGE_VERSION: ${{ needs.build.outputs.package_version }}
         run: |
           export PATH="$(uv tool dir --bin):$PATH"
-          OUT=$(pythinker --version)
+          OUT=$(pythinker-ai --version)
           echo "$OUT"
           echo "$OUT" | grep -F "${PACKAGE_VERSION}"
 
-      - name: Run pythinker doctor (post-install, no config)
+      - name: Run pythinker-ai doctor (post-install, no config)
         shell: bash
         run: |
           export PATH="$(uv tool dir --bin):$PATH"
           set +e
-          pythinker doctor --non-interactive
+          pythinker-ai doctor --non-interactive
           code=$?
           set -e
           # Fresh install with no config: doctor should exit 0/1/2 but never crash.

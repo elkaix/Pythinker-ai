@@ -58,7 +58,7 @@ from pythinker.utils.workspace import (
 # ---------------------------------------------------------------------------
 
 _TOOL_RESULT_PREVIEW_CHARS = 1200
-_TOOL_RESULTS_DIR = ".pythinker/tool-results"
+_TOOL_RESULTS_DIR = ".pythinker-ai/tool-results"
 _TOOL_RESULT_RETENTION_SECS = 7 * 24 * 60 * 60
 _TOOL_RESULT_MAX_BUCKETS = 32
 

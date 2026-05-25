@@ -1,6 +1,6 @@
 """Resolution-order tests for ``pythinker.utils.log.configure_logging``.
 
-Pins the precedence: explicit ``level`` > ``PYTHINKER_LOG_LEVEL`` env >
+Pins the precedence: explicit ``level`` > ``PYTHINKER_AI_LOG_LEVEL`` env >
 ``Config.logging.level`` > ``"INFO"`` baseline. Without these tests the
 Logging schema field is easy to silently bypass when callers forget to
 pass ``config=`` to ``configure_logging``.
@@ -27,26 +27,26 @@ def _restore_loguru_after_test():
 
 
 def test_default_is_info_when_nothing_set(monkeypatch):
-    monkeypatch.delenv("PYTHINKER_LOG_LEVEL", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_LOG_LEVEL", raising=False)
     assert configure_logging() == "INFO"
 
 
 def test_config_level_used_when_no_cli_or_env(monkeypatch):
-    monkeypatch.delenv("PYTHINKER_LOG_LEVEL", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_LOG_LEVEL", raising=False)
     cfg = Config()
     cfg.logging.level = "WARNING"
     assert configure_logging(config=cfg) == "WARNING"
 
 
 def test_env_var_beats_config(monkeypatch):
-    monkeypatch.setenv("PYTHINKER_LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("PYTHINKER_AI_LOG_LEVEL", "DEBUG")
     cfg = Config()
     cfg.logging.level = "WARNING"
     assert configure_logging(config=cfg) == "DEBUG"
 
 
 def test_explicit_level_beats_env_and_config(monkeypatch):
-    monkeypatch.setenv("PYTHINKER_LOG_LEVEL", "DEBUG")
+    monkeypatch.setenv("PYTHINKER_AI_LOG_LEVEL", "DEBUG")
     cfg = Config()
     cfg.logging.level = "WARNING"
     assert configure_logging(level="ERROR", config=cfg) == "ERROR"
@@ -54,7 +54,7 @@ def test_explicit_level_beats_env_and_config(monkeypatch):
 
 def test_invalid_level_falls_through_to_next_source(monkeypatch):
     """An unknown level (typo, etc.) is ignored, not crashed on."""
-    monkeypatch.setenv("PYTHINKER_LOG_LEVEL", "LOUD")
+    monkeypatch.setenv("PYTHINKER_AI_LOG_LEVEL", "LOUD")
     cfg = Config()
     cfg.logging.level = "WARNING"
     # CLI explicit "WHISPER" (invalid) → env "LOUD" (invalid) → config "WARNING".
@@ -62,13 +62,13 @@ def test_invalid_level_falls_through_to_next_source(monkeypatch):
 
 
 def test_lowercase_input_is_normalized(monkeypatch):
-    monkeypatch.delenv("PYTHINKER_LOG_LEVEL", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_LOG_LEVEL", raising=False)
     assert configure_logging(level="debug") == "DEBUG"
 
 
 def test_info_level_actually_filters_debug(monkeypatch):
     """End-to-end: a DEBUG call must not reach the sink at INFO level."""
-    monkeypatch.delenv("PYTHINKER_LOG_LEVEL", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_LOG_LEVEL", raising=False)
     sink = StringIO()
     logger.remove()
     configure_logging(level="INFO")
@@ -84,7 +84,7 @@ def test_info_level_actually_filters_debug(monkeypatch):
 
 def test_called_idempotent_no_sink_leak(monkeypatch):
     """Calling twice should leave exactly one sink — verified by counting writes."""
-    monkeypatch.delenv("PYTHINKER_LOG_LEVEL", raising=False)
+    monkeypatch.delenv("PYTHINKER_AI_LOG_LEVEL", raising=False)
     sink = StringIO()
     configure_logging(level="INFO")
     configure_logging(level="INFO")
@@ -98,8 +98,8 @@ def test_called_idempotent_no_sink_leak(monkeypatch):
 
 
 def test_unset_env_str_treated_as_none(monkeypatch):
-    """Empty PYTHINKER_LOG_LEVEL is treated as if unset."""
-    monkeypatch.setenv("PYTHINKER_LOG_LEVEL", "")
+    """Empty PYTHINKER_AI_LOG_LEVEL is treated as if unset."""
+    monkeypatch.setenv("PYTHINKER_AI_LOG_LEVEL", "")
     cfg = Config()
     cfg.logging.level = "ERROR"
     assert configure_logging(config=cfg) == "ERROR"

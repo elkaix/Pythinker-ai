@@ -1,4 +1,4 @@
-"""`pythinker provider login <name>` — OAuth subcommand for codex + copilot.
+"""`pythinker-ai provider login <name>` — OAuth subcommand for codex + copilot.
 
 The wizard's `[P] LLM Provider` picker filters OAuth providers because
 they don't have an API key to prompt for. Without `provider login`,

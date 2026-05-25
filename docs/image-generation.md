@@ -2,7 +2,7 @@
 
 Pythinker can generate and edit images through the `generate_image` tool. The agent calls the tool, persistent artifacts are written under the media directory, and the LLM delivers the result by calling the `message` tool with the artifact paths in its `media` parameter — uniform across streaming and non-streaming channels.
 
-The feature is disabled by default. Enable it in `~/.pythinker/config.json`, configure a supported image provider, then restart the gateway.
+The feature is disabled by default. Enable it in `~/.pythinker-ai/config.json`, configure a supported image provider, then restart the gateway.
 
 > [!NOTE]
 > The Pythinker WebUI does not currently expose a dedicated "Image Generation" composer toggle. Image generation is invoked through the LLM tool call; finished images are delivered as standard `message` media attachments. A WebUI composer affordance is tracked for a future release.
@@ -26,7 +26,7 @@ The feature is disabled by default. Enable it in `~/.pythinker/config.json`, con
 }
 ```
 
-See [Provider Notes](#provider-notes) for AIHubMix, MiniMax, Gemini, and StepFun configuration examples.
+See [Provider Notes](#provider-notes) for OpenAI, OpenAI Codex, AIHubMix, MiniMax, Gemini, Ollama, and StepFun configuration examples.
 
 > [!TIP]
 > Prefer environment variables for API keys. pythinker resolves `${VAR_NAME}` values from the environment at startup.
@@ -49,7 +49,7 @@ The WebUI hides provider storage details from the user. The agent sees the saved
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `tools.imageGeneration.enabled` | boolean | `false` | Register the `generate_image` tool |
-| `tools.imageGeneration.provider` | string | `"openrouter"` | Image provider name. Supported values: `openrouter`, `aihubmix`, `minimax`, `gemini`, `stepfun` |
+| `tools.imageGeneration.provider` | string | `"openrouter"` | Image provider name. Supported values: `openrouter`, `openai`, `openai_codex`, `aihubmix`, `minimax`, `gemini`, `ollama`, `stepfun` |
 | `tools.imageGeneration.model` | string | `"openai/gpt-5.4-image-2"` | Provider model name |
 | `tools.imageGeneration.defaultAspectRatio` | string | `"1:1"` | Default ratio when the prompt/tool call does not specify one |
 | `tools.imageGeneration.defaultImageSize` | string | `"1K"` | Default size hint, for example `1K`, `2K`, `4K`, or `1024x1024` |
@@ -86,6 +86,48 @@ OpenRouter uses a chat-completions style image response. Configure:
 ```
 
 Use a model that supports image generation and image editing if you want reference-image edits.
+
+### OpenAI
+
+The `openai` provider calls the standalone OpenAI Images API (`/v1/images/generations`) with an API key. It supports DALL-E and `gpt-image-*` models. Sizes are clamped to those each model family accepts; an unsupported `defaultImageSize` is ignored with a warning and the aspect-ratio default is used instead.
+
+```json
+{
+  "providers": {
+    "openai": {
+      "apiKey": "${OPENAI_API_KEY}"
+    }
+  },
+  "tools": {
+    "imageGeneration": {
+      "enabled": true,
+      "provider": "openai",
+      "model": "gpt-image-1",
+      "defaultAspectRatio": "16:9"
+    }
+  }
+}
+```
+
+Reference images are not supported by this integration.
+
+### OpenAI Codex
+
+The `openai_codex` provider generates images through the Codex Responses API using your Codex subscription OAuth token (the same mechanism ChatGPT uses internally). No API key is required — sign in first with `pythinker-ai provider login openai-codex`.
+
+```json
+{
+  "tools": {
+    "imageGeneration": {
+      "enabled": true,
+      "provider": "openai_codex",
+      "model": "gpt-5.4"
+    }
+  }
+}
+```
+
+Reference images are not supported by this integration.
 
 ### AIHubMix
 
@@ -171,6 +213,31 @@ For reference-image edits, use a Gemini Flash image model:
 
 Imagen 4 supports the aspect ratios `1:1`, `9:16`, `16:9`, `3:4`, and `4:3`. Unsupported ratios are ignored and the model uses its default. The `defaultImageSize` setting has no effect on Gemini models; sizing is controlled by `defaultAspectRatio` only. Reference images passed with an Imagen model are ignored (with a warning logged).
 
+### Ollama
+
+Ollama's experimental native image generation API works with local servers and hosted ollama.com models. Local access at `http://localhost:11434/api` does not require an API key; set `providers.ollama.apiKey` only when targeting `https://ollama.com/api`.
+
+```json
+{
+  "providers": {
+    "ollama": {
+      "apiBase": "http://localhost:11434/api"
+    }
+  },
+  "tools": {
+    "imageGeneration": {
+      "enabled": true,
+      "provider": "ollama",
+      "model": "x/z-image-turbo",
+      "defaultAspectRatio": "16:9",
+      "defaultImageSize": "2K"
+    }
+  }
+}
+```
+
+Ollama maps `defaultAspectRatio` and `defaultImageSize` to native `width` and `height` values. Reference images are not supported by this integration.
+
 ### StepFun
 
 StepFun's `step-image-edit-2` model supports text-to-image generation. The `step-1x-medium` variant additionally supports **style-reference** image edits, where a reference image guides the visual style of the output.
@@ -232,8 +299,8 @@ The default size is `1024x1024`. To request a specific size that is not in the t
 Generated images are stored under the active pythinker instance's media directory:
 
 ```text
-~/.pythinker/media/generated/YYYY-MM-DD/img_<id>.<ext>
-~/.pythinker/media/generated/YYYY-MM-DD/img_<id>.json
+~/.pythinker-ai/media/generated/YYYY-MM-DD/img_<id>.<ext>
+~/.pythinker-ai/media/generated/YYYY-MM-DD/img_<id>.json
 ```
 
 For non-default config locations, the media directory is relative to the active config file's directory.
@@ -281,7 +348,7 @@ Use the reference image. Keep the same robot and composition, change the palette
 |---------|-------|
 | `generate_image` is not available | Set `tools.imageGeneration.enabled` to `true` and restart the gateway |
 | Missing API key error | Configure `providers.<provider>.apiKey`; if using `${VAR_NAME}`, confirm the environment variable is visible to the gateway process |
-| `unsupported image generation provider` | Use `openrouter`, `aihubmix`, `minimax`, `gemini`, or `stepfun` |
+| `unsupported image generation provider` | Use `openrouter`, `openai`, `openai_codex`, `aihubmix`, `minimax`, `gemini`, `ollama`, or `stepfun` |
 | AIHubMix says `Incorrect model ID` | Use `model: "gpt-image-2-free"`; pythinker expands it to the required `openai/gpt-image-2-free` model path internally |
 | Generation times out | Try a smaller/default image size, set AIHubMix `extraBody.quality` to `"low"`, or retry later |
 | Reference image rejected | Reference image paths must be inside the workspace or pythinker media directory and must be valid image files |

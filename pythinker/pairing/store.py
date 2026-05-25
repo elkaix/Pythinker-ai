@@ -1,6 +1,6 @@
 """Pairing store for DM sender approval.
 
-Persistent storage at ``~/.pythinker/pairing.json`` keeps approved senders
+Persistent storage at ``~/.pythinker-ai/pairing.json`` keeps approved senders
 and pending pairing codes per channel.  The store is designed for
 private-assistant scale: small JSON file, simple locking, no external DB.
 """

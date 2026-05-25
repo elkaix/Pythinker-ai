@@ -34,7 +34,7 @@ def _check_gateway_port_free(host: str, port: int) -> tuple[str, str]:
 def _step_post_save_health(ctx: _WizardContext) -> StepResult:
     """Step 15 — green/yellow/red health check on the just-saved config.
 
-    Inlines the relevant subset of ``pythinker doctor`` so the wizard ends
+    Inlines the relevant subset of ``pythinker-ai doctor`` so the wizard ends
     on a confidence-building summary rather than dropping the user back at
     the shell.
 
@@ -93,10 +93,10 @@ def _step_post_save_health(ctx: _WizardContext) -> StepResult:
     clack.note(
         "Ready to launch",
         [
-            "pythinker tui       full-screen chat",
-            "pythinker agent     terminal chat / one-shot prompts",
-            "pythinker gateway   API + WebUI + chat channels",
-            "pythinker doctor    re-run these checks later",
+            "pythinker-ai tui       full-screen chat",
+            "pythinker-ai agent     terminal chat / one-shot prompts",
+            "pythinker-ai gateway   API + WebUI + chat channels",
+            "pythinker-ai doctor    re-run these checks later",
         ],
     )
     clack.bar_break()

@@ -26,13 +26,13 @@ No `package-lock.json` or `pnpm-lock.yaml` next to `bun.lock`.
 
 ## Local gateway
 
-Dev server proxies `/api`, `/webui`, `/auth`, and WebSocket upgrades on `/` to `PYTHINKER_API_URL` (default `http://127.0.0.1:8765`). HMR uses port `5174`.
+Dev server proxies `/api`, `/webui`, `/auth`, and WebSocket upgrades on `/` to `PYTHINKER_AI_API_URL` (default `http://127.0.0.1:8765`). HMR uses port `5174`.
 
 ```bash
-PYTHINKER_API_URL=http://127.0.0.1:9000 bun run dev
+PYTHINKER_AI_API_URL=http://127.0.0.1:9000 bun run dev
 ```
 
-For a live backend, start `pythinker gateway` with `channels.websocket.enabled=true` first.
+For a live backend, start `pythinker-ai gateway` with `channels.websocket.enabled=true` first.
 
 ## Architecture
 

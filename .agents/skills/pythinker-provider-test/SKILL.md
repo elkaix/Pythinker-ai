@@ -101,7 +101,7 @@ File: `pythinker/providers/openai_compat_provider.py:149-150`
 | Azure OpenAI | `AZURE_OPENAI_API_KEY` + endpoint + API version |
 | OpenAI Codex | OAuth device flow via `oauth-cli-kit` |
 | GitHub Copilot | Device flow → token exchange (extends `OpenAICompatProvider`) |
-| Most others | API key via `${VAR}` expansion in `~/.pythinker/config.json` |
+| Most others | API key via `${VAR}` expansion in `~/.pythinker-ai/config.json` |
 
 ## Test Execution
 

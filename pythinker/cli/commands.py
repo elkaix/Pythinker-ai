@@ -119,15 +119,15 @@ _NATIVE_INSTALL_METHODS = frozenset(
 )
 
 app = typer.Typer(
-    name="pythinker",
+    name="pythinker-ai",
     context_settings={"help_option_names": ["-h", "--help"]},
     help=f"{__logo__} pythinker - Personal AI Assistant",
     no_args_is_help=False,
 )
 
-# Sub-apps for grouped commands (`pythinker auth ...`, `pythinker channels ...`).
+# Sub-apps for grouped commands (`pythinker-ai auth ...`, `pythinker-ai channels ...`).
 # Modeled on the pythinker CLI taxonomy. Kept narrow on purpose — only commands
-# that surface state the existing `pythinker status` output doesn't (per-provider
+# that surface state the existing `pythinker-ai status` output doesn't (per-provider
 # OAuth token state, per-channel enabled+configured rows). The legacy `status`
 # command stays as the at-a-glance summary; these are for "show me everything
 # about X" workflows.
@@ -152,7 +152,7 @@ app.add_typer(backup_app, name="backup")
 cleanup_app = typer.Typer(help="Plan / run destructive cleanups.", no_args_is_help=True)
 app.add_typer(cleanup_app, name="cleanup")
 
-# Multi-agent management (~/.pythinker/agents/<id>/). See
+# Multi-agent management (~/.pythinker-ai/agents/<id>/). See
 # .agents/plans/2026-05-05-onboard-phase-2-multi-agent.md.
 from pythinker.cli.agents import app as agents_app  # noqa: E402
 
@@ -290,7 +290,7 @@ def onboard(
     except Exception as e:
         console.print(f"[red]✗[/red] Error during configuration: {e}")
         console.print(
-            "[yellow]Please run 'pythinker onboard' again to complete setup.[/yellow]"
+            "[yellow]Please run 'pythinker-ai onboard' again to complete setup.[/yellow]"
         )
         raise typer.Exit(1)
 
@@ -306,8 +306,8 @@ def onboard(
         _onboard_plugins(cfg_path)
 
     if result.should_save:
-        agent_cmd = 'pythinker agent -m "Hello!"'
-        gateway_cmd = "pythinker gateway"
+        agent_cmd = 'pythinker-ai agent -m "Hello!"'
+        gateway_cmd = "pythinker-ai gateway"
         if config:
             agent_cmd += f" --config {cfg_path}"
             gateway_cmd += f" --config {cfg_path}"
@@ -503,7 +503,7 @@ def gateway(
     quiet: bool = typer.Option(False, "--quiet", "-q", help="WARNING-level logs"),
     config: str | None = typer.Option(None, "--config", "-c", help="Path to config file"),
 ):
-    """Start the pythinker gateway."""
+    """Start the pythinker-ai gateway."""
     try:
         maybe_prompt_github_star()
     except Exception:  # noqa: BLE001
@@ -536,7 +536,7 @@ def _run_gateway(
 
     _preflight_port_or_die(config.gateway.host, port, label="Gateway")
 
-    console.print(f"{__logo__} Starting pythinker gateway version {__version__} on port {port}...")
+    console.print(f"{__logo__} Starting pythinker-ai gateway version {__version__} on port {port}...")
     _maybe_log_update_status(config)
     sync_workspace_templates(config.workspace_path)
     bus = MessageBus()
@@ -1176,7 +1176,7 @@ def tui(
     session: str = typer.Option("cli:tui", "--session", "-s", help="Session key"),
     config: str | None = typer.Option(None, "--config", "-c", help="Config file path"),
     theme: str | None = typer.Option(None, "--theme", help="Override TUI theme for this run"),
-    logs: str | None = typer.Option(None, "--logs", help="Log file (default: ~/.pythinker/logs/tui-<pid>.log)"),
+    logs: str | None = typer.Option(None, "--logs", help="Log file (default: ~/.pythinker-ai/logs/tui-<pid>.log)"),
 ):
     """Open the full-screen TUI chat."""
     from pythinker.cli.tui import TuiOptions, run_tui
@@ -1198,7 +1198,7 @@ def chat_alias(
     theme: str | None = typer.Option(None, "--theme"),
     logs: str | None = typer.Option(None, "--logs"),
 ):
-    """Alias for `pythinker tui`."""
+    """Alias for `pythinker-ai tui`."""
     tui(workspace=workspace, session=session, config=config, theme=theme, logs=logs)
 
 
@@ -1434,7 +1434,7 @@ def doctor(
 
 @app.command()
 def status():
-    """Show pythinker status."""
+    """Show pythinker-ai status."""
     from pythinker.config.loader import get_config_path, load_config
 
     config_path = get_config_path()
@@ -1492,7 +1492,7 @@ def update(
         help=(
             "Install this exact version (e.g. '2.0.0'). Refused on editable / "
             "container / unknown installs. Major-version jumps require this "
-            "flag — `pythinker upgrade` only ever moves to the latest stable."
+            "flag — `pythinker-ai upgrade` only ever moves to the latest stable."
         ),
         metavar="VERSION",
     ),
@@ -1649,7 +1649,7 @@ def update(
             rc = _do_upgrade()
     except FileLockTimeout as e:
         console.print(
-            f"[yellow]Another `pythinker update` is in progress (lock: {e.lock_file}).[/yellow]"
+            f"[yellow]Another `pythinker-ai update` is in progress (lock: {e.lock_file}).[/yellow]"
         )
         raise typer.Exit(2)
 
@@ -1663,7 +1663,7 @@ def update(
         # no-op. Surface that explicitly so they aren't confused.
         try:
             installed = subprocess.run(
-                ["pythinker", "--version"], capture_output=True, text=True, check=False
+                ["pythinker-ai", "--version"], capture_output=True, text=True, check=False
             )
             stdout = (installed.stdout or "") + (installed.stderr or "")
             if info.latest and info.latest not in stdout:
@@ -1716,9 +1716,9 @@ def token(
 # ============================================================================
 #
 # OAuth providers (openai-codex, github-copilot) intentionally do NOT appear
-# in the `pythinker onboard` "[P] LLM Provider" picker because that flow
+# in the `pythinker-ai onboard` "[P] LLM Provider" picker because that flow
 # prompts for an API key — which OAuth providers don't have. Without a
-# separate entry point, users hit a dead end. `pythinker provider login
+# separate entry point, users hit a dead end. `pythinker-ai provider login
 # <name>` is the dedicated surface and triggers each provider's OAuth
 # flow (browser-based for Codex, device-code for Copilot).
 
@@ -1745,8 +1745,8 @@ def provider_login(
     """Authenticate with an OAuth-based LLM provider.
 
     Examples:
-        pythinker provider login openai-codex
-        pythinker provider login github-copilot
+        pythinker-ai provider login openai-codex
+        pythinker-ai provider login github-copilot
     """
     from pythinker.providers.registry import PROVIDERS
 
@@ -1835,7 +1835,7 @@ def upgrade(
 ):
     """Download and install the latest pythinker release from PyPI.
 
-    Convenience alias of ``pythinker update -y --restart``: by default this
+    Convenience alias of ``pythinker-ai update -y --restart``: by default this
     upgrades and restarts in one step.  Pass ``--no-restart`` to skip the
     re-exec.
     """
@@ -1923,7 +1923,7 @@ def auth_list(
     """Show authentication state for every provider in the registry.
 
     Read-only: never triggers an OAuth flow. Tokens are inspected from
-    on-disk storage only. Use ``pythinker provider login <name>`` to
+    on-disk storage only. Use ``pythinker-ai provider login <name>`` to
     refresh missing or expired credentials.
     """
     from rich.table import Table
@@ -2015,7 +2015,7 @@ def channels_list(
 ):
     """Show enabled / configured state for every channel adapter.
 
-    Inspects ``~/.pythinker/config.json`` only — does not touch a running
+    Inspects ``~/.pythinker-ai/config.json`` only — does not touch a running
     gateway. Useful for "did my last edit save?" sanity checks before
     restarting the gateway.
     """
@@ -2156,7 +2156,7 @@ def config_set(
     path: str = typer.Argument(..., help="Dotted path, e.g. agents.defaults.model"),
     value: str = typer.Argument(..., help="New value (JSON or plain string)"),
 ):
-    """Write one config value back to ~/.pythinker/config.json.
+    """Write one config value back to ~/.pythinker-ai/config.json.
 
     The value is JSON-parsed when possible so booleans and integers don't
     end up as strings. The full config is re-validated through the schema
@@ -2397,7 +2397,7 @@ def auth_logout(
     if not spec.is_oauth:
         console.print(
             f"[yellow]{spec.label} is not an OAuth provider.[/yellow] To clear the API key, "
-            f"run: [cyan]pythinker config unset providers.{spec.name}.api_key[/cyan]"
+            f"run: [cyan]pythinker-ai config unset providers.{spec.name}.api_key[/cyan]"
         )
         raise typer.Exit(1)
 
@@ -2421,16 +2421,16 @@ def auth_logout(
     except OSError as exc:
         console.print(f"[red]Error:[/red] could not unlink {path}: {exc}")
         raise typer.Exit(1)
-    console.print(f"[green]✓[/green] {spec.label} logged out — re-run [cyan]pythinker provider login {spec.name}[/cyan] when needed.")
+    console.print(f"[green]✓[/green] {spec.label} logged out — re-run [cyan]pythinker-ai provider login {spec.name}[/cyan] when needed.")
 
 
 # ============================================================================
-# backup — snapshot / verify / restore ~/.pythinker/config.json
+# backup — snapshot / verify / restore ~/.pythinker-ai/config.json
 # ============================================================================
 
 
 def _backup_dir() -> "Path":
-    """Where backups live. Sibling of config.json so a single ~/.pythinker
+    """Where backups live. Sibling of config.json so a single ~/.pythinker-ai
     backup directory captures the canonical store, and so the existing
     wizard ``--reset`` rename pattern (``config.json.bak.<ts>``) stays
     discoverable next to it."""
@@ -2454,7 +2454,7 @@ def _backup_filename(label: str | None = None) -> str:
 def backup_create(
     label: str | None = typer.Option(None, "--label", "-l", help="Optional tag (alnum/underscore/dash)"),
 ):
-    """Atomically copy ~/.pythinker/config.json to a timestamped backup file.
+    """Atomically copy ~/.pythinker-ai/config.json to a timestamped backup file.
 
     Uses ``shutil.copy2`` so mtime is preserved — useful when scripting a
     "snapshot before edit, restore on rollback" flow. Refuses if there's
@@ -2565,7 +2565,7 @@ def backup_restore(
     path: str = typer.Argument(..., help="Path to backup file to restore"),
     yes: bool = typer.Option(False, "-y", "--yes", help="Skip confirmation"),
 ):
-    """Restore a backup to ~/.pythinker/config.json.
+    """Restore a backup to ~/.pythinker-ai/config.json.
 
     Always backs up the *current* config first to ``config.pre-restore.<ts>.json``
     in the backups dir — restoring is itself reversible. Verifies the

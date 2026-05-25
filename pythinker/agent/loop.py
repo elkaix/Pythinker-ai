@@ -328,8 +328,8 @@ class AgentLoop:
         # When a session has an active task, new messages for that session
         # are routed here instead of creating a new task.
         self._pending_queues: dict[str, asyncio.Queue] = {}
-        # PYTHINKER_MAX_CONCURRENT_REQUESTS: <=0 means unlimited; default 3.
-        _max = int(os.environ.get("PYTHINKER_MAX_CONCURRENT_REQUESTS", "3"))
+        # PYTHINKER_AI_MAX_CONCURRENT_REQUESTS: <=0 means unlimited; default 3.
+        _max = int(os.environ.get("PYTHINKER_AI_MAX_CONCURRENT_REQUESTS", "3"))
         self._concurrency_gate: asyncio.Semaphore | None = (
             asyncio.Semaphore(_max) if _max > 0 else None
         )
@@ -1236,7 +1236,7 @@ class AgentLoop:
     ) -> OutboundMessage | None:
         """Process a single inbound message and return the response."""
         # Hot-reload check at the turn boundary so model/provider/api_key
-        # edits in ~/.pythinker/config.json land without restarting. No-op
+        # edits in ~/.pythinker-ai/config.json land without restarting. No-op
         # when the loader is None or the signature matches.
         self._refresh_provider_snapshot()
         await self._refresh_browser_config()

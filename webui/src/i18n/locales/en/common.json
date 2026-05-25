@@ -15,7 +15,7 @@
     },
     "error": {
       "title": "Couldn't reach pythinker",
-      "gatewayHint": "Make sure the gateway is running (`pythinker gateway`) and that this page is open on the same machine."
+      "gatewayHint": "Make sure the gateway is running (`pythinker-ai gateway`) and that this page is open on the same machine."
     },
     "documentTitle": {
       "base": "pythinker",

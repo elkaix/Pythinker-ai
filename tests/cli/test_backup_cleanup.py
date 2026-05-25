@@ -38,7 +38,7 @@ def _flat(s: str) -> str:
 
 @pytest.fixture
 def tmp_home(tmp_path, monkeypatch):
-    """Redirect ~/.pythinker to a temp directory for every backup/cleanup test."""
+    """Redirect ~/.pythinker-ai to a temp directory for every backup/cleanup test."""
     cfg_path = tmp_path / "pythinker" / "config.json"
     cfg_path.parent.mkdir(parents=True, exist_ok=True)
     cfg_path.write_text(Config().model_dump_json(by_alias=True, indent=2))
@@ -332,7 +332,7 @@ def redirected_config(tmp_path, monkeypatch):
 def test_reset_paths_honour_redirected_config_path(redirected_config):
     """B-5 regression guard. ``sessions_dir`` and ``api_workspace_dir`` must
     resolve under ``get_data_dir()`` (the config file's parent), not the
-    hardcoded ``~/.pythinker``. Under a redirected ``PYTHINKER_CONFIG`` the
+    hardcoded ``~/.pythinker-ai``. Under a redirected ``PYTHINKER_AI_CONFIG`` the
     pre-fix code would silently wipe the user's real home directory."""
     from pythinker.cli.onboard_views import reset as reset_mod
 
@@ -341,7 +341,7 @@ def test_reset_paths_honour_redirected_config_path(redirected_config):
     assert reset_mod.api_workspace_dir() == expected_root / "api-workspace"
 
     # And critically: the resolver must NOT escape to the real home dir.
-    assert Path.home() / ".pythinker" / "sessions" != reset_mod.sessions_dir()
+    assert Path.home() / ".pythinker-ai" / "sessions" != reset_mod.sessions_dir()
 
 
 def test_reset_apply_immediate_full_targets_redirected_dirs(redirected_config, monkeypatch):

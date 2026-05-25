@@ -6,11 +6,11 @@
 # macOS, .deb on Debian/Ubuntu, .rpm on Fedora/RHEL, or scripts/install-native.sh
 # on any POSIX host. See the README install table.
 #
-# Set PYTHINKER_INSTALL_QUIET_DEPRECATION=1 to silence the banner.
+# Set PYTHINKER_AI_INSTALL_QUIET_DEPRECATION=1 to silence the banner.
 
 set -euo pipefail
 
-if [[ "${PYTHINKER_INSTALL_QUIET_DEPRECATION:-0}" != "1" ]]; then
+if [[ "${PYTHINKER_AI_INSTALL_QUIET_DEPRECATION:-0}" != "1" ]]; then
   cat >&2 <<'BANNER'
 
 [pythinker] WARNING: scripts/install.sh is deprecated.
@@ -19,7 +19,7 @@ if [[ "${PYTHINKER_INSTALL_QUIET_DEPRECATION:-0}" != "1" ]]; then
 [pythinker]   sudo dpkg  -i pythinker-ai_*_amd64.deb                     (Debian/Ubuntu)
 [pythinker]   sudo rpm   -i pythinker-ai-*.x86_64.rpm                    (Fedora/RHEL)
 [pythinker]   curl -fsSL https://raw.githubusercontent.com/mohamed-elkholy95/Pythinker/main/scripts/install-native.sh | bash
-[pythinker] Silence this banner with PYTHINKER_INSTALL_QUIET_DEPRECATION=1.
+[pythinker] Silence this banner with PYTHINKER_AI_INSTALL_QUIET_DEPRECATION=1.
 
 BANNER
 fi

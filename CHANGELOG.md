@@ -6,6 +6,25 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-05-24
+
+### Changed
+
+- **BREAKING: renamed the CLI command, runtime directory, and environment-variable
+  prefix to avoid clashing with the separate `pythinker-code` tool**, which also
+  installs a `pythinker` executable and reads `~/.pythinker/`.
+  - Console script is now `pythinker-ai` (was `pythinker`); native, `.deb`, `.rpm`,
+    and Homebrew installs expose the same `pythinker-ai` command. `python -m pythinker`
+    is unchanged. The Homebrew formula no longer needs `conflicts_with "pythinker-code"`,
+    so both tools can be installed side by side.
+  - Per-user runtime directory moved from `~/.pythinker/` to `~/.pythinker-ai/`, and the
+    per-workspace directory from `.pythinker/` to `.pythinker-ai/` (config, sessions,
+    workspace, history, bridge, tool-results, task-results, `plan.md`). No automatic
+    migration: copy existing state across by hand if you need it.
+  - Environment variables now use the `PYTHINKER_AI_` prefix (e.g. `PYTHINKER_AI_TOKEN`,
+    `PYTHINKER_AI_CONFIG`, `PYTHINKER_AI_API_URL`, `PYTHINKER_AI_TOOLS__WEB__BROWSER__*`).
+    Update any shell profiles, service units, or compose files that set `PYTHINKER_*`.
+
 ## [2.7.0] - 2026-05-22
 
 ### Added

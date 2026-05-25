@@ -3,18 +3,18 @@
 # DEPRECATED: This wrapper exists for backward compatibility. New Windows
 # installs should use PythinkerSetup-{version}.exe from the GitHub release.
 #
-# Set $env:PYTHINKER_INSTALL_QUIET_DEPRECATION = "1" to silence the banner.
+# Set $env:PYTHINKER_AI_INSTALL_QUIET_DEPRECATION = "1" to silence the banner.
 
 $ErrorActionPreference = "Stop"
 
-if ($env:PYTHINKER_INSTALL_QUIET_DEPRECATION -ne "1") {
+if ($env:PYTHINKER_AI_INSTALL_QUIET_DEPRECATION -ne "1") {
     Write-Warning @"
 
 scripts/install.ps1 is deprecated.
 Prefer the native Windows installer:
   https://github.com/mohamed-elkholy95/Pythinker/releases/latest
   -> PythinkerSetup-<version>.exe
-Silence this banner with `$env:PYTHINKER_INSTALL_QUIET_DEPRECATION = "1"`.
+Silence this banner with `$env:PYTHINKER_AI_INSTALL_QUIET_DEPRECATION = "1"`.
 
 "@
 }

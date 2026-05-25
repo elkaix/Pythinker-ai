@@ -1,4 +1,4 @@
-"""pythinker tui — full-screen prompt_toolkit chat against AgentLoop."""
+"""pythinker-ai tui — full-screen prompt_toolkit chat against AgentLoop."""
 
 from __future__ import annotations
 

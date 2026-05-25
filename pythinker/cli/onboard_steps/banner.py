@@ -44,8 +44,8 @@ def _step_outro(ctx: _WizardContext) -> StepResult:
 
     clack.outro("🤖 Pythinker is ready.")
     _onboard.console.print("\nNext:")
-    _onboard.console.print("  pythinker tui         full-screen chat")
-    _onboard.console.print("  pythinker agent       terminal chat / one-shot prompts")
-    _onboard.console.print("  pythinker gateway     start channels + API")
-    _onboard.console.print("  pythinker doctor      verify your setup anytime\n")
+    _onboard.console.print("  pythinker-ai tui         full-screen chat")
+    _onboard.console.print("  pythinker-ai agent       terminal chat / one-shot prompts")
+    _onboard.console.print("  pythinker-ai gateway     start channels + API")
+    _onboard.console.print("  pythinker-ai doctor      verify your setup anytime\n")
     return StepResult(status="continue")

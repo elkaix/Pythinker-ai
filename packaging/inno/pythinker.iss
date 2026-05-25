@@ -4,7 +4,7 @@
 ;   * Lands the PyInstaller bundle under %LOCALAPPDATA%\Programs\Pythinker
 ;   * Adds the install dir to the user's PATH (HKCU\Environment)
 ;   * Broadcasts WM_SETTINGCHANGE so new shells see the PATH edit
-;   * Supports silent install / uninstall for `pythinker update`
+;   * Supports silent install / uninstall for `pythinker-ai update`
 ;
 ; Compile from a Windows runner with Inno Setup 6:
 ;     iscc /DAppVersion=2.7.0 packaging\inno\pythinker.iss
@@ -18,7 +18,7 @@
 #define MyAppName        "Pythinker"
 #define MyAppPublisher   "Mohamed Elkholy"
 #define MyAppURL         "https://github.com/mohamed-elkholy95/Pythinker"
-#define MyAppExeName     "pythinker.exe"
+#define MyAppExeName     "pythinker-ai.exe"
 
 [Setup]
 AppId={{F6E0E5D2-2A7B-4F60-9F36-PYTHINKERAI001}}
@@ -44,7 +44,7 @@ UninstallDisplayIcon={app}\{#MyAppExeName}
 ChangesEnvironment=yes
 CloseApplications=yes
 RestartApplications=no
-; Allow `pythinker update` to upgrade silently in-place.
+; Allow `pythinker-ai update` to upgrade silently in-place.
 SetupLogging=no
 
 [Languages]

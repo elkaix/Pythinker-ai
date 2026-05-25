@@ -1,4 +1,4 @@
-"""Tests for `pythinker doctor`."""
+"""Tests for `pythinker-ai doctor`."""
 
 from __future__ import annotations
 
@@ -125,7 +125,7 @@ def test_check_config_errors_when_missing(_tmp_pythinker_home):
     r = doctor_module._check_config()
     assert r.status == "error"
     assert "missing" in r.detail
-    assert "pythinker onboard" in r.fix
+    assert "pythinker-ai onboard" in r.fix
 
 
 def test_check_config_ok_when_present(_tmp_pythinker_home):
@@ -259,7 +259,7 @@ def test_doctor_exits_with_error_when_config_missing(_tmp_pythinker_home):
     assert "Config" in output
     assert "missing" in output
     # The fix-hint must be present so the user knows what to do next.
-    assert "pythinker onboard" in output
+    assert "pythinker-ai onboard" in output
 
 
 def test_doctor_default_provider_oauth_auth_error(_tmp_pythinker_home):
@@ -271,7 +271,7 @@ def test_doctor_default_provider_oauth_auth_error(_tmp_pythinker_home):
     assert exit_code == 1
     assert "OpenAI Codex" in output
     assert "not authenticated" in output
-    assert "pythinker provider login openai-codex" in output
+    assert "pythinker-ai provider login openai-codex" in output
 
 
 def test_doctor_all_green_with_valid_token(_tmp_pythinker_home, monkeypatch):

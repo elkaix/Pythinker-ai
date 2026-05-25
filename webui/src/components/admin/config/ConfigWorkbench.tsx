@@ -113,7 +113,7 @@ function redactConfig(value: unknown, secretPaths: string[], path = ""): unknown
   );
 }
 
-function flattenEnv(value: unknown, prefix = "PYTHINKER"): string[] {
+function flattenEnv(value: unknown, prefix = "PYTHINKER_AI"): string[] {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return [`${prefix}=${JSON.stringify(value)}`];
   }
@@ -552,11 +552,11 @@ export function ConfigWorkbench({ token, surfaces, onRefresh }: ConfigWorkbenchP
                       variant="secondary"
                       onClick={async () => {
                         try {
-                          await navigator.clipboard.writeText("pythinker restart");
+                          await navigator.clipboard.writeText("pythinker-ai restart");
                           setRestartCopied(true);
                           window.setTimeout(() => setRestartCopied(false), 1500);
                         } catch {
-                          setMessage("Run `pythinker restart` in your terminal.");
+                          setMessage("Run `pythinker-ai restart` in your terminal.");
                         }
                       }}
                     >

@@ -444,7 +444,7 @@ def test_ensure_bridge_setup_uses_dev_source_dir(monkeypatch, tmp_path):
     (dev_dir / "dist").mkdir(parents=True)
     (dev_dir / "package.json").write_text("{}", encoding="utf-8")
     (dev_dir / "dist" / "index.js").write_text("// stub", encoding="utf-8")
-    monkeypatch.setenv("PYTHINKER_BRIDGE_SOURCE_DIR", str(dev_dir))
+    monkeypatch.setenv("PYTHINKER_AI_BRIDGE_SOURCE_DIR", str(dev_dir))
 
     assert _ensure_bridge_setup() == dev_dir.resolve()
 
@@ -453,7 +453,7 @@ def test_ensure_bridge_setup_dev_dir_missing_dist_errors(monkeypatch, tmp_path):
     dev_dir = tmp_path / "bridge"
     dev_dir.mkdir()
     (dev_dir / "package.json").write_text("{}", encoding="utf-8")
-    monkeypatch.setenv("PYTHINKER_BRIDGE_SOURCE_DIR", str(dev_dir))
+    monkeypatch.setenv("PYTHINKER_AI_BRIDGE_SOURCE_DIR", str(dev_dir))
 
     with pytest.raises(RuntimeError, match="dist/index.js missing"):
         _ensure_bridge_setup()
@@ -462,7 +462,7 @@ def test_ensure_bridge_setup_dev_dir_missing_dist_errors(monkeypatch, tmp_path):
 def test_ensure_bridge_setup_dev_dir_missing_package_json_errors(monkeypatch, tmp_path):
     dev_dir = tmp_path / "bridge"
     dev_dir.mkdir()
-    monkeypatch.setenv("PYTHINKER_BRIDGE_SOURCE_DIR", str(dev_dir))
+    monkeypatch.setenv("PYTHINKER_AI_BRIDGE_SOURCE_DIR", str(dev_dir))
 
     with pytest.raises(RuntimeError, match="no package.json"):
         _ensure_bridge_setup()

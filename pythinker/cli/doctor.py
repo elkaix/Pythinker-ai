@@ -1,4 +1,4 @@
-"""`pythinker doctor` — diagnose install, config, and authentication state.
+"""`pythinker-ai doctor` — diagnose install, config, and authentication state.
 
 Every check returns a ``CheckResult``; the runner prints them grouped by
 section and exits non-zero when anything is wrong.  Designed to be the
@@ -57,7 +57,7 @@ def _check_install_location() -> CheckResult:
     # definition the parent directory *is* on PATH, even if the binary itself is
     # a symlink into a different directory.  No separate "is it on PATH?" check
     # needed; that was a false positive waiting to happen.
-    binary = shutil.which("pythinker")
+    binary = shutil.which("pythinker-ai")
     if binary:
         return CheckResult("ok", "pythinker", f"{__version__} at {binary}")
     # invoked via `python -m pythinker doctor` with the console script not on PATH
@@ -82,7 +82,7 @@ def _check_config() -> CheckResult:
             "error",
             "Config",
             f"missing at {path}",
-            fix="Run `pythinker onboard` to create a default config.",
+            fix="Run `pythinker-ai onboard` to create a default config.",
         )
     try:
         load_config(path)
@@ -91,7 +91,7 @@ def _check_config() -> CheckResult:
             "error",
             "Config",
             f"{path} fails to load",
-            fix=f"Fix the config or delete it and re-run `pythinker onboard`. Details: {e}",
+            fix=f"Fix the config or delete it and re-run `pythinker-ai onboard`. Details: {e}",
         )
     return CheckResult("ok", "Config", str(path))
 
@@ -142,7 +142,7 @@ def _check_default_model() -> CheckResult:
             "error",
             "Default model",
             "not set",
-            fix="Set agents.defaults.model in ~/.pythinker/config.json.",
+            fix="Set agents.defaults.model in ~/.pythinker-ai/config.json.",
         )
     return CheckResult("ok", "Default model", model)
 
@@ -256,7 +256,7 @@ def _auth_check_for_spec(spec, config, *, is_default: bool) -> CheckResult:
             severity,
             label,
             "not authenticated",
-            fix=f"pythinker provider login {hint_name}",
+            fix=f"pythinker-ai provider login {hint_name}",
         )
 
     # API-key provider
@@ -273,7 +273,7 @@ def _auth_check_for_spec(spec, config, *, is_default: bool) -> CheckResult:
     severity = "error" if is_default else "warn"
     env_hint = f"or set {spec.env_key}" if spec.env_key else ""
     fix = (
-        f"Add an API key under providers.{spec.name}.apiKey in ~/.pythinker/config.json"
+        f"Add an API key under providers.{spec.name}.apiKey in ~/.pythinker-ai/config.json"
         f"{(' ' + env_hint) if env_hint else ''}."
     )
     return CheckResult(severity, label, "API key not set", fix=fix)
@@ -351,7 +351,7 @@ def _check_browser() -> list[CheckResult]:
                     "warn",
                     "Browser CDP",
                     "skipped CDP probe (doctor invoked inside an event loop)",
-                    fix="Run `pythinker doctor` from a fresh shell to probe CDP reachability.",
+                    fix="Run `pythinker-ai doctor` from a fresh shell to probe CDP reachability.",
                 )
             )
 
@@ -410,7 +410,7 @@ def _check_browser() -> list[CheckResult]:
 
 
 def _check_updates() -> CheckResult:
-    """Surface PyPI update state inside ``pythinker doctor``."""
+    """Surface PyPI update state inside ``pythinker-ai doctor``."""
     try:
         from pythinker.utils.update import (
             check_for_update_sync,
@@ -516,10 +516,10 @@ def run(*, non_interactive: bool = False) -> int:
             markup=False,
             emoji=False,
         )
-        console.print("pythinker doctor\n")
+        console.print("pythinker-ai doctor\n")
     else:
         console = Console(file=sys.stdout, highlight=False)
-        console.print(f"{__logo__} pythinker doctor\n")
+        console.print(f"{__logo__} pythinker-ai doctor\n")
 
     errors = 0
     warnings = 0

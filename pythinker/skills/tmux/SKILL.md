@@ -11,7 +11,7 @@ Use tmux only when you need an interactive TTY. Prefer exec background mode for 
 ## Quickstart (isolated socket, exec tool)
 
 ```bash
-SOCKET_DIR="${PYTHINKER_TMUX_SOCKET_DIR:-${TMPDIR:-/tmp}/pythinker-tmux-sockets}"
+SOCKET_DIR="${PYTHINKER_AI_TMUX_SOCKET_DIR:-${TMPDIR:-/tmp}/pythinker-tmux-sockets}"
 mkdir -p "$SOCKET_DIR"
 SOCKET="$SOCKET_DIR/pythinker.sock"
 SESSION=pythinker-python
@@ -31,8 +31,8 @@ To monitor:
 
 ## Socket convention
 
-- Use `PYTHINKER_TMUX_SOCKET_DIR` environment variable.
-- Default socket path: `"$PYTHINKER_TMUX_SOCKET_DIR/pythinker.sock"`.
+- Use `PYTHINKER_AI_TMUX_SOCKET_DIR` environment variable.
+- Default socket path: `"$PYTHINKER_AI_TMUX_SOCKET_DIR/pythinker.sock"`.
 
 ## Targeting panes and naming
 
@@ -43,7 +43,7 @@ To monitor:
 ## Finding sessions
 
 - List sessions on your socket: `{baseDir}/scripts/find-sessions.sh -S "$SOCKET"`.
-- Scan all sockets: `{baseDir}/scripts/find-sessions.sh --all` (uses `PYTHINKER_TMUX_SOCKET_DIR`).
+- Scan all sockets: `{baseDir}/scripts/find-sessions.sh --all` (uses `PYTHINKER_AI_TMUX_SOCKET_DIR`).
 
 ## Sending input safely
 

@@ -34,7 +34,7 @@ class TaskStore:
     def __init__(self, workspace: Path | str, max_recent: int = 200) -> None:
         self.workspace = Path(workspace)
         self.max_recent = max_recent
-        self.output_dir = self.workspace / ".pythinker" / "task-results"
+        self.output_dir = self.workspace / ".pythinker-ai" / "task-results"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self._records: dict[str, TaskRecord] = {}
         self._session_index: dict[str, set[str]] = {}

@@ -97,7 +97,7 @@ Frontend and bridge commands:
 
 ```bash
 cd webui && bun install
-cd webui && bun run dev       # proxies to PYTHINKER_API_URL, default http://127.0.0.1:8765
+cd webui && bun run dev       # proxies to PYTHINKER_AI_API_URL, default http://127.0.0.1:8765
 cd webui && bun run test
 cd webui && bun run build     # writes production assets to ../pythinker/web/dist
 
@@ -108,16 +108,16 @@ cd bridge && npm run build    # only needed when touching the WhatsApp bridge
 Important CLI surfaces:
 
 ```bash
-uv run pythinker onboard
-uv run pythinker agent
-uv run pythinker tui          # alias: chat
-uv run pythinker serve
-uv run pythinker gateway
-uv run pythinker status
-uv run pythinker doctor
-uv run pythinker channels status
-uv run pythinker provider login openai-codex
-uv run pythinker provider login github-copilot
+uv run pythinker-ai onboard
+uv run pythinker-ai agent
+uv run pythinker-ai tui          # alias: chat
+uv run pythinker-ai serve
+uv run pythinker-ai gateway
+uv run pythinker-ai status
+uv run pythinker-ai doctor
+uv run pythinker-ai channels status
+uv run pythinker-ai provider login openai-codex
+uv run pythinker-ai provider login github-copilot
 ```
 
 ## Verification matrix
@@ -190,9 +190,9 @@ Read these before changing their behavior:
   Renames break live sessions without migration.
 - Priority commands (`/stop`, `/restart`, `/status`) route before the per-session lock.
 - `/restart` uses `os.execv` and restart notification env vars; preserve cross-exec behavior.
-- Global concurrency defaults to `PYTHINKER_MAX_CONCURRENT_REQUESTS=3`.
-- Stream idle timeout defaults to `PYTHINKER_STREAM_IDLE_TIMEOUT_S=90`.
-- Large tool results spill to `.pythinker/tool-results/` under the workspace with retention limits;
+- Global concurrency defaults to `PYTHINKER_AI_MAX_CONCURRENT_REQUESTS=3`.
+- Stream idle timeout defaults to `PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S=90`.
+- Large tool results spill to `.pythinker-ai/tool-results/` under the workspace with retention limits;
   do not bypass this for convenience.
 
 ## Repo map

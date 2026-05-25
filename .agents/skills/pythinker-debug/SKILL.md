@@ -18,13 +18,13 @@ that won't pass on a clean checkout.
 
 1. `git log --oneline -10` — recent context
 2. `tasks/todo.md` and `tasks/lessons.md` if present
-3. Pythinker version (`pythinker --version` or `pyproject.toml [project] version`)
+3. Pythinker version (`pythinker-ai --version` or `pyproject.toml [project] version`)
 
 ## Diagnostic Entry Points
 
 ```bash
-pythinker doctor          # always run first — full diagnostic
-pythinker status          # runtime health, channel state, provider config
+pythinker-ai doctor          # always run first — full diagnostic
+pythinker-ai status          # runtime health, channel state, provider config
 ```
 
 ## Common Failure Modes
@@ -78,7 +78,7 @@ pythinker status          # runtime health, channel state, provider config
 | WhatsApp | `whatsapp.py` + `bridge/` | Baileys connection state; bridge is a thin Node relay |
 | MS Teams | `msteams.py` | JWT validation; check token expiry |
 | WebSocket | `websocket.py` (~1637 LOC) | Signed media URL secret regenerates on restart — old links 401 by design |
-| Email | `email.py` | SMTP vs IMAP creds in `~/.pythinker/credentials/` |
+| Email | `email.py` | SMTP vs IMAP creds in `~/.pythinker-ai/credentials/` |
 
 ### Tool Sandbox Failures
 **File:** `pythinker/agent/tools/sandbox.py`
@@ -96,7 +96,7 @@ pythinker status          # runtime health, channel state, provider config
 `pythinker/agent/browser/state.py`, `pythinker/agent/tools/browser.py`,
 `pythinker/cli/doctor.py`
 
-- Start with `pythinker doctor`; the Tools section reports whether browser
+- Start with `pythinker-ai doctor`; the Tools section reports whether browser
   tooling is disabled, whether Playwright is importable, whether CDP is
   reachable, and whether managed Chromium is installed
 - Modes: `auto` launches managed Chromium unless a non-default `cdpUrl` is
@@ -110,7 +110,7 @@ pythinker status          # runtime health, channel state, provider config
   `PLAYWRIGHT_DOWNLOAD_HOST`; retry manually with
   `python -m playwright install chromium`
 - Launch-mode sandbox failures inside containers should recommend `cdp` mode
-  first. `PYTHINKER_BROWSER_NO_SANDBOX=1` is an explicit local escape hatch,
+  first. `PYTHINKER_AI_BROWSER_NO_SANDBOX=1` is an explicit local escape hatch,
   not the hardened default
 - Contexts are per effective session key; restart/hot-reload closes contexts
   and carries a browser-restart notice into the next action
@@ -180,12 +180,12 @@ pythinker status          # runtime health, channel state, provider config
 
 ## Concurrency / Streaming Knobs
 
-- `PYTHINKER_MAX_CONCURRENT_REQUESTS` — global gate, default 3
-- `PYTHINKER_STREAM_IDLE_TIMEOUT_S` — default 90 s
+- `PYTHINKER_AI_MAX_CONCURRENT_REQUESTS` — global gate, default 3
+- `PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S` — default 90 s
 
 ## Live Tests
 
-- Check `~/.pythinker/config.json` and `~/.profile` for keys before
+- Check `~/.pythinker-ai/config.json` and `~/.profile` for keys before
   assuming live tests are blocked
 - Redact secret output; never commit real tokens, phone numbers, or
   chat IDs

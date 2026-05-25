@@ -23,12 +23,12 @@
 
 - **Tiny agent** — a compact readable core. Stable long-running behavior without orchestration sprawl.
 - **Channel-agnostic** — Slack, Telegram, Discord, WhatsApp, Matrix, MS Teams, email, WebSocket, plus an OpenAI-compatible HTTP API.
-- **Full-screen TUI** — `pythinker tui` (alias `chat`) opens a `prompt_toolkit` chat with live streaming, slash-command pickers (`/model`, `/provider`, `/sessions`, `/theme`, `/help`, `/status`), fuzzy search, themable chrome (default + monochrome), and Ctrl+C cancellation of in-flight turns.
+- **Full-screen TUI** — `pythinker-ai tui` (alias `chat`) opens a `prompt_toolkit` chat with live streaming, slash-command pickers (`/model`, `/provider`, `/sessions`, `/theme`, `/help`, `/status`), fuzzy search, themable chrome (default + monochrome), and Ctrl+C cancellation of in-flight turns.
 - **Provider-rich** — 25+ LLM providers (Anthropic, OpenAI, Azure OpenAI, OpenAI Codex, GitHub Copilot, Qwen/DashScope, MiniMax, VolcEngine, Moonshot, DeepSeek, StepFun, and more) behind a single interface.
-- **Provider hot-reload** — edits to model / provider / API key in `~/.pythinker/config.json` land at the next turn boundary. No restart of the SDK or gateway. Same-signature snapshots short-circuit; broken configs are logged and swallowed so an in-flight session can't crash on a typo.
+- **Provider hot-reload** — edits to model / provider / API key in `~/.pythinker-ai/config.json` land at the next turn boundary. No restart of the SDK or gateway. Same-signature snapshots short-circuit; broken configs are logged and swallowed so an in-flight session can't crash on a typo.
 - **Headless browser tool** *(opt-in)* — drives Playwright-managed Chromium for JavaScript-rendered pages, click/form flows, screenshots, and DOM snapshots. `mode="auto"` launches a packaged headless Chromium without Docker; `mode="cdp"` connects to an external service for hardened deployments. First-use Chromium binary installs lazily, with idle eviction, per-context page caps, SSRF route handling, and turn-boundary hot reload of browser config.
 - **Governed-execution runtime** *(off by default)* — opt-in `RuntimeConfig` wires a `PolicyService` (allow-lists from agent manifests, per-turn budgets, recursion depth), a `ToolEgressGateway` chokepoint, an `AgentRegistry` directory loader, `RequestContext` + `BudgetCounters` plumbing, and a pluggable `TelemetrySink` (loguru / JSONL / composite). When the loader is `None` and policy is off, the runtime is bit-for-bit identical to the legacy path.
-- **Autonomous subagent tracking** — spawned subagents are first-class task records with durable output under `.pythinker/task-results/`. Pick a role at spawn time — `coder` (full tools), `explore` (read-only navigation), or `plan` (planning-only, no write/edit/shell) — and use `/tasks`, `/task-output <task_id>`, and `/task-stop <task_id>` to inspect or stop background work from chat.
+- **Autonomous subagent tracking** — spawned subagents are first-class task records with durable output under `.pythinker-ai/task-results/`. Pick a role at spawn time — `coder` (full tools), `explore` (read-only navigation), or `plan` (planning-only, no write/edit/shell) — and use `/tasks`, `/task-output <task_id>`, and `/task-stop <task_id>` to inspect or stop background work from chat.
 - **Memory that learns** — a two-phase "Dream" process consolidates long-term memory into `MEMORY.md` / `SOUL.md` / `USER.md`, auto-versioned with pure-Python git.
 - **Skills & MCP** — bundled skills (GitHub, cron, weather, tmux, summarize, skill-creator, …) plus first-class [Model Context Protocol](https://modelcontextprotocol.io/) tool access with defensive HTTP probing and provider-safe tool names.
 - **Research-grade PDF reports** — opt-in `make_pdf` tool renders structured Markdown to a styled PDF via ReportLab (`pip install 'pythinker-ai[reports]'`).
@@ -64,14 +64,14 @@ any platform with `sha256sum`, `shasum -a 256`, or `Get-FileHash`.
 After install, on any OS:
 
 ```bash
-pythinker --version                # confirm install
-pythinker onboard                  # interactive setup wizard
+pythinker-ai --version                # confirm install
+pythinker-ai onboard                  # interactive setup wizard
 pythinker                          # start the interactive CLI
 ```
 
-> **In-app updates** — `pythinker update` queries the GitHub Releases API and
+> **In-app updates** — `pythinker-ai update` queries the GitHub Releases API and
 > re-runs the right installer for your build with SHA-256 verification. Set
-> `PYTHINKER_CLI_NO_AUTO_UPDATE=1` to disable the proactive startup check.
+> `PYTHINKER_AI_CLI_NO_AUTO_UPDATE=1` to disable the proactive startup check.
 
 ### 🪟 Windows — native installer
 
@@ -92,13 +92,13 @@ Get-Content  .\PythinkerSetup-2.7.0.exe.sha256
 .\PythinkerSetup-2.7.0.exe
 
 # 4. Open a fresh PowerShell
-pythinker --version
+pythinker-ai --version
 ```
 
 **Per-machine install** (IT-managed boxes): `.\PythinkerSetup-2.7.0.exe /ALLUSERS`
 installs to `%ProgramFiles%\Pythinker` and writes PATH to HKLM (requires admin).
 
-**Upgrade:** `pythinker update` from inside the running app — it downloads
+**Upgrade:** `pythinker-ai update` from inside the running app — it downloads
 the newest installer, verifies SHA-256, and re-runs it silently
 (`/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`).
 
@@ -117,7 +117,7 @@ files and the PATH edit.
 brew install mohamed-elkholy95/pythinker/pythinker-ai
 
 # 2. Verify
-pythinker --version
+pythinker-ai --version
 which pythinker          # -> /opt/homebrew/bin/pythinker (Apple Silicon)
                          #    or /usr/local/bin/pythinker (Intel)
 ```
@@ -170,7 +170,7 @@ sha256sum -c pythinker-ai-2.7.0.x86_64.rpm.sha256       # Fedora/RHEL
 ```
 
 **Upgrade:** download the new `.deb`/`.rpm` from Releases and `dpkg -i` /
-`dnf install` over it. Or run `pythinker update` from inside the running app —
+`dnf install` over it. Or run `pythinker-ai update` from inside the running app —
 it'll fetch the matching new package and prompt for sudo to install.
 
 **Uninstall:**
@@ -241,11 +241,11 @@ git clone git@github.com:mohamed-elkholy95/Pythinker.git
 cd Pythinker && uv sync --all-extras
 ```
 
-If `pythinker` isn't found after install, run `pythinker doctor` (via
-`python -m pythinker doctor` if needed) for diagnostics.
+If `pythinker` isn't found after install, run `pythinker-ai doctor` (via
+`python -m pythinker-ai doctor` if needed) for diagnostics.
 
 The legacy `scripts/install.sh` and `scripts/install.ps1` wrappers print a
-deprecation banner; set `PYTHINKER_INSTALL_QUIET_DEPRECATION=1` to silence it.
+deprecation banner; set `PYTHINKER_AI_INSTALL_QUIET_DEPRECATION=1` to silence it.
 
 </details>
 
@@ -282,26 +282,26 @@ use the explicit pin form for your install method:
 | Pin exactly `2.0.0` (uv tool — recommended) | `uv tool install --reinstall "pythinker-ai==2.0.0"` |
 | Pin exactly `2.0.0` (pipx) | `pipx install --force "pythinker-ai==2.0.0"` |
 | Pin exactly `2.0.0` (plain pip) | `python -m pip install --force-reinstall "pythinker-ai==2.0.0"` |
-| Stay at the latest stable release | `pythinker upgrade` |
-| From inside pythinker, target a specific version | `pythinker update --target 2.0.0 -y` |
+| Stay at the latest stable release | `pythinker-ai upgrade` |
+| From inside pythinker, target a specific version | `pythinker-ai update --target 2.0.0 -y` |
 
 `pip install -U pythinker-ai==2.0.0` works too, but it's semantically
 noisy: the **exact pin** controls the version, not `-U`. `pythinker
 upgrade` will refuse to cross a major version (e.g. `1.x → 2.x`)
-without an explicit `pythinker update --target` opt-in.
+without an explicit `pythinker-ai update --target` opt-in.
 
 ## 🚀 Quick Start
 
 ```bash
-pythinker onboard                           # write a config at ~/.pythinker/config.json
-pythinker provider login openai-codex       # OAuth sign-in (the default provider)
-pythinker agent                             # interactive CLI chat
-pythinker tui                               # full-screen interactive chat (alias: chat)
+pythinker-ai onboard                           # write a config at ~/.pythinker-ai/config.json
+pythinker-ai provider login openai-codex       # OAuth sign-in (the default provider)
+pythinker-ai agent                             # interactive CLI chat
+pythinker-ai tui                               # full-screen interactive chat (alias: chat)
 ```
 
-`pythinker onboard` ships a config preconfigured for **OpenAI Codex via ChatGPT OAuth** (no API key needed). To use a different provider/model, edit `~/.pythinker/config.json` — see [Configuration](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/configuration.md) for the full catalog of 25+ providers.
+`pythinker-ai onboard` ships a config preconfigured for **OpenAI Codex via ChatGPT OAuth** (no API key needed). To use a different provider/model, edit `~/.pythinker-ai/config.json` — see [Configuration](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/configuration.md) for the full catalog of 25+ providers.
 
-Want several independent agents on one host? `pythinker agents` lays out per-agent configs under `~/.pythinker/agents/<name>/` with isolated workspace, history, and memory; pass `--agent <name>` to any subcommand to target one.
+Want several independent agents on one host? `pythinker agents` lays out per-agent configs under `~/.pythinker-ai/agents/<name>/` with isolated workspace, history, and memory; pass `--agent <name>` to any subcommand to target one.
 
 - Want different LLM providers, web search, MCP, security settings, or more config options? See [Configuration](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/configuration.md).
 - Want to run Pythinker in chat apps like Telegram, Discord, Slack, WhatsApp, or Matrix? See [Chat Apps](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/chat-apps.md).
@@ -318,17 +318,17 @@ Pythinker can launch subagents for background coding, research, and maintenance 
 | `/task-output <task_id>` | Show the latest bounded output tail for a task |
 | `/task-stop <task_id>` | Cancel a running subagent by id |
 
-Task output is written to `.pythinker/task-results/`, so large results do not flood the conversation and recovered output can still be inspected after a process restart. In-memory records are session-scoped; restart-recovered orphan output is workspace-wide by design for Pythinker's single-user/local deployment model.
+Task output is written to `.pythinker-ai/task-results/`, so large results do not flood the conversation and recovered output can still be inspected after a process restart. In-memory records are session-scoped; restart-recovered orphan output is workspace-wide by design for Pythinker's single-user/local deployment model.
 
 ## 🖥️ TUI
 
-`pythinker tui` (alias `pythinker chat`) opens a full-screen `prompt_toolkit` interface for interactive sessions — a step up from `pythinker agent`'s line-by-line REPL.
+`pythinker-ai tui` (alias `pythinker-ai chat`) opens a full-screen `prompt_toolkit` interface for interactive sessions — a step up from `pythinker-ai agent`'s line-by-line REPL.
 
 ```bash
-pythinker tui                               # opens with the default theme
-pythinker tui --theme monochrome            # high-contrast / accessibility-friendly
-pythinker tui --workspace ~/work/agent      # override per-session workspace
-pythinker tui --logs ~/.pythinker/tui.log   # mirror loguru output to a file
+pythinker-ai tui                               # opens with the default theme
+pythinker-ai tui --theme monochrome            # high-contrast / accessibility-friendly
+pythinker-ai tui --workspace ~/work/agent      # override per-session workspace
+pythinker-ai tui --logs ~/.pythinker-ai/tui.log   # mirror loguru output to a file
 ```
 
 **Layout.** A persistent chat pane (streamed assistant tokens render live with markdown swap-in once the turn ends), a status bar showing session/model/provider/iteration count, a hint footer for the current keymap, and a multiline editor with slash-command autocomplete.
@@ -361,14 +361,14 @@ Pickers support fuzzy search — start typing to filter, ↑/↓ to navigate, En
 | `Esc` | Close the active overlay / picker |
 | `↑` / `↓` | Move cursor in pickers; PageUp / PageDown for 5-step jumps |
 
-**Theming.** Two themes ship by default. Set `cli.tui.theme` in `~/.pythinker/config.json` or pass `--theme`. Both themes provide separate prompt_toolkit chrome styles and Rich content styles so the chat panel and the surrounding UI stay visually consistent.
+**Theming.** Two themes ship by default. Set `cli.tui.theme` in `~/.pythinker-ai/config.json` or pass `--theme`. Both themes provide separate prompt_toolkit chrome styles and Rich content styles so the chat panel and the surrounding UI stay visually consistent.
 
 ## 🧪 WebUI (Development)
 
 > [!NOTE]
 > The WebUI development workflow currently requires a source checkout and is not yet shipped together with the official packaged release. See the [WebUI README](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/webui/README.md) for full WebUI development docs and build steps.
 
-**1. Enable the WebSocket channel in `~/.pythinker/config.json`**
+**1. Enable the WebSocket channel in `~/.pythinker-ai/config.json`**
 
 ```json
 { "channels": { "websocket": { "enabled": true } } }
@@ -377,7 +377,7 @@ Pickers support fuzzy search — start typing to filter, ↑/↓ to navigate, En
 **2. Start the gateway**
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 **3. Start the WebUI dev server**

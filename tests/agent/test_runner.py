@@ -368,13 +368,13 @@ async def test_runner_persists_large_tool_results_for_follow_up_calls(tmp_path):
     tool_message = next(msg for msg in captured_second_call if msg.get("role") == "tool")
     assert "[tool output persisted]" in tool_message["content"]
     assert "tool-results" in tool_message["content"]
-    assert (tmp_path / ".pythinker" / "tool-results" / "test_runner" / "call_big.txt").exists()
+    assert (tmp_path / ".pythinker-ai" / "tool-results" / "test_runner" / "call_big.txt").exists()
 
 
 def test_persist_tool_result_prunes_old_session_buckets(tmp_path):
     from pythinker.utils.helpers import maybe_persist_tool_result
 
-    root = tmp_path / ".pythinker" / "tool-results"
+    root = tmp_path / ".pythinker-ai" / "tool-results"
     old_bucket = root / "old_session"
     recent_bucket = root / "recent_session"
     old_bucket.mkdir(parents=True)
@@ -403,7 +403,7 @@ def test_persist_tool_result_prunes_old_session_buckets(tmp_path):
 def test_persist_tool_result_leaves_no_temp_files(tmp_path):
     from pythinker.utils.helpers import maybe_persist_tool_result
 
-    root = tmp_path / ".pythinker" / "tool-results"
+    root = tmp_path / ".pythinker-ai" / "tool-results"
     maybe_persist_tool_result(
         tmp_path,
         "current:session",
@@ -2898,7 +2898,7 @@ def test_snip_history_preserves_user_message_after_truncation(monkeypatch):
     messages = [
         {"role": "system", "content": "system"},
         {"role": "assistant", "content": "previous reply"},
-        {"role": "user", "content": ".pythinker same directory"},
+        {"role": "user", "content": ".pythinker-ai same directory"},
         {
             "role": "assistant",
             "content": None,
@@ -2929,7 +2929,7 @@ def test_snip_history_preserves_user_message_after_truncation(monkeypatch):
     token_sizes = {
         "system": 0,
         "previous reply": 200,
-        ".pythinker same directory": 80,
+        ".pythinker-ai same directory": 80,
         "tool output 1": 80,
         "tool output 2": 80,
     }
@@ -3150,7 +3150,7 @@ async def test_runner_llm_timeout_returns_synthetic_error(monkeypatch):
     not deadlock the per-session asyncio.Lock."""
     from pythinker.agent.runner import AgentRunner, AgentRunSpec
 
-    monkeypatch.setenv("PYTHINKER_LLM_TIMEOUT_S", "0.1")
+    monkeypatch.setenv("PYTHINKER_AI_LLM_TIMEOUT_S", "0.1")
 
     provider = MagicMock()
 

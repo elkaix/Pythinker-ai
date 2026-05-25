@@ -40,6 +40,7 @@ from pythinker.command.builtins.format import (
 )
 from pythinker.command.builtins.init import cmd_init
 from pythinker.command.builtins.pairing import cmd_pairing
+from pythinker.command.builtins.sync import cmd_sync
 from pythinker.command.builtins.lifecycle import (
     _cmd_restart_impl,
     _cmd_upgrade_impl,
@@ -110,3 +111,7 @@ def register_builtin_commands(router: CommandRouter) -> None:
     router.exact("/init", cmd_init)
     router.exact("/pairing", cmd_pairing)
     router.prefix("/pairing ", cmd_pairing)
+    router.exact("/sync", cmd_sync)
+    router.prefix("/sync ", cmd_sync)
+    router.exact("/pythinker-sync", cmd_sync)
+    router.prefix("/pythinker-sync ", cmd_sync)

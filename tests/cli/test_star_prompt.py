@@ -2,7 +2,7 @@
 
 The orchestrator takes every side-effecting helper as an injected kwarg,
 so each test stubs only the deps relevant to that branch. No subprocess
-ever runs against real `gh`, no network, no real ~/.pythinker dir.
+ever runs against real `gh`, no network, no real ~/.pythinker-ai dir.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ from pythinker.cli import star_prompt
 def _isolated_config_path(tmp_path):
     """Redirect the config path via ``set_config_path`` to a per-test
     temp dir so star-prompt tests never read or write the real
-    ``~/.pythinker``. Captures the prior value and restores it in a
+    ``~/.pythinker-ai``. Captures the prior value and restores it in a
     ``finally`` so the process-global ``loader._current_config_path``
     stays clean for later tests in the same pytest run. Mirrors the
     ``redirected_config`` pattern in ``tests/cli/test_backup_cleanup.py``.

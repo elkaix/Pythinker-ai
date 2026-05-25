@@ -12,7 +12,7 @@
 #
 # Layout produced inside the package:
 #   /usr/lib/pythinker/        -- the frozen bundle
-#   /usr/bin/pythinker         -- thin launcher exec'ing /usr/lib/pythinker/pythinker
+#   /usr/bin/pythinker-ai      -- thin launcher exec'ing /usr/lib/pythinker/pythinker
 #   /usr/share/doc/pythinker-ai/{copyright,changelog.Debian.gz}
 
 set -euo pipefail
@@ -47,11 +47,11 @@ mkdir -p \
 cp -a "${BUNDLE}/." "${ROOT}/usr/lib/pythinker/"
 
 # Thin launcher — keeps $PATH tidy (one entry, not the whole bundle dir).
-cat >"${ROOT}/usr/bin/pythinker" <<'LAUNCH'
+cat >"${ROOT}/usr/bin/pythinker-ai" <<'LAUNCH'
 #!/bin/sh
-exec /usr/lib/pythinker/pythinker "$@"
+exec /usr/lib/pythinker/pythinker-ai "$@"
 LAUNCH
-chmod 0755 "${ROOT}/usr/bin/pythinker"
+chmod 0755 "${ROOT}/usr/bin/pythinker-ai"
 
 # control file
 INSTALLED_SIZE=$(du -sk "${ROOT}/usr" | awk '{print $1}')

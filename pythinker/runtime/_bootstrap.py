@@ -1,6 +1,6 @@
 """Internal helper: build the runtime services Tasks 8/8b/8c need.
 
-Shared between `Pythinker.from_config`, `pythinker serve`, `pythinker agent`,
+Shared between `Pythinker.from_config`, `pythinker-ai serve`, `pythinker-ai agent`,
 and `_run_gateway` so the same telemetry-sink-installation + PolicyService-
 construction logic lives in one place.
 """

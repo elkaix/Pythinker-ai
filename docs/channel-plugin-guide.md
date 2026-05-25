@@ -6,7 +6,7 @@ Build a custom pythinker channel in three steps: subclass, package, install.
 
 ## How It Works
 
-pythinker discovers channel plugins via Python [entry points](https://packaging.python.org/en/latest/specifications/entry-points/). When `pythinker gateway` starts, it scans:
+pythinker discovers channel plugins via Python [entry points](https://packaging.python.org/en/latest/specifications/entry-points/). When `pythinker-ai gateway` starts, it scans:
 
 1. Built-in channels in `pythinker/channels/`
 2. External packages registered under the `pythinker.channels` entry point group
@@ -155,10 +155,10 @@ The key (`webhook`) becomes the config section name. The value points to your `B
 ```bash
 pip install -e .
 pythinker plugins list      # verify "Webhook" shows as "plugin"
-pythinker onboard           # auto-adds default config for detected plugins
+pythinker-ai onboard           # auto-adds default config for detected plugins
 ```
 
-Edit `~/.pythinker/config.json`:
+Edit `~/.pythinker-ai/config.json`:
 
 ```json
 {
@@ -175,7 +175,7 @@ Edit `~/.pythinker/config.json`:
 ### 4. Run & Test
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 In another terminal:
@@ -223,8 +223,8 @@ Channels that don't need interactive login (e.g. Telegram with bot token, Discor
 
 Users trigger interactive login via:
 ```bash
-pythinker channels login <channel_name>
-pythinker channels login <channel_name> --force  # re-authenticate
+pythinker-ai channels login <channel_name>
+pythinker-ai channels login <channel_name> --force  # re-authenticate
 ```
 
 ### Provided by Base
@@ -233,7 +233,7 @@ pythinker channels login <channel_name> --force  # re-authenticate
 |-------------------|-------------|
 | `_handle_message(sender_id, chat_id, content, media?, metadata?, session_key?)` | **Call this when you receive a message.** Checks `is_allowed()`, then publishes to the bus. Automatically sets `_wants_stream` if `supports_streaming` is true. |
 | `is_allowed(sender_id)` | Checks against `config.allow_from`; `"*"` allows all, `[]` denies all. |
-| `default_config()` (classmethod) | Returns default config dict for `pythinker onboard`. Override to declare your fields. |
+| `default_config()` (classmethod) | Returns default config dict for `pythinker-ai onboard`. Override to declare your fields. |
 | `transcribe_audio(file_path)` | Transcribes audio via Groq Whisper (if configured). |
 | `supports_streaming` (property) | `True` when config has `"streaming": true` **and** subclass overrides `send_delta()`. |
 | `is_running` | Returns `self._running`. |
@@ -398,7 +398,7 @@ async def start(self) -> None:
 
 `allowFrom` is handled automatically by `_handle_message()` — you don't need to check it yourself.
 
-Override `default_config()` so `pythinker onboard` auto-populates `config.json`:
+Override `default_config()` so `pythinker-ai onboard` auto-populates `config.json`:
 
 ```python
 @classmethod
@@ -426,7 +426,7 @@ git clone https://github.com/you/pythinker-channel-webhook
 cd pythinker-channel-webhook
 pip install -e .
 pythinker plugins list    # should show "Webhook" as "plugin"
-pythinker gateway         # test end-to-end
+pythinker-ai gateway         # test end-to-end
 ```
 
 ## Verify

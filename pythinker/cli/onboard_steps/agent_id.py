@@ -2,7 +2,7 @@
 
 Phase 2 PR-3 of `.agents/plans/2026-05-05-onboard-phase-2-multi-agent.md`.
 
-Runs only when ``~/.pythinker/agents/`` already exists. On a single-config
+Runs only when ``~/.pythinker-ai/agents/`` already exists. On a single-config
 install (no ``agents/`` dir) the step short-circuits to ``skip`` so the
 legacy onboarding path is byte-identical to today's flow.
 
@@ -27,7 +27,7 @@ from pythinker.config.paths import agent_config_path, agent_dir, current_agent_i
 
 
 def _agents_root() -> Path:
-    return Path.home() / ".pythinker" / "agents"
+    return Path.home() / ".pythinker-ai" / "agents"
 
 
 def _list_existing_agents() -> list[str]:
@@ -64,7 +64,7 @@ def _step_agent_id(ctx: _WizardContext) -> StepResult:
     options: list[tuple[str, str, str]] = [
         (_USE_CURRENT, f"Use current agent: {active}", "the resolved active agent"),
         (_PICK, "Pick a different agent", f"{len(existing)} existing"),
-        (_CREATE, "Create a new agent", "scaffold a new ~/.pythinker/agents/<id>/"),
+        (_CREATE, "Create a new agent", "scaffold a new ~/.pythinker-ai/agents/<id>/"),
     ]
     pick = clack.select(
         "Which agent are you onboarding?",

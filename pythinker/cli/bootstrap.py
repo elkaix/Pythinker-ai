@@ -43,11 +43,11 @@ def _make_provider(config: Config):
         # re-implementing validation.
         if "Azure OpenAI" in msg:
             console.print(f"[red]Error: {msg}[/red]")
-            console.print("Set api_key and api_base in ~/.pythinker/config.json under providers.azure_openai")
+            console.print("Set api_key and api_base in ~/.pythinker-ai/config.json under providers.azure_openai")
             console.print("Use the model field to specify the deployment name.")
         elif "No API key configured" in msg:
             console.print(f"[red]Error: {msg}[/red]")
-            console.print("Set one in ~/.pythinker/config.json under providers section")
+            console.print("Set one in ~/.pythinker-ai/config.json under providers section")
         else:
             console.print(f"[red]Error: {msg}[/red]")
         raise typer.Exit(1) from exc

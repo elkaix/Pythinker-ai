@@ -6,7 +6,7 @@ Connect pythinker to your favorite chat platform. Want to build your own? See th
 |---------|---------------|
 | **Telegram** | Bot token from @BotFather |
 | **Discord** | Bot token + Message Content intent |
-| **WhatsApp** | QR code scan (`pythinker channels login whatsapp`) |
+| **WhatsApp** | QR code scan (`pythinker-ai channels login whatsapp`) |
 | **Slack** | Bot token + App-Level token |
 | **Matrix** | Homeserver URL + Access token |
 | **Email** | IMAP/SMTP credentials |
@@ -42,7 +42,7 @@ Connect pythinker to your favorite chat platform. Want to build your own? See th
 **3. Run**
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 </details>
@@ -97,7 +97,7 @@ pythinker gateway
 **6. Run**
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 </details>
@@ -170,7 +170,7 @@ Matrix ignores timeline events older than the channel startup time to avoid repl
 **4. Run**
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 </details>
@@ -183,7 +183,7 @@ Requires **Node.js ≥20**.
 **1. Link device**
 
 ```bash
-pythinker channels login whatsapp
+pythinker-ai channels login whatsapp
 # Scan QR with WhatsApp → Settings → Linked Devices
 ```
 
@@ -191,7 +191,7 @@ Prefer a compact text code instead of the terminal QR? Prefix the login command 
 country-code phone number, digits only:
 
 ```bash
-WHATSAPP_PAIRING_PHONE=15551234567 pythinker channels login whatsapp
+WHATSAPP_PAIRING_PHONE=15551234567 pythinker-ai channels login whatsapp
 # WhatsApp → Linked Devices → Link with phone number instead
 ```
 
@@ -216,10 +216,10 @@ WHATSAPP_PAIRING_PHONE=15551234567 pythinker channels login whatsapp
 
 ```bash
 # Terminal 1
-pythinker channels login whatsapp
+pythinker-ai channels login whatsapp
 
 # Terminal 2
-pythinker gateway
+pythinker-ai gateway
 ```
 
 Voice/audio messages are downloaded by the bridge and passed to the Python channel for transcription when `transcriptionProvider` and the matching API key are configured.
@@ -228,7 +228,7 @@ Useful WhatsApp options:
 
 | Option | Purpose |
 |---|---|
-| `dmPolicy` | `open`, `allowlist`, `disabled`, or `pairing`. `pairing` requires a one-time code from `pythinker channels pair whatsapp`. |
+| `dmPolicy` | `open`, `allowlist`, `disabled`, or `pairing`. `pairing` requires a one-time code from `pythinker-ai channels pair whatsapp`. |
 | `groupPolicy` | `open`, `mention`, or `allowlist`; `groupAllowFrom` lists allowed group JIDs for `allowlist`. |
 | `sendReadReceipts` | Send blue-tick read receipts for accepted inbound messages. |
 | `typingMode` | `thinking` shows WhatsApp typing presence during agent turns; `never` disables it. |
@@ -239,7 +239,7 @@ Useful WhatsApp options:
 
 > WhatsApp bridge updates are not applied automatically for existing installations.
 > After upgrading pythinker, rebuild the local bridge with:
-> `rm -rf ~/.pythinker/bridge && pythinker channels login whatsapp`
+> `rm -rf ~/.pythinker-ai/bridge && pythinker-ai channels login whatsapp`
 
 </details>
 
@@ -278,7 +278,7 @@ Uses **Socket Mode** — no public URL required.
 **4. Run**
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 DM the bot directly or @mention it in a channel — it should respond!
@@ -335,7 +335,7 @@ Give pythinker its own email account. It polls **IMAP** for incoming mail and re
 **3. Run**
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 </details>
@@ -385,7 +385,7 @@ Create or reuse a Microsoft Teams / Azure bot app registration. Set the bot mess
 **4. Run**
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 </details>
@@ -444,7 +444,7 @@ DM and group access are configured independently:
 **3. Run**
 
 ```bash
-pythinker gateway
+pythinker-ai gateway
 ```
 
 </details>

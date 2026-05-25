@@ -26,7 +26,7 @@ async def test_picker_down_then_enter_selects_second_item(tmp_path) -> None:
     from pythinker.cli.tui.app import run
 
     # Hermetic config — the /theme picker calls save_config() which would
-    # otherwise overwrite the user's real ~/.pythinker/config.json.
+    # otherwise overwrite the user's real ~/.pythinker-ai/config.json.
     config_path = tmp_path / "config.json"
     config_path.write_text(
         json.dumps({"cli": {"tui": {"theme": "default"}}}),

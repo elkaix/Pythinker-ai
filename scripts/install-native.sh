@@ -3,7 +3,7 @@
 #
 # Detects host OS + architecture, downloads the matching PyInstaller-frozen
 # tarball from the GitHub release, verifies its SHA-256, and lands the binary
-# at $PREFIX/bin/pythinker (default $HOME/.local/bin).
+# at $PREFIX/bin/pythinker-ai (default $HOME/.local/bin).
 #
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/mohamed-elkholy95/Pythinker/main/scripts/install-native.sh | bash
@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-REPO="${PYTHINKER_REPO:-mohamed-elkholy95/Pythinker}"
+REPO="${PYTHINKER_AI_REPO:-mohamed-elkholy95/Pythinker}"
 VERSION=""
 PREFIX="${HOME}/.local"
 
@@ -119,10 +119,10 @@ rm -rf "${INSTALL_LIB:?}/"*
 cp -a "${TMPDIR}/pythinker/." "${INSTALL_LIB}/"
 
 # Thin launcher (one PATH entry instead of dumping the whole bundle dir on PATH).
-LAUNCHER="${INSTALL_BIN}/pythinker"
+LAUNCHER="${INSTALL_BIN}/pythinker-ai"
 cat >"${LAUNCHER}" <<LAUNCH
 #!/bin/sh
-exec "${INSTALL_LIB}/pythinker" "\$@"
+exec "${INSTALL_LIB}/pythinker-ai" "\$@"
 LAUNCH
 chmod 0755 "${LAUNCHER}"
 
@@ -138,4 +138,4 @@ case ":${PATH}:" in
     ;;
 esac
 
-log "Run: pythinker --version"
+log "Run: pythinker-ai --version"

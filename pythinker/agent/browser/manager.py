@@ -219,7 +219,7 @@ class BrowserSessionManager:
                     "browser launch failed because Chromium's sandbox could not start. "
                     "Use tools.web.browser.mode='cdp' with the pythinker-browser service "
                     "for hardened container deployments, or set "
-                    "PYTHINKER_BROWSER_NO_SANDBOX=1 only as an explicit local escape hatch."
+                    "PYTHINKER_AI_BROWSER_NO_SANDBOX=1 only as an explicit local escape hatch."
                 ) from exc
             raise
         self._browser = browser
@@ -231,10 +231,10 @@ class BrowserSessionManager:
     async def _launch_once(self) -> Any:
         pw = await self._ensure_playwright()
         args = list(_SAFE_LAUNCH_ARGS)
-        if _env_flag("PYTHINKER_BROWSER_NO_SANDBOX"):
+        if _env_flag("PYTHINKER_AI_BROWSER_NO_SANDBOX"):
             logger.warning("browser: launching Chromium with --no-sandbox escape hatch")
             args.append("--no-sandbox")
-        headless = False if _env_flag("PYTHINKER_BROWSER_HEADFUL") else self._config.headless
+        headless = False if _env_flag("PYTHINKER_AI_BROWSER_HEADFUL") else self._config.headless
         kwargs: dict[str, Any] = {"headless": headless, "args": args}
         if self._config.executable_path:
             kwargs["executable_path"] = self._config.executable_path

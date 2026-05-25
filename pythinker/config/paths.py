@@ -10,23 +10,27 @@ from pythinker.utils.helpers import ensure_dir
 
 _DEFAULT_AGENT_ID = "default"
 
+#: Name of the per-user runtime home directory under ``$HOME``. Single source of
+#: truth so the directory name never drifts across call sites.
+_HOME_DIR_NAME = ".pythinker-ai"
+
 
 def current_agent_id() -> str:
     """Return the currently active agent id.
 
     Resolution order:
-      1. ``$PYTHINKER_AGENT_ID`` env var (non-empty wins).
-      2. The single-line ``~/.pythinker/current-agent`` marker file, if it exists
+      1. ``$PYTHINKER_AI_AGENT_ID`` env var (non-empty wins).
+      2. The single-line ``~/.pythinker-ai/current-agent`` marker file, if it exists
          and is readable.
       3. ``"default"``.
 
     A bad / unreadable marker file falls through silently — not the kind of
     thing that should refuse to load the wizard.
     """
-    env_value = os.environ.get("PYTHINKER_AGENT_ID", "").strip()
+    env_value = os.environ.get("PYTHINKER_AI_AGENT_ID", "").strip()
     if env_value:
         return env_value
-    marker = Path.home() / ".pythinker" / "current-agent"
+    marker = Path.home() / _HOME_DIR_NAME / "current-agent"
     try:
         text = marker.read_text(encoding="utf-8").strip()
     except (FileNotFoundError, OSError):
@@ -35,21 +39,21 @@ def current_agent_id() -> str:
 
 
 def agent_dir(agent_id: str) -> Path:
-    """Return ``~/.pythinker/agents/<id>/`` as a Path. Does not create it."""
-    return Path.home() / ".pythinker" / "agents" / agent_id
+    """Return ``~/.pythinker-ai/agents/<id>/`` as a Path. Does not create it."""
+    return Path.home() / _HOME_DIR_NAME / "agents" / agent_id
 
 
 def agent_config_path(agent_id: str) -> Path:
     """Return the config-file path for ``agent_id``, with legacy fallback.
 
-    If ``~/.pythinker/agents/<id>/`` exists, returns ``<that>/config.json``.
-    Otherwise falls back to the legacy single-config path ``~/.pythinker/config.json``
+    If ``~/.pythinker-ai/agents/<id>/`` exists, returns ``<that>/config.json``.
+    Otherwise falls back to the legacy single-config path ``~/.pythinker-ai/config.json``
     so existing single-agent installs keep working unchanged.
     """
     candidate = agent_dir(agent_id) / "config.json"
     if candidate.parent.is_dir():
         return candidate
-    return Path.home() / ".pythinker" / "config.json"
+    return Path.home() / _HOME_DIR_NAME / "config.json"
 
 
 def get_data_dir() -> Path:
@@ -90,30 +94,30 @@ def get_webui_dir() -> Path:
 
 def get_workspace_path(workspace: str | None = None) -> Path:
     """Resolve and ensure the agent workspace path."""
-    path = Path(workspace).expanduser() if workspace else Path.home() / ".pythinker" / "workspace"
+    path = Path(workspace).expanduser() if workspace else Path.home() / _HOME_DIR_NAME / "workspace"
     return ensure_dir(path)
 
 
 def is_default_workspace(workspace: str | Path | None) -> bool:
     """Return whether a workspace resolves to pythinker's default workspace path."""
-    current = Path(workspace).expanduser() if workspace is not None else Path.home() / ".pythinker" / "workspace"
-    default = Path.home() / ".pythinker" / "workspace"
+    current = Path(workspace).expanduser() if workspace is not None else Path.home() / _HOME_DIR_NAME / "workspace"
+    default = Path.home() / _HOME_DIR_NAME / "workspace"
     return current.resolve(strict=False) == default.resolve(strict=False)
 
 
 def get_cli_history_path() -> Path:
     """Return the shared CLI history file path."""
-    return Path.home() / ".pythinker" / "history" / "cli_history"
+    return Path.home() / _HOME_DIR_NAME / "history" / "cli_history"
 
 
 def get_bridge_install_dir() -> Path:
     """Return the shared WhatsApp bridge installation directory."""
-    return Path.home() / ".pythinker" / "bridge"
+    return Path.home() / _HOME_DIR_NAME / "bridge"
 
 
 def get_legacy_sessions_dir() -> Path:
     """Return the legacy global session directory used for migration fallback."""
-    return Path.home() / ".pythinker" / "sessions"
+    return Path.home() / _HOME_DIR_NAME / "sessions"
 
 
 def get_browser_storage_dir() -> Path:

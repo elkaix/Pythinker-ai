@@ -88,7 +88,7 @@ class _WizardContext:
     gateway_started: bool = False
     # Multi-agent layout (`.agents/plans/2026-05-05-onboard-phase-2-multi-agent.md`).
     # ``None`` keeps the legacy single-config behavior; set by ``_step_agent_id``
-    # when the user is on a host that already has ``~/.pythinker/agents/``. The
+    # when the user is on a host that already has ``~/.pythinker-ai/agents/``. The
     # step also calls ``set_config_path()`` so the rest of the wizard reads /
     # writes the chosen agent's ``config.json``.
     agent_id: str | None = None

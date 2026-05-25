@@ -1,6 +1,6 @@
 """Provider factory: single source of truth for LLM provider construction.
 
-Every entrypoint (SDK facade, `pythinker serve`, `pythinker gateway`,
+Every entrypoint (SDK facade, `pythinker-ai serve`, `pythinker-ai gateway`,
 interactive CLI) must route through `make_provider` so a config change
 can be detected, hot-reloaded, or audited from one place.
 """

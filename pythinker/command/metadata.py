@@ -85,4 +85,14 @@ BUILTIN_COMMAND_METADATA: tuple[CommandMeta, ...] = (
         "List, approve, deny or revoke DM pairing requests",
         usage="/pairing [list|approve <code>|deny <code>|revoke <user>|revoke <channel> <user>]",
     ),
+    CommandMeta(
+        "/sync",
+        "Run the local upstream sync audit workflow",
+        usage="/sync [show <sha>]",
+    ),
+    CommandMeta(
+        "/pythinker-sync",
+        "Run the local upstream sync audit workflow",
+        usage="/pythinker-sync [show <sha>]",
+    ),
 )
