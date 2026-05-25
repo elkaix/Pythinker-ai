@@ -6,6 +6,10 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+Nothing yet.
+
+## [2.7.1] - 2026-05-25
+
 ### Added
 
 - Added `providers.openai.apiType` to force OpenAI Chat Completions or
@@ -22,11 +26,6 @@ All notable user-visible changes to Pythinker land here. The project follows
 - Switched the documented native installer entrypoints to short universal URLs:
   `curl -fsSL https://pythinker.com/ai | bash` for macOS/Linux and
   `irm https://pythinker.com/ai.ps1 | iex` for Windows.
-
-## [2.7.1] - 2026-05-24
-
-### Changed
-
 - **BREAKING: renamed the CLI command, runtime directory, and environment-variable
   prefix to avoid clashing with the separate `pythinker-code` tool**, which also
   installs a `pythinker` executable and reads `~/.pythinker/`.

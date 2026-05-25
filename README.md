@@ -42,12 +42,9 @@ Pythinker ships **native installers for every platform** alongside the PyPI
 wheel. Pick the row that matches your OS — no Python, Node, or `uv` prerequisite
 for the native paths.
 
-> ⏳ **Status note (May 2026):** the native installer table below is wired and
-> ready, but the first set of `.exe` / `.deb` / `.rpm` / tarball / Homebrew
-> artifacts ships **with the v2.7.0 GitHub release**. Until that release
-> publishes, only the `pip install pythinker-ai` row is fully populated; the
-> other rows will start returning 200s as soon as v2.7.0's
-> `release-native.yml` workflow finishes.
+> ✅ **Status note (May 2026):** native installers are now the canonical path
+> for new installs. The short URLs below always resolve to the latest GitHub
+> Release artifact, verify its `.sha256` sidecar, and install `pythinker-ai`.
 
 | Platform | One-line install | Artifact |
 |---|---|---|
@@ -142,20 +139,20 @@ to every GitHub Release.
 
 ```bash
 # Debian / Ubuntu (x86_64)
-sudo dpkg -i pythinker-ai_2.7.0_amd64.deb
+sudo dpkg -i pythinker-ai_2.7.1_amd64.deb
 sudo apt-get install -f       # only if dpkg reports missing deps
 
 # Debian / Ubuntu (ARM64)
-sudo dpkg -i pythinker-ai_2.7.0_arm64.deb
+sudo dpkg -i pythinker-ai_2.7.1_arm64.deb
 
 # Fedora / RHEL / openSUSE (x86_64)
-sudo rpm -i pythinker-ai-2.7.0.x86_64.rpm
+sudo rpm -i pythinker-ai-2.7.1.x86_64.rpm
 # or use the package manager (preferred — handles deps):
-sudo dnf install ./pythinker-ai-2.7.0.x86_64.rpm
-sudo zypper install ./pythinker-ai-2.7.0.x86_64.rpm
+sudo dnf install ./pythinker-ai-2.7.1.x86_64.rpm
+sudo zypper install ./pythinker-ai-2.7.1.x86_64.rpm
 
 # Fedora / RHEL (aarch64)
-sudo rpm -i pythinker-ai-2.7.0.aarch64.rpm
+sudo rpm -i pythinker-ai-2.7.1.aarch64.rpm
 ```
 
 Both packages drop a small `/usr/bin/pythinker-ai` launcher that execs the real
@@ -164,8 +161,8 @@ binary under `/usr/lib/pythinker/`, so your `$PATH` stays tidy.
 **Verify before install:**
 
 ```bash
-sha256sum -c pythinker-ai_2.7.0_amd64.deb.sha256        # Debian/Ubuntu
-sha256sum -c pythinker-ai-2.7.0.x86_64.rpm.sha256       # Fedora/RHEL
+sha256sum -c pythinker-ai_2.7.1_amd64.deb.sha256        # Debian/Ubuntu
+sha256sum -c pythinker-ai-2.7.1.x86_64.rpm.sha256       # Fedora/RHEL
 ```
 
 **Upgrade:** download the new `.deb`/`.rpm` from Releases and `dpkg -i` /
