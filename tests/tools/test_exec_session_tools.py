@@ -1,4 +1,4 @@
-import asyncio
+import sys
 from pathlib import Path
 
 import pytest
@@ -13,7 +13,9 @@ async def test_exec_yield_returns_session_and_write_stdin_polls(tmp_path: Path) 
     tool = ExecTool(working_dir=str(tmp_path), session_manager=manager)
 
     result = await tool.execute(
-        command="python -c 'import time; print(\"ready\", flush=True); time.sleep(1)'",
+        command=(
+            f'"{sys.executable}" -c "import time; print(\'ready\', flush=True); time.sleep(1)"'
+        ),
         yield_time_ms=50,
     )
     assert "session_id:" in result

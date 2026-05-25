@@ -375,7 +375,7 @@ class ExecTool(Tool):
             if _IS_WINDOWS:
                 env["PATH"] = env.get("PATH", "") + ";" + self.path_append
             else:
-                command = f'export PATH="$PATH{os.pathsep}{self.path_append}"; {command}'
+                command = f'export PATH="$PATH:{self.path_append}"; {command}'
 
         shell_program, shell_error = self._resolve_shell(shell)
         if shell_error:
