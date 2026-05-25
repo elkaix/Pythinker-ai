@@ -18,6 +18,7 @@ def provider():
     p.default_model = "gpt-5"
     p._spec = type("Spec", (), {"name": "openai"})()
     p._effective_base = "https://api.openai.com/v1"
+    p._api_type = "auto"
     p._responses_failures = {}
     p._responses_tripped_at = {}
     return p
@@ -25,6 +26,34 @@ def provider():
 
 def test_responses_api_available_by_default(provider):
     assert provider._should_use_responses_api("gpt-5", None) is True
+
+
+def test_api_type_chat_completions_disables_responses(provider):
+    provider._api_type = "chat_completions"
+    assert provider._should_use_responses_api("gpt-5", None) is False
+
+
+def test_api_type_responses_forces_responses_for_openai(provider):
+    provider.default_model = "gpt-4o"
+    provider._api_type = "responses"
+    assert provider._should_use_responses_api("gpt-4o", None) is True
+
+
+def test_api_type_responses_ignores_circuit_breaker(provider):
+    provider.default_model = "gpt-4o"
+    provider._api_type = "responses"
+    key = "gpt-4o:"
+    provider._responses_failures = {key: _RESPONSES_FAILURE_THRESHOLD}
+    provider._responses_tripped_at = {key: 0.0}
+
+    assert provider._should_use_responses_api("gpt-4o", None) is True
+
+
+def test_api_type_responses_does_not_force_non_openai(provider):
+    provider._spec = type("Spec", (), {"name": "custom"})()
+    provider._api_type = "responses"
+
+    assert provider._should_use_responses_api("gpt-4o", None) is False
 
 
 def test_circuit_opens_after_threshold(provider):

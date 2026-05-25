@@ -156,6 +156,15 @@ def test_provider_signature_changes_when_extra_headers_changes():
     assert sig1 != sig2
 
 
+def test_provider_signature_changes_when_api_type_changes():
+    """Edits to OpenAI api_type must invalidate the hot-reload signature."""
+    cfg = _config("openai/gpt-4.1", openai={"apiKey": "sk"})
+    sig1 = provider_signature(cfg)
+    cfg.providers.openai.api_type = "responses"
+    sig2 = provider_signature(cfg)
+    assert sig1 != sig2
+
+
 def test_build_provider_snapshot_carries_provider_and_signature():
     cfg = _config("openai/gpt-4.1", openai={"apiKey": "sk-test"})
     with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI"):
@@ -188,6 +197,15 @@ def test_make_provider_threads_extra_body_into_openai_compat():
     with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI"):
         provider = make_provider(cfg)
     assert provider._extra_body == {"chat_template_kwargs": {"enable_thinking": False}}
+
+
+def test_make_provider_threads_openai_api_type_into_openai_compat():
+    """OpenAI api_type config is wired through to the provider."""
+    cfg = _config("openai/gpt-4.1", openai={"apiKey": "sk-test"})
+    cfg.providers.openai.api_type = "responses"
+    with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI"):
+        provider = make_provider(cfg)
+    assert provider._api_type == "responses"
 
 
 def test_openai_codex_provider_supports_progress_deltas():

@@ -127,6 +127,8 @@ The Workbench also includes operational checks for local administrators:
 > - **Zhipu Coding Plan**: If you're on Zhipu's coding plan, set `"apiBase": "https://open.bigmodel.cn/api/coding/paas/v4"` in your zhipu provider config.
 > - **Alibaba Cloud BaiLian**: If you're using Alibaba Cloud BaiLian's OpenAI-compatible endpoint, set `"apiBase": "https://dashscope.aliyuncs.com/compatible-mode/v1"` in your dashscope provider config.
 > - **Step Fun (Mainland China)**: If your API key is from Step Fun's mainland China platform (stepfun.com), set `"apiBase": "https://api.stepfun.com/v1"` in your stepfun provider config.
+> - **Xiaomi MiMo thinking mode**: MiMo models (e.g. `mimo-v2.5-pro`) default to enabled thinking. Use `agents.defaults.reasoningEffort: "none"` to disable it, or `"low"` / `"medium"` / `"high"` to keep it on. Omitting the field preserves the provider's per-model default.
+> - **Xiaomi MiMo Token Plan**: If you're on MiMo's token plan, set `"apiBase": "https://token-plan-sgp.xiaomimimo.com/v1"` in your `xiaomi_mimo` provider config.
 
 | Provider | Purpose | Get API Key |
 |----------|---------|-------------|
@@ -148,7 +150,7 @@ The Workbench also includes operational checks for local administrators:
 | `dashscope` | LLM (Qwen) | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com) |
 | `moonshot` | LLM (Moonshot/Kimi) | [platform.moonshot.cn](https://platform.moonshot.cn) |
 | `zhipu` | LLM (Zhipu GLM) | [open.bigmodel.cn](https://open.bigmodel.cn) |
-| `mimo` | LLM (MiMo) | [platform.xiaomimimo.com](https://platform.xiaomimimo.com) |
+| `xiaomi_mimo` | LLM (MiMo) | [platform.xiaomimimo.com](https://platform.xiaomimimo.com) |
 | `ollama` | LLM (local, Ollama) | — |
 | `lm_studio` | LLM (local, LM Studio) | — |
 | `mistral` | LLM | [docs.mistral.ai](https://docs.mistral.ai/) |
@@ -160,6 +162,43 @@ The Workbench also includes operational checks for local administrators:
 | `openai_codex` | LLM (Codex, OAuth) | `pythinker-ai provider login openai-codex` |
 | `github_copilot` | LLM (GitHub Copilot, OAuth) | `pythinker-ai provider login github-copilot` |
 | `qianfan` | LLM (Baidu Qianfan) | [cloud.baidu.com](https://cloud.baidu.com/doc/qianfan/s/Hmh4suq26) |
+
+<details>
+<summary><b>OpenAI</b></summary>
+
+By default, OpenAI uses `apiType: "auto"`: pythinker calls Chat Completions normally and routes GPT-5/o-series or explicit `reasoningEffort` requests through the Responses API when useful. You can force a specific API surface:
+
+```json
+{
+  "providers": {
+    "openai": {
+      "apiKey": "${OPENAI_API_KEY}",
+      "apiType": "chat_completions"
+    }
+  }
+}
+```
+
+Valid `apiType` values are exactly `auto`, `chat_completions`, and `responses`.
+
+`extraBody` follows the selected OpenAI API surface. With Chat Completions, pythinker passes it through as the SDK `extra_body` value. With Responses, configure it in Responses API body shape; pythinker merges ordinary top-level fields into the Responses request body, appends `extraBody.tools` after generated function tools, and merges `extraBody.include` without duplicates:
+
+```json
+{
+  "providers": {
+    "openai": {
+      "apiKey": "${OPENAI_API_KEY}",
+      "apiType": "responses",
+      "extraBody": {
+        "tools": [{ "type": "web_search" }],
+        "include": ["web_search_call.action.sources"]
+      }
+    }
+  }
+}
+```
+
+</details>
 
 <details>
 <summary><b>Skywork / APIFree</b></summary>
@@ -263,6 +302,33 @@ pythinker-ai agent -c ~/.pythinker-telegram/config.json -w /tmp/pythinker-telegr
 ```
 
 > Docker users: use `docker run -it` for interactive OAuth login.
+
+</details>
+
+<details>
+<summary><b>Xiaomi MiMo</b></summary>
+
+Xiaomi MiMo models are automatically detected by the `xiaomi_mimo` provider when the model name contains `mimo`. The default API base is `https://api.xiaomimimo.com/v1`.
+
+> **Token Plan**: If you're using MiMo's token plan, override `apiBase` with the dedicated endpoint:
+>
+> ```json
+> {
+>   "providers": {
+>     "xiaomi_mimo": {
+>       "apiKey": "${XIAOMIMIMO_API_KEY}",
+>       "apiBase": "https://token-plan-sgp.xiaomimimo.com/v1"
+>     }
+>   },
+>   "agents": {
+>     "defaults": {
+>       "model": "xiaomi/mimo-v2.5-pro"
+>     }
+>   }
+> }
+> ```
+>
+> No need to set `provider` explicitly — the model name contains `mimo`, which auto-matches to the `xiaomi_mimo` provider spec. Use an API key from the MiMo token plan console and check the MiMo platform for the latest supported model names.
 
 </details>
 
@@ -557,7 +623,7 @@ Global settings that apply to all channels. Configure under the `channels` secti
 | `sendProgress` | `true` | Stream agent's text progress to the channel |
 | `sendToolHints` | `false` | Stream tool-call hints (e.g. `read_file("…")`) |
 | `sendMaxRetries` | `3` | Max delivery attempts per outbound message, including the initial send (0-10 configured, minimum 1 actual attempt) |
-| `transcriptionProvider` | `"groq"` | Voice transcription backend: `"groq"` (free tier, default) or `"openai"`. API key is auto-resolved from the matching provider config. |
+| `transcriptionProvider` | `"groq"` | Voice transcription backend: `"groq"` (free tier, default) or `"openai"`. API key and optional `apiBase` are auto-resolved from the matching provider config. Chat-style bases such as `https://api.groq.com/openai/v1` are normalized to the audio transcription endpoint. |
 | `transcriptionLanguage` | `null` | Optional ISO-639-1 language hint for audio transcription, e.g. `"en"`, `"ko"`, `"ja"`. |
 
 ### Retry Behavior
@@ -839,7 +905,7 @@ without restarting the TUI.
 | `tools.restrictToWorkspace` | `false` | When `true`, restricts **all** agent tools (shell, file read/write/edit, list) to the workspace directory. Prevents path traversal and out-of-scope access. |
 | `tools.exec.sandbox` | `""` | Sandbox backend for shell commands. Set to `"bwrap"` to wrap exec calls in a [bubblewrap](https://github.com/containers/bubblewrap) sandbox — the process can only see the workspace (read-write) and media directory (read-only); config files and API keys are hidden. Automatically enables `restrictToWorkspace` for file tools. **Linux only** — requires `bwrap` installed (`apt install bubblewrap`; pre-installed in the Docker image). Not available on macOS or Windows (bwrap depends on Linux kernel namespaces). |
 | `tools.exec.enable` | `true` | When `false`, the shell `exec` tool is not registered at all. Use this to completely disable shell command execution. |
-| `tools.exec.timeout` | `60` | Default hard timeout for shell commands in seconds. Set to `0` to disable the default hard limit; per-call model-supplied timeouts remain capped. |
+| `tools.exec.timeout` | `60` | Default hard timeout in seconds for shell commands. Config values may exceed the per-call tool cap; set `0` to disable the hard timeout for trusted long-running commands. |
 | `tools.exec.pathAppend` | `""` | Extra directories to append to `PATH` when running shell commands (e.g. `/usr/sbin` for `ufw`). |
 | `tools.exec.allowedEnvKeys` | `[]` | Environment variable names to forward into shell commands. Secrets are not forwarded unless explicitly listed. |
 | `tools.exec.allowPatterns` | `[]` | Optional regex allowlist. When set, commands must match at least one pattern. |
@@ -958,8 +1024,9 @@ Each entry under `providers.<name>` is a `ProviderConfig` with these fields:
 |---|---|---|---|
 | `apiKey` | `api_key` | `null` | Provider API key. May reference an env var via `${VAR}`. Not required for OAuth providers (`openai_codex`, `github_copilot`) or local servers (`ollama`, `lm_studio`, `vllm`, `ovms`). |
 | `apiBase` | `api_base` | `null` | Override the provider's base URL (e.g. point `dashscope` at the Mainland China endpoint, or `zhipu` at the coding-plan endpoint). Defaults come from `pythinker/providers/registry.py`. |
+| `apiType` | `api_type` | `"auto"` | OpenAI request API surface: `"auto"`, `"chat_completions"`, or `"responses"`. Only supported for `providers.openai`; other providers must leave it as `"auto"`. |
 | `extraHeaders` | `extra_headers` | `null` | Custom request headers merged into every call (e.g. `APP-Code` for AiHubMix). |
-| `extraBody` | `extra_body` | `null` | Extra fields merged into every request body. Used by pythinker internally to inject `{"reasoning_split": true}` for `providers.minimax` thinking mode (`pythinker/providers/openai_compat_provider.py`); also available to users for any OpenAI-compatible request-body extension. |
+| `extraBody` | `extra_body` | `null` | Extra provider request fields; the shape depends on provider/API surface. For OpenAI Responses requests, top-level fields merge into the Responses body, `tools` append after generated function tools, and `include` is de-duplicated. |
 
 ## Agent Defaults
 

@@ -8,6 +8,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ### Added
 
+- Added `providers.openai.apiType` to force OpenAI Chat Completions or
+  Responses API requests, with Responses-shaped `extraBody` merging.
 - Added structured `apply_patch`, long-running exec sessions, `write_stdin`,
   `list_exec_sessions`, and `find_files` for safer coding workflows.
 

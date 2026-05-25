@@ -79,6 +79,26 @@ def test_novita_gateway_routes_unprefixed_models_when_configured() -> None:
     assert config.get_api_base("deepseek-v4-pro") == "https://api.novita.ai/openai"
 
 
+def test_novita_gateway_routes_prefixed_models() -> None:
+    config = Config.model_validate(
+        {
+            "providers": {
+                "novita": {
+                    "apiKey": "novita-key",
+                },
+            },
+            "agents": {
+                "defaults": {
+                    "model": "novita/deepseek/deepseek-v4-pro",
+                },
+            },
+        }
+    )
+
+    assert config.get_provider_name() == "novita"
+    assert config.get_api_base() == "https://api.novita.ai/openai"
+
+
 def test_novita_preserves_model_api_id() -> None:
     spec = find_by_name("novita")
     with patch("pythinker.providers.openai_compat_provider.AsyncOpenAI"):

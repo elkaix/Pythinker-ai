@@ -134,8 +134,9 @@ class ProviderConfig(Base):
 
     api_key: str | None = None
     api_base: str | None = None
+    api_type: Literal["auto", "chat_completions", "responses"] = "auto"  # Request API surface; only supported for providers.openai
     extra_headers: dict[str, str] | None = None  # Custom headers (e.g. APP-Code for AiHubMix)
-    extra_body: dict[str, Any] | None = None  # Extra fields merged into every request body
+    extra_body: dict[str, Any] | None = None  # Extra provider request fields; shape depends on provider/API surface
 
 
 class ProvidersConfig(Base):
@@ -192,6 +193,16 @@ class ProvidersConfig(Base):
     kilocode: ProviderConfig = Field(default_factory=ProviderConfig)
     sglang: ProviderConfig = Field(default_factory=ProviderConfig)
     litellm: ProviderConfig = Field(default_factory=ProviderConfig)
+
+    @model_validator(mode="after")
+    def _validate_api_type_scope(self) -> "ProvidersConfig":
+        for name in self.__class__.model_fields:
+            if name == "openai":
+                continue
+            provider = getattr(self, name, None)
+            if isinstance(provider, ProviderConfig) and provider.api_type != "auto":
+                raise ValueError("providers.<name>.api_type is only supported for providers.openai")
+        return self
 
 
 class HeartbeatConfig(Base):
