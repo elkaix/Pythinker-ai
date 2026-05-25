@@ -4,7 +4,7 @@ from contextvars import ContextVar
 from typing import TYPE_CHECKING, Any
 
 from pythinker.agent.tools.base import Tool, tool_parameters
-from pythinker.agent.tools.schema import StringSchema, tool_parameters_schema
+from pythinker.agent.tools.schema import NumberSchema, StringSchema, tool_parameters_schema
 
 if TYPE_CHECKING:
     from pythinker.agent.runner import EgressGateway
@@ -25,6 +25,15 @@ if TYPE_CHECKING:
             "understanding or designing — they don't need write/exec and "
             "the role-specific prompt yields tighter, more focused output.",
             enum=["coder", "explore", "plan"],
+        ),
+        temperature=NumberSchema(
+            description=(
+                "Optional sampling temperature for the subagent "
+                "(0.0 = deterministic, higher = more creative). "
+                "Defaults to the provider's configured temperature."
+            ),
+            minimum=0.0,
+            maximum=2.0,
         ),
         required=["task"],
     )
@@ -84,6 +93,7 @@ class SpawnTool(Tool):
         task: str,
         label: str | None = None,
         role: str | None = None,
+        temperature: float | None = None,
         **kwargs: Any,
     ) -> str | None:
         """Spawn a subagent to execute the given task."""
@@ -97,4 +107,5 @@ class SpawnTool(Tool):
             parent_context=self._parent_context.get(),
             parent_egress=self._parent_egress.get(),
             role=chosen_role,
+            temperature=temperature,
         )

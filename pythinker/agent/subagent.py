@@ -145,6 +145,7 @@ class SubagentManager:
         parent_context: "RequestContext | None" = None,
         parent_egress: "EgressGateway | None" = None,
         role: str = "coder",
+        temperature: float | None = None,
     ) -> str:
         """Spawn a subagent to execute a task in the background.
 
@@ -208,6 +209,7 @@ class SubagentManager:
                 parent_context=parent_context,
                 parent_egress=parent_egress,
                 role=role,
+                temperature=temperature,
             )
         )
         self._running_tasks[task_id] = bg_task
@@ -238,6 +240,7 @@ class SubagentManager:
         parent_context: "RequestContext | None" = None,
         parent_egress: "EgressGateway | None" = None,
         role: str = "coder",
+        temperature: float | None = None,
     ) -> None:
         """Execute the subagent task and announce the result."""
         logger.info("Subagent [{}] starting task: {}", task_id, label)
@@ -295,6 +298,7 @@ class SubagentManager:
                 initial_messages=messages,
                 tools=tools,
                 model=self.model,
+                temperature=temperature,
                 max_iterations=15,
                 max_tool_result_chars=self.max_tool_result_chars,
                 hook=_SubagentHook(task_id, status, self.task_store),
