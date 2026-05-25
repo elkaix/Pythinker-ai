@@ -257,11 +257,25 @@ export function usePythinkerStream(
           cluster.current = null;
         }
         if (!buffer.current) {
+          const finalFrameText = typeof ev.text === "string" ? ev.text : "";
+          if (finalFrameText.length > 0) {
+            const id = crypto.randomUUID();
+            setMessages((prev) => [
+              ...prev,
+              {
+                id,
+                role: "assistant",
+                content: finalFrameText,
+                isStreaming: false,
+                createdAt: Date.now(),
+              },
+            ]);
+          }
           if (!ev.resuming) setIsStreaming(false);
           return;
         }
         const finalId = buffer.current.messageId;
-        const finalText = buffer.current.parts.join("");
+        const finalText = typeof ev.text === "string" ? ev.text : buffer.current.parts.join("");
         cancelFlush();
         // ``resuming`` means the agent is still working (usually executing a
         // tool before the next model turn). Keep the placeholder alive so the

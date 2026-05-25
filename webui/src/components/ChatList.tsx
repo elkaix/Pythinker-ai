@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ChatRow } from "@/components/ChatRow";
@@ -15,6 +15,9 @@ export interface ChatSection {
   collapsible?: boolean;
   defaultOpen?: boolean;
 }
+
+const INITIAL_VISIBLE_SESSIONS = 160;
+const VISIBLE_SESSIONS_INCREMENT = 160;
 
 interface ChatListProps {
   /** New section-aware shape. When omitted, the list falls back to ``sessions``
@@ -57,7 +60,7 @@ function resolveSections(
   return [{ id: "all", label: "", items: sessions ?? [] }];
 }
 
-export function ChatList({
+export const ChatList = memo(function ChatList({
   sections,
   sessions,
   activeKey,
@@ -70,8 +73,25 @@ export function ChatList({
   onToggleArchive,
 }: ChatListProps) {
   const { t } = useTranslation();
-  const resolved = resolveSections(sections, sessions);
-  const totalItems = resolved.reduce((n, sec) => n + sec.items.length, 0);
+  const [visibleLimit, setVisibleLimit] = useState(INITIAL_VISIBLE_SESSIONS);
+  const resolved = useMemo(() => resolveSections(sections, sessions), [sections, sessions]);
+  const totalItems = useMemo(
+    () => resolved.reduce((n, sec) => n + sec.items.length, 0),
+    [resolved],
+  );
+  const visibleSections = useMemo(
+    () => limitSections(resolved, visibleLimit, activeKey),
+    [activeKey, resolved, visibleLimit],
+  );
+  const visibleItems = useMemo(
+    () => visibleSections.reduce((n, sec) => n + sec.items.length, 0),
+    [visibleSections],
+  );
+  const hiddenItems = Math.max(0, totalItems - visibleItems);
+
+  useEffect(() => {
+    setVisibleLimit(INITIAL_VISIBLE_SESSIONS);
+  }, [sections, sessions]);
 
   if (loading && totalItems === 0) {
     return (
@@ -91,7 +111,7 @@ export function ChatList({
   return (
     <ScrollArea className="h-full">
       <div className="space-y-1 pb-2">
-        {resolved.map((sec) =>
+        {visibleSections.map((sec) =>
           sec.items.length > 0 ? (
             <Section
               key={sec.id}
@@ -107,9 +127,61 @@ export function ChatList({
             />
           ) : null,
         )}
+        {hiddenItems > 0 ? (
+          <div className="px-2 pb-2 pt-1">
+            <button
+              type="button"
+              onClick={() =>
+                setVisibleLimit((limit) =>
+                  Math.min(totalItems, limit + VISIBLE_SESSIONS_INCREMENT),
+                )
+              }
+              className="h-8 w-full rounded-full text-[12px] font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/65 hover:text-sidebar-foreground"
+            >
+              {t("chat.showMore", { count: hiddenItems })}
+            </button>
+          </div>
+        ) : null}
       </div>
     </ScrollArea>
   );
+});
+
+function limitSections(
+  sections: ChatSection[],
+  limit: number,
+  activeKey: string | null,
+): ChatSection[] {
+  let remaining = Math.max(0, limit);
+  let activeVisible = !activeKey;
+  const out: ChatSection[] = [];
+
+  for (const section of sections) {
+    const visible = remaining > 0 ? section.items.slice(0, remaining) : [];
+    remaining -= visible.length;
+    if (activeKey && visible.some((item) => item.key === activeKey)) {
+      activeVisible = true;
+    }
+    if (visible.length > 0) {
+      out.push({ ...section, items: visible });
+    }
+  }
+
+  if (activeVisible || !activeKey) return out;
+
+  for (const section of sections) {
+    const active = section.items.find((item) => item.key === activeKey);
+    if (!active) continue;
+    const existing = out.find((item) => item.id === section.id);
+    if (existing) {
+      existing.items = [...existing.items, active];
+    } else {
+      out.push({ ...section, items: [active] });
+    }
+    return out;
+  }
+
+  return out;
 }
 
 function Section({

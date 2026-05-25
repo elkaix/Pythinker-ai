@@ -218,4 +218,47 @@ describe("usePythinkerStream", () => {
     expect(result.current.messages[0].isStreaming).toBe(false);
     expect(result.current.isStreaming).toBe(false);
   });
+
+  it("replaces streamed content with final stream_end text when provided", () => {
+    const fake = fakeClient();
+    const { result } = renderHook(() => usePythinkerStream("chat-img", []), {
+      wrapper: wrap(fake.client),
+    });
+
+    act(() => {
+      fake.emit("chat-img", {
+        event: "delta",
+        chat_id: "chat-img",
+        text: "![Diagram](diagram.png)",
+      });
+      fake.emit("chat-img", {
+        event: "stream_end",
+        chat_id: "chat-img",
+        text: "![Diagram](/api/media/sig/payload)",
+      });
+    });
+
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].content).toBe("![Diagram](/api/media/sig/payload)");
+    expect(result.current.messages[0].isStreaming).toBe(false);
+  });
+
+  it("creates an assistant bubble from final stream_end text without prior delta", () => {
+    const fake = fakeClient();
+    const { result } = renderHook(() => usePythinkerStream("chat-img", []), {
+      wrapper: wrap(fake.client),
+    });
+
+    act(() => {
+      fake.emit("chat-img", {
+        event: "stream_end",
+        chat_id: "chat-img",
+        text: "![Diagram](/api/media/sig/payload)",
+      });
+    });
+
+    expect(result.current.messages).toHaveLength(1);
+    expect(result.current.messages[0].content).toBe("![Diagram](/api/media/sig/payload)");
+    expect(result.current.messages[0].isStreaming).toBe(false);
+  });
 });

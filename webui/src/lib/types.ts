@@ -175,6 +175,9 @@ export type InboundEvent =
       event: "stream_end";
       chat_id: string;
       stream_id?: string;
+      /** Final rewritten answer text, used when the server had to replace
+       * streamed markdown (for example, local image artifact links). */
+      text?: string;
       /** True when this stream segment ended because the agent is continuing
        * into tools / another model turn, not because the whole turn is done. */
       resuming?: boolean;

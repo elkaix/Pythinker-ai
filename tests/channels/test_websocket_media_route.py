@@ -43,6 +43,7 @@ def _ch(
     bus: Any,
     *,
     session_manager: SessionManager | None = None,
+    workspace_path: Path | None = None,
     port: int,
 ) -> WebSocketChannel:
     return WebSocketChannel(
@@ -56,6 +57,7 @@ def _ch(
         },
         bus,
         session_manager=session_manager,
+        workspace_path=workspace_path,
     )
 
 
@@ -120,6 +122,50 @@ def test_sign_media_path_round_trips_via_hmac(
     assert _b64url_decode(sig) == expected
     # The payload decodes back to the *relative* path — no absolute-path leaks.
     assert _b64url_decode(payload).decode() == "a.png"
+
+
+def test_local_markdown_image_is_staged_and_rewritten(
+    bus: MagicMock,
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / "demo_arch.png").write_bytes(_PNG_BYTES)
+    media = tmp_path / "media"
+    channel = _ch(bus, workspace_path=workspace, port=0)
+
+    def fake_media_dir(channel_name: str | None = None) -> Path:
+        path = media / channel_name if channel_name else media
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    with patch("pythinker.channels.websocket.get_media_dir", side_effect=fake_media_dir):
+        rewritten = channel._rewrite_local_markdown_images(
+            "The result:\n![Cloud Architecture Diagram](demo_arch.png)"
+        )
+
+    assert "![Cloud Architecture Diagram](/api/media/" in rewritten
+    staged = list((media / "websocket").iterdir())
+    assert len(staged) == 1
+    assert staged[0].read_bytes() == _PNG_BYTES
+
+
+def test_local_markdown_image_rejects_workspace_escape(
+    bus: MagicMock,
+    tmp_path: Path,
+) -> None:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    outside = tmp_path / "outside.png"
+    outside.write_bytes(_PNG_BYTES)
+    media = tmp_path / "media"
+    channel = _ch(bus, workspace_path=workspace, port=0)
+    text = "![nope](../outside.png)"
+
+    with patch("pythinker.channels.websocket.get_media_dir", return_value=media):
+        assert channel._rewrite_local_markdown_images(text) == text
+
+    assert not media.exists()
 
 
 # ---------------------------------------------------------------------------

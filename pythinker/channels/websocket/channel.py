@@ -23,6 +23,7 @@ import json
 import mimetypes
 import re
 import secrets
+import shutil
 import ssl
 import tempfile
 import time
@@ -88,6 +89,7 @@ if TYPE_CHECKING:
 
 _FILE_READ_MAX_BYTES = 1_048_576   # 1 MiB — hard cap for WebUI file panel reads
 _FILE_READ_PROBE_BYTES = 8192      # binary-detection scan window (null-byte check)
+_MARKDOWN_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 
 
 def _get_media_dir(*args: Any, **kwargs: Any) -> Path:
@@ -119,6 +121,7 @@ class WebSocketChannel(BaseChannel):
         static_dist_path: Path | None = None,
         agent_defaults: AgentDefaults | None = None,
         admin_service: "AdminService | None" = None,
+        workspace_path: Path | None = None,
     ):
         if isinstance(config, dict):
             config = WebSocketConfig.model_validate(config)
@@ -147,12 +150,14 @@ class WebSocketChannel(BaseChannel):
         # no-op (503) when this isn't wired by ``ChannelManager``.
         self._agent_defaults = agent_defaults
         self._admin_service = admin_service
+        self._workspace_path = workspace_path.resolve() if workspace_path is not None else None
         self._admin_bind_attempts: dict[Any, list[float]] = {}
         # Process-local secret used to HMAC-sign media URLs. The signed URL is
         # the capability — anyone who holds a valid URL can fetch that one
         # file, nothing else. The secret regenerates on restart so links
         # become self-expiring (callers just refresh the session list).
         self._media_secret: bytes = secrets.token_bytes(32)
+        self._stream_text_buffers: dict[tuple[str, str], list[str]] = {}
 
     # -- Subscription bookkeeping -------------------------------------------
 
@@ -569,6 +574,61 @@ class WebSocketChannel(BaseChannel):
             self._media_secret, payload.encode("ascii"), hashlib.sha256
         ).digest()[:16]
         return f"/api/media/{_b64url_encode(mac)}/{payload}"
+
+    def _workspace_root(self) -> Path | None:
+        if self._workspace_path is not None:
+            return self._workspace_path
+        if self._admin_service is None:
+            return None
+        raw = getattr(getattr(self._admin_service, "config", None), "workspace_path", None)
+        if not raw:
+            return None
+        try:
+            return Path(raw).resolve()
+        except OSError:
+            return None
+
+    def _stage_local_markdown_image(self, raw_src: str) -> str | None:
+        """Stage a relative workspace image under WebUI media and return a signed URL."""
+        src = raw_src.strip().strip("<>")
+        if not src or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", src) or src.startswith("/"):
+            return None
+        workspace = self._workspace_root()
+        if workspace is None:
+            return None
+        try:
+            candidate = (workspace / src).resolve()
+            candidate.relative_to(workspace)
+            if not candidate.is_file() or candidate.stat().st_size > _MAX_IMAGE_BYTES:
+                return None
+        except (OSError, ValueError):
+            return None
+        mime, _ = mimetypes.guess_type(candidate.name)
+        if mime not in _MEDIA_ALLOWED_MIMES or not str(mime).startswith("image/"):
+            return None
+        media_dir = _get_media_dir("websocket")
+        try:
+            media_dir.mkdir(parents=True, exist_ok=True)
+            suffix = candidate.suffix.lower() or mimetypes.guess_extension(mime) or ".img"
+            staged = media_dir / f"local-{uuid.uuid4().hex}{suffix}"
+            shutil.copyfile(candidate, staged)
+        except OSError as exc:
+            logger.debug("websocket: failed to stage local markdown image {}: {}", candidate, exc)
+            return None
+        return self._sign_media_path(staged)
+
+    def _rewrite_local_markdown_images(self, text: str) -> str:
+        """Rewrite relative workspace markdown image links to signed WebUI media URLs."""
+        if not text or "![" not in text:
+            return text
+
+        def replace(match: re.Match[str]) -> str:
+            url = self._stage_local_markdown_image(match.group(2))
+            if not url:
+                return match.group(0)
+            return f"![{match.group(1)}]({url})"
+
+        return _MARKDOWN_IMAGE_RE.sub(replace, text)
 
     def _handle_media_fetch(self, sig: str, payload: str) -> Response:
         """Serve a single media file previously signed via
@@ -1998,8 +2058,18 @@ class WebSocketChannel(BaseChannel):
         if not conns:
             return
         meta = metadata or {}
+        stream_key = (chat_id, str(meta.get("_stream_id") or ""))
         if meta.get("_stream_end"):
             body: dict[str, Any] = {"event": "stream_end", "chat_id": chat_id}
+            buffered = self._stream_text_buffers.pop(stream_key, [])
+            if delta:
+                buffered.append(delta)
+            final_text = "".join(buffered)
+            rewritten = self._rewrite_local_markdown_images(final_text)
+            if rewritten and rewritten != final_text:
+                body["text"] = rewritten
+            elif delta:
+                body["text"] = final_text
             if meta.get("_resuming"):
                 body["resuming"] = True
         else:
@@ -2008,6 +2078,7 @@ class WebSocketChannel(BaseChannel):
                 "chat_id": chat_id,
                 "text": delta,
             }
+            self._stream_text_buffers.setdefault(stream_key, []).append(delta)
         if meta.get("_stream_id") is not None:
             body["stream_id"] = meta["_stream_id"]
         raw = json.dumps(body, ensure_ascii=False)
