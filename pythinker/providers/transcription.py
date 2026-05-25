@@ -7,6 +7,25 @@ from pathlib import Path
 import httpx
 from loguru import logger
 
+_TRANSCRIPTIONS_PATH = "audio/transcriptions"
+
+
+def _resolve_transcription_url(api_base: str | None, default_url: str) -> str:
+    """Resolve the full transcription endpoint URL.
+
+    Accepts either a chat-style base (e.g. ``https://api.groq.com/openai/v1``)
+    or a complete URL already ending in ``/audio/transcriptions``. A chat-style
+    base — the form users naturally copy from their LLM provider config — gets
+    the path appended instead of being POSTed verbatim and 404ing.
+    """
+    if not api_base:
+        return default_url
+    base = api_base.rstrip("/")
+    if base.endswith(_TRANSCRIPTIONS_PATH):
+        return base
+    return f"{base}/{_TRANSCRIPTIONS_PATH}"
+
+
 _MAX_RETRIES = 3
 _BACKOFF_S = (1.0, 2.0, 4.0)
 _RETRYABLE_STATUS = {408, 429, 500, 502, 503, 504}
@@ -118,12 +137,12 @@ class OpenAITranscriptionProvider:
         language: str | None = None,
     ):
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY")
-        self.api_url = (
-            api_base
-            or os.environ.get("OPENAI_TRANSCRIPTION_BASE_URL")
-            or "https://api.openai.com/v1/audio/transcriptions"
+        self.api_url = _resolve_transcription_url(
+            api_base or os.environ.get("OPENAI_TRANSCRIPTION_BASE_URL"),
+            "https://api.openai.com/v1/audio/transcriptions",
         )
         self.language = language or None
+        logger.debug("OpenAI transcription endpoint: {}", self.api_url)
 
     async def transcribe(self, file_path: str | Path) -> str:
         if not self.api_key:
@@ -157,8 +176,12 @@ class GroqTranscriptionProvider:
         language: str | None = None,
     ):
         self.api_key = api_key or os.environ.get("GROQ_API_KEY")
-        self.api_url = api_base or os.environ.get("GROQ_BASE_URL") or "https://api.groq.com/openai/v1/audio/transcriptions"
+        self.api_url = _resolve_transcription_url(
+            api_base or os.environ.get("GROQ_BASE_URL"),
+            "https://api.groq.com/openai/v1/audio/transcriptions",
+        )
         self.language = language or None
+        logger.debug("Groq transcription endpoint: {}", self.api_url)
 
     async def transcribe(self, file_path: str | Path) -> str:
         """

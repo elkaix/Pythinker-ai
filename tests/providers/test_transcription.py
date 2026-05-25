@@ -106,3 +106,43 @@ async def test_transcription_malformed_response_returns_empty(monkeypatch, tmp_p
 
 async def _instant_sleep() -> None:
     return None
+
+
+# ---------------------------------------------------------------------------
+# apiBase normalization: a chat-style base must not be POSTed verbatim
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_transcription_url_falls_back_to_default() -> None:
+    default = "https://api.openai.com/v1/audio/transcriptions"
+    assert transcription._resolve_transcription_url(None, default) == default
+    assert transcription._resolve_transcription_url("", default) == default
+
+
+def test_resolve_transcription_url_appends_path_to_chat_style_base() -> None:
+    assert (
+        transcription._resolve_transcription_url(
+            "https://api.groq.com/openai/v1", "https://x/audio/transcriptions"
+        )
+        == "https://api.groq.com/openai/v1/audio/transcriptions"
+    )
+    # Trailing slash must not produce a doubled separator.
+    assert (
+        transcription._resolve_transcription_url(
+            "https://api.groq.com/openai/v1/", "https://x/audio/transcriptions"
+        )
+        == "https://api.groq.com/openai/v1/audio/transcriptions"
+    )
+
+
+def test_resolve_transcription_url_keeps_full_endpoint() -> None:
+    full = "https://api.groq.com/openai/v1/audio/transcriptions"
+    assert transcription._resolve_transcription_url(full, "https://x/audio/transcriptions") == full
+
+
+def test_groq_provider_normalizes_chat_style_api_base() -> None:
+    """apiBase set to the v1 base resolves to the audio endpoint."""
+    provider = GroqTranscriptionProvider(
+        api_key="gsk-test", api_base="https://api.groq.com/openai/v1"
+    )
+    assert provider.api_url == "https://api.groq.com/openai/v1/audio/transcriptions"
