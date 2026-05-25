@@ -45,6 +45,8 @@ documents the general tool contract and non-obvious usage patterns.
 
 - Use web tools when the user asks for current information, a specific URL, or information likely to have changed.
 - Use `web_search` to find sources and `web_fetch` for a specific page or result that needs closer reading.
+- Use `web_fetch` for static pages, APIs, and pages where useful content appears in initial HTML.
+- When the `browser` tool is registered, use headless Chromium for JavaScript-rendered pages, click/form flows, rendered DOM snapshots, and screenshots; it is not the user's personal GUI browser.
 - Do not invent freshness-sensitive facts when tools can verify them.
 
 ## Messaging and Media

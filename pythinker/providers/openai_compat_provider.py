@@ -605,8 +605,9 @@ class OpenAICompatProvider(LLMProvider):
             tool_choice=tool_choice,
             supports_temperature=self._supports_temperature(model_name, reasoning_effort),
         )
-        if self._extra_body:
-            body = _merge_responses_extra_body(body, self._extra_body)
+        extra_body = getattr(self, "_extra_body", {})
+        if extra_body:
+            body = _merge_responses_extra_body(body, extra_body)
         return body
 
     # ------------------------------------------------------------------
