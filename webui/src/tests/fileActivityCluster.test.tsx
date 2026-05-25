@@ -1,7 +1,8 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
+import { AgentActivityCluster } from "@/components/thread/AgentActivityCluster";
 import { usePythinkerStream } from "@/hooks/usePythinkerStream";
 import type { FileActivityPayload, InboundEvent } from "@/lib/types";
 import { ClientProvider } from "@/providers/ClientProvider";
@@ -68,6 +69,60 @@ function activity(overrides: Partial<FileActivityPayload> = {}): FileActivityPay
     ...overrides,
   };
 }
+
+describe("AgentActivityCluster", () => {
+  it("does not show unresolved pathless edit counters after completion", () => {
+    render(
+      <AgentActivityCluster
+        activities={[
+          {
+            call_id: "call-pending",
+            tool: "write_file",
+            path: "",
+            phase: "start",
+            status: "editing",
+            added: 98,
+            deleted: 0,
+            approximate: true,
+            binary: false,
+            updatedAt: Date.now(),
+          },
+        ]}
+        isStreaming={false}
+      />,
+    );
+
+    expect(screen.queryByTestId("agent-activity-cluster")).not.toBeInTheDocument();
+    expect(screen.queryByText("~+98")).not.toBeInTheDocument();
+  });
+
+  it("baseline-aligns visible file edit counters", () => {
+    render(
+      <AgentActivityCluster
+        activities={[
+          {
+            call_id: "call-done",
+            tool: "write_file",
+            path: "pkg/mod.py",
+            phase: "end",
+            status: "done",
+            added: 12,
+            deleted: 3,
+            approximate: false,
+            binary: false,
+            updatedAt: Date.now(),
+          },
+        ]}
+        isStreaming={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /file edited/i }));
+    const stats = screen.getByText("+12 -3");
+    expect(stats).toHaveClass("items-baseline");
+    expect(stats).toHaveClass("leading-[inherit]");
+  });
+});
 
 describe("usePythinkerStream / file_activity cluster", () => {
   it("creates a cluster on the first activity event", () => {

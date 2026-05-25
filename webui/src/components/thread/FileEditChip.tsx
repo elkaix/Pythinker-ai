@@ -23,7 +23,7 @@ export function FileEditChip({ activity, active, onClick }: FileEditChipProps) {
   const isError = activity.phase === "error";
   const isDone = activity.phase === "end";
   const hasPath = Boolean(activity.path);
-  const stats = formatStats(activity);
+  const stats = formatStats(activity, active);
   const pendingLabel = activity.tool === "edit_file" ? "editing…" : "writing…";
   const ariaLabel = isError
     ? `Edit failed for ${activity.path}`
@@ -68,7 +68,7 @@ export function FileEditChip({ activity, active, onClick }: FileEditChipProps) {
       {stats ? (
         <span
           className={cn(
-            "font-mono text-[10px] text-muted-foreground",
+            "inline-flex items-baseline font-mono text-[10px] leading-[inherit] text-muted-foreground",
             activity.approximate && !isDone ? "italic opacity-80" : null,
           )}
         >
@@ -86,12 +86,15 @@ export function FileEditChip({ activity, active, onClick }: FileEditChipProps) {
   );
 }
 
-function formatStats(a: FileEditActivity): string {
+function formatStats(a: FileEditActivity, active: boolean): string {
   if (a.binary) return "";
   // Streaming "approximate" counts ride along with the live chip so the user
   // sees the file growing under their cursor; the leading "~" cues the value
-  // is mid-stream and may revise upward by the time the tool completes.
-  const isLiveApproximate = a.phase !== "end" && a.approximate && (a.added > 0 || a.deleted > 0);
+  // is mid-stream and may revise upward by the time the tool completes. Once
+  // the cluster is frozen, unresolved approximate counters are stale and would
+  // make a completed turn look as if it changed a file it never identified.
+  const isLiveApproximate =
+    active && a.phase !== "end" && a.approximate && (a.added > 0 || a.deleted > 0);
   if (a.phase !== "end" && !isLiveApproximate) return "";
   const added = a.added > 0 ? `+${a.added}` : "";
   const deleted = a.deleted > 0 ? `-${a.deleted}` : "";

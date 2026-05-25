@@ -24,9 +24,12 @@ export function AgentActivityCluster({
 }: AgentActivityClusterProps) {
   const [open, setOpen] = useState(false);
   const reducedMotion = useReducedMotion();
-  if (activities.length === 0) return null;
+  const visibleActivities = activities.filter((activity) =>
+    shouldShowActivity(activity, isStreaming),
+  );
+  if (visibleActivities.length === 0) return null;
 
-  const totals = activities.reduce(
+  const totals = visibleActivities.reduce(
     (acc, a) => {
       if (a.phase === "end" && !a.binary) {
         acc.added += a.added;
@@ -37,7 +40,7 @@ export function AgentActivityCluster({
     },
     { added: 0, deleted: 0, errors: 0 },
   );
-  const fileCount = activities.length;
+  const fileCount = visibleActivities.length;
   const stats = formatTotals(totals.added, totals.deleted);
 
   return (
@@ -69,7 +72,7 @@ export function AgentActivityCluster({
       </Button>
       {open ? (
         <div className="mt-2 flex flex-wrap gap-1.5 pl-5">
-          {activities.map((a) => (
+          {visibleActivities.map((a) => (
             <FileEditChip
               key={a.call_id}
               activity={a}
@@ -81,6 +84,11 @@ export function AgentActivityCluster({
       ) : null}
     </section>
   );
+}
+
+function shouldShowActivity(activity: FileEditActivity, isStreaming: boolean): boolean {
+  if (activity.path) return true;
+  return isStreaming && activity.phase === "start";
 }
 
 function formatTotals(added: number, deleted: number): string {

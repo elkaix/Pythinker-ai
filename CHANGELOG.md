@@ -15,6 +15,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 - Improved file-edit progress events and coding-tool guidance for patch, search,
   file, and process workflows.
+- Fixed WebUI file-activity summaries, inline file-reference alignment, and
+  optimistic new-chat visibility during session refreshes.
 
 ## [2.7.1] - 2026-05-24
 

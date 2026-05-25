@@ -44,6 +44,7 @@ describe("FileReferenceChip", () => {
     const chip = screen.getByTestId("inline-file-path");
     expect(chip).toHaveTextContent("loop.py");
     expect(chip.getAttribute("aria-label")).toBe("pythinker/agent/loop.py");
+    expect(chip).toHaveClass("items-baseline");
   });
 
   it("renders the full path when display='path'", () => {
