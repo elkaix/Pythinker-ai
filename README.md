@@ -51,12 +51,11 @@ for the native paths.
 
 | Platform | One-line install | Artifact |
 |---|---|---|
-| 🪟 **Windows** | Download + double-click `PythinkerSetup-2.7.0.exe` | [Releases](https://github.com/mohamed-elkholy95/Pythinker/releases/latest) *(from v2.7.0)* |
-| 🍎 **macOS (Apple Silicon + Intel)** | `brew install mohamed-elkholy95/pythinker/pythinker-ai` | Homebrew tap *(from v2.7.0)* |
-| 🐧 **Linux (Debian / Ubuntu)** | `sudo dpkg -i pythinker-ai_2.7.0_amd64.deb` | [Releases](https://github.com/mohamed-elkholy95/Pythinker/releases/latest) *(from v2.7.0)* |
-| 🐧 **Linux (Fedora / RHEL / openSUSE)** | `sudo rpm -i pythinker-ai-2.7.0.x86_64.rpm` | [Releases](https://github.com/mohamed-elkholy95/Pythinker/releases/latest) *(from v2.7.0)* |
-| 🌐 **macOS / Linux — curl-bash** | `curl -fsSL https://raw.githubusercontent.com/mohamed-elkholy95/Pythinker/main/scripts/install-native.sh \| bash` | tarball *(from v2.7.0)* |
-| 🐍 **Python fallback** (universal) | `pip install pythinker-ai` | [PyPI](https://pypi.org/project/pythinker-ai/) |
+| 🪟 **Windows** | `irm https://pythinker.com/ai.ps1 \| iex` | `PythinkerSetup-<version>.exe` |
+| 🍎 / 🐧 **macOS / Linux** | `curl -fsSL https://pythinker.com/ai \| bash` | native tarball |
+| 🍎 **macOS (Homebrew)** | `brew install mohamed-elkholy95/pythinker/pythinker-ai` | Homebrew tap |
+| 🐧 **Linux packages** | `.deb` / `.rpm` from [Releases](https://github.com/mohamed-elkholy95/Pythinker/releases/latest) | system package |
+| 🐍 **Python fallback** | `pip install pythinker-ai` | [PyPI](https://pypi.org/project/pythinker-ai/) |
 
 Every artifact ships with a matching `.sha256` file — verify before install on
 any platform with `sha256sum`, `shasum -a 256`, or `Get-FileHash`.
@@ -66,7 +65,7 @@ After install, on any OS:
 ```bash
 pythinker-ai --version                # confirm install
 pythinker-ai onboard                  # interactive setup wizard
-pythinker                          # start the interactive CLI
+pythinker-ai                          # start the interactive CLI
 ```
 
 > **In-app updates** — `pythinker-ai update` queries the GitHub Releases API and
@@ -75,28 +74,28 @@ pythinker                          # start the interactive CLI
 
 ### 🪟 Windows — native installer
 
-`PythinkerSetup-2.7.0.exe` is an Inno Setup wizard. Installs per-user into
-`%LOCALAPPDATA%\Programs\Pythinker`, registers `pythinker` on your user PATH
-(`HKCU\Environment`), broadcasts `WM_SETTINGCHANGE` so new shells see the
-change. **No UAC prompt.**
+The short PowerShell installer downloads the latest `PythinkerSetup-<version>.exe`,
+verifies its `.sha256` sidecar, and runs the Inno Setup installer silently.
+It installs per-user into `%LOCALAPPDATA%\Programs\Pythinker`, registers
+`pythinker-ai` on your user PATH (`HKCU\Environment`), broadcasts
+`WM_SETTINGCHANGE` so new shells see the change, and does not require UAC.
 
 ```powershell
-# 1. Download the installer + checksum from the Releases page above.
-
-# 2. Verify the download
-Get-FileHash .\PythinkerSetup-2.7.0.exe -Algorithm SHA256
-Get-Content  .\PythinkerSetup-2.7.0.exe.sha256
-# The two hashes must match.
-
-# 3. Run it
-.\PythinkerSetup-2.7.0.exe
-
-# 4. Open a fresh PowerShell
+irm https://pythinker.com/ai.ps1 | iex
 pythinker-ai --version
 ```
 
-**Per-machine install** (IT-managed boxes): `.\PythinkerSetup-2.7.0.exe /ALLUSERS`
-installs to `%ProgramFiles%\Pythinker` and writes PATH to HKLM (requires admin).
+For a pinned version or an IT-managed per-machine install, download the script
+first and pass flags:
+
+```powershell
+irm https://pythinker.com/ai.ps1 -OutFile install.ps1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -Version 2.7.1
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -AllUsers
+```
+
+Manual `.exe` downloads from [Releases](https://github.com/mohamed-elkholy95/Pythinker/releases/latest)
+still work; verify them with `Get-FileHash` before running.
 
 **Upgrade:** `pythinker-ai update` from inside the running app — it downloads
 the newest installer, verifies SHA-256, and re-runs it silently
@@ -118,8 +117,8 @@ brew install mohamed-elkholy95/pythinker/pythinker-ai
 
 # 2. Verify
 pythinker-ai --version
-which pythinker          # -> /opt/homebrew/bin/pythinker (Apple Silicon)
-                         #    or /usr/local/bin/pythinker (Intel)
+which pythinker-ai       # -> /opt/homebrew/bin/pythinker-ai (Apple Silicon)
+                         #    or /usr/local/bin/pythinker-ai (Intel)
 ```
 
 Works on **Apple Silicon and Intel** — brew picks the right Python build for
@@ -159,7 +158,7 @@ sudo zypper install ./pythinker-ai-2.7.0.x86_64.rpm
 sudo rpm -i pythinker-ai-2.7.0.aarch64.rpm
 ```
 
-Both packages drop a small `/usr/bin/pythinker` launcher that execs the real
+Both packages drop a small `/usr/bin/pythinker-ai` launcher that execs the real
 binary under `/usr/lib/pythinker/`, so your `$PATH` stays tidy.
 
 **Verify before install:**
@@ -185,33 +184,32 @@ sudo rpm -e pythinker-ai                                 # Fedora/RHEL
 For containers, fresh VMs, or any host without a system package manager. The
 [install-native.sh](./scripts/install-native.sh) helper detects your OS + arch,
 downloads the matching PyInstaller-frozen tarball, verifies its SHA-256, and
-lands the single binary at `~/.local/bin/pythinker`.
+lands the single binary at `~/.local/bin/pythinker-ai`.
 
 ```bash
 # Latest release
-curl -fsSL https://raw.githubusercontent.com/mohamed-elkholy95/Pythinker/main/scripts/install-native.sh | bash
+curl -fsSL https://pythinker.com/ai | bash
 
 # Pin a specific version
-curl -fsSL https://raw.githubusercontent.com/mohamed-elkholy95/Pythinker/main/scripts/install-native.sh \
-  | bash -s -- --version 2.7.0
+curl -fsSL https://pythinker.com/ai | bash -s -- --version 2.7.1
 
 # Custom prefix (defaults to $HOME/.local)
-curl -fsSL ...install-native.sh | bash -s -- --prefix /opt/pythinker
+curl -fsSL https://pythinker.com/ai | bash -s -- --prefix /opt/pythinker
 ```
 
 Supported targets:
 
 | `uname -s / -m`             | Tarball asset                                            |
 |---|---|
-| Linux / x86_64              | `pythinker-2.7.0-x86_64-unknown-linux-gnu.tar.gz`        |
-| Linux / aarch64             | `pythinker-2.7.0-aarch64-unknown-linux-gnu.tar.gz`       |
-| Darwin / arm64              | `pythinker-2.7.0-aarch64-apple-darwin.tar.gz`            |
+| Linux / x86_64              | `pythinker-<version>-x86_64-unknown-linux-gnu.tar.gz`    |
+| Linux / aarch64             | `pythinker-<version>-aarch64-unknown-linux-gnu.tar.gz`   |
+| Darwin / arm64              | `pythinker-<version>-aarch64-apple-darwin.tar.gz`        |
 
 The script prints PATH guidance if `~/.local/bin` isn't already on your `$PATH`.
 Intel macOS users — use Homebrew or `pip install pythinker-ai`; no
 PyInstaller-built Intel Darwin binary is published.
 
-**Uninstall:** `rm ~/.local/bin/pythinker`.
+**Uninstall:** `rm ~/.local/bin/pythinker-ai`.
 
 ### 🛠 Power-user / legacy install paths
 
@@ -241,8 +239,8 @@ git clone git@github.com:mohamed-elkholy95/Pythinker.git
 cd Pythinker && uv sync --all-extras
 ```
 
-If `pythinker` isn't found after install, run `pythinker-ai doctor` (via
-`python -m pythinker-ai doctor` if needed) for diagnostics.
+If `pythinker-ai` isn't found after install, run `pythinker-ai doctor` (via
+`python -m pythinker doctor` if needed) for diagnostics.
 
 The legacy `scripts/install.sh` and `scripts/install.ps1` wrappers print a
 deprecation banner; set `PYTHINKER_AI_INSTALL_QUIET_DEPRECATION=1` to silence it.

@@ -19,6 +19,9 @@ All notable user-visible changes to Pythinker land here. The project follows
   file, and process workflows.
 - Fixed WebUI file-activity summaries, inline file-reference alignment, and
   optimistic new-chat visibility during session refreshes.
+- Switched the documented native installer entrypoints to short universal URLs:
+  `curl -fsSL https://pythinker.com/ai | bash` for macOS/Linux and
+  `irm https://pythinker.com/ai.ps1 | iex` for Windows.
 
 ## [2.7.1] - 2026-05-24
 

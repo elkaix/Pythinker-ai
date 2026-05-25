@@ -53,10 +53,17 @@ def _fake_mcp_module(
     )
 
     class _FakeStdioServerParameters:
-        def __init__(self, command: str, args: list[str], env: dict | None = None) -> None:
+        def __init__(
+            self,
+            command: str,
+            args: list[str],
+            env: dict | None = None,
+            cwd: str | None = None,
+        ) -> None:
             self.command = command
             self.args = args
             self.env = env
+            self.cwd = cwd
 
     class _FakeClientSession:
         def __init__(self, _read: object, _write: object) -> None:
@@ -622,6 +629,33 @@ async def test_connect_mcp_servers_wraps_windows_stdio_launchers(
     assert captured["command"] == r"C:\Windows\System32\cmd.exe"
     assert captured["args"] == ["/d", "/c", "npx", "-y", "chrome-devtools-mcp@latest"]
     assert captured["env"] is None
+
+
+@pytest.mark.asyncio
+async def test_connect_mcp_servers_passes_configured_stdio_cwd(
+    fake_mcp_runtime: dict[str, object | None],
+    tmp_path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake_mcp_runtime["session"] = _make_fake_session(["demo"])
+    captured: dict[str, object] = {}
+
+    @asynccontextmanager
+    async def _capturing_stdio_client(params: object):
+        captured["cwd"] = params.cwd
+        yield object(), object()
+
+    monkeypatch.setattr(sys.modules["mcp.client.stdio"], "stdio_client", _capturing_stdio_client)
+
+    registry = ToolRegistry()
+    stacks = await connect_mcp_servers(
+        {"test": MCPServerConfig(command="fake", cwd=str(tmp_path))},
+        registry,
+    )
+    for stack in stacks.values():
+        await stack.aclose()
+
+    assert captured["cwd"] == str(tmp_path)
 
 
 # ---------------------------------------------------------------------------

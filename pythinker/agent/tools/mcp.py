@@ -498,6 +498,7 @@ async def connect_mcp_servers(
                     command=command,
                     args=args,
                     env=env,
+                    cwd=cfg.cwd or None,
                 )
                 read, write = await server_stack.enter_async_context(stdio_client(params))
             elif transport_type == "sse":

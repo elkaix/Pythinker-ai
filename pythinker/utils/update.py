@@ -44,6 +44,8 @@ CACHE_FILENAME = "state.json"
 LOCK_FILENAME = ".lock"
 
 GITHUB_REPO = "mohamed-elkholy95/Pythinker"
+POSIX_INSTALL_URL = "https://pythinker.com/ai"
+WINDOWS_INSTALL_URL = "https://pythinker.com/ai.ps1"
 GITHUB_RELEASES_LATEST = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 
@@ -380,15 +382,9 @@ def suggested_target_command(method: InstallMethod, version: str) -> str:
             f"sudo rpm -U https://github.com/{GITHUB_REPO}/releases/download/v{version}/{PACKAGE_NAME}-{version}.$(uname -m).rpm"
         )
     if method is InstallMethod.NATIVE_TARBALL:
-        return (
-            f"curl -fsSL https://raw.githubusercontent.com/{GITHUB_REPO}/main/scripts/install-native.sh "
-            f"| bash -s -- --version {version}"
-        )
+        return f"curl -fsSL {POSIX_INSTALL_URL} | bash -s -- --version {version}"
     if method is InstallMethod.WINDOWS_EXE:
-        return (
-            f"# Download PythinkerSetup-{version}.exe from "
-            f"https://github.com/{GITHUB_REPO}/releases/tag/v{version} and run it"
-        )
+        return f"& ([scriptblock]::Create((irm {WINDOWS_INSTALL_URL}))) -Version {version}"
     return f'pip install --force-reinstall "{PACKAGE_NAME}=={version}"'
 
 
@@ -414,14 +410,9 @@ def suggested_upgrade_command(method: InstallMethod) -> str:
             f"{PACKAGE_NAME}-<ver>.$(uname -m).rpm  (needs sudo)"
         )
     if method is InstallMethod.NATIVE_TARBALL:
-        return (
-            f"curl -fsSL https://raw.githubusercontent.com/{GITHUB_REPO}/main/scripts/install-native.sh | bash"
-        )
+        return f"curl -fsSL {POSIX_INSTALL_URL} | bash"
     if method is InstallMethod.WINDOWS_EXE:
-        return (
-            "# `pythinker-ai update` downloads PythinkerSetup-<ver>.exe "
-            "and runs it silently (/VERYSILENT /SUPPRESSMSGBOXES /NORESTART)"
-        )
+        return f"irm {WINDOWS_INSTALL_URL} | iex"
     return f"pip install --upgrade {PACKAGE_NAME}"
 
 
@@ -757,8 +748,8 @@ def native_upgrade(method: InstallMethod, version: str, *, dry_run: bool = False
     expected to translate that into a CLI error.
 
     For DEB / RPM the installer needs root; this helper spawns ``sudo`` so the
-    user sees a single prompt. For NATIVE_TARBALL it re-runs
-    ``scripts/install-native.sh`` via curl-bash. For WINDOWS_EXE it executes
+    user sees a single prompt. For NATIVE_TARBALL it re-runs the short
+    ``https://pythinker.com/ai`` curl-bash installer. For WINDOWS_EXE it executes
     the Inno installer with the silent flags documented in the .iss.
 
     ``version`` is validated as PEP 440 before any shell interpolation —
@@ -791,8 +782,7 @@ def native_upgrade(method: InstallMethod, version: str, *, dry_run: bool = False
         cmd = [
             "bash",
             "-c",
-            f"curl -fsSL https://raw.githubusercontent.com/{GITHUB_REPO}/main/scripts/install-native.sh "
-            f"| bash -s -- --version {version}",
+            f"curl -fsSL {POSIX_INSTALL_URL} | bash -s -- --version {version}",
         ]
         return subprocess.run(cmd, check=False).returncode
 

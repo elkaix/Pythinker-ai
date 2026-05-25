@@ -48,10 +48,10 @@ docker run -v ~/.pythinker-ai:/home/pythinker/.pythinker-ai --rm pythinker-ai st
 
 Run the gateway as a systemd user service so it starts automatically and restarts on failure.
 
-**1. Find the pythinker binary path:**
+**1. Find the Pythinker binary path:**
 
 ```bash
-which pythinker   # e.g. /home/user/.local/bin/pythinker
+which pythinker-ai   # e.g. /home/user/.local/bin/pythinker-ai
 ```
 
 **2. Create the service file** at `~/.config/systemd/user/pythinker-gateway.service` (replace `ExecStart` path if needed):

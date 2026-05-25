@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import subprocess
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -412,10 +414,42 @@ def test_suggested_upgrade_command_covers_all_native_methods():
         assert suggested_upgrade_command(m)  # non-empty
 
 
-def test_suggested_target_command_native_tarball_points_to_install_script():
+def test_suggested_target_command_native_tarball_points_to_short_installer_url():
     s = update_mod.suggested_target_command(InstallMethod.NATIVE_TARBALL, "2.7.0")
-    assert "install-native.sh" in s
+    assert "https://pythinker.com/ai" in s
     assert "--version 2.7.0" in s
+
+
+def test_suggested_target_command_windows_points_to_short_installer_url():
+    s = update_mod.suggested_target_command(InstallMethod.WINDOWS_EXE, "2.7.0")
+    assert "https://pythinker.com/ai.ps1" in s
+    assert "-Version 2.7.0" in s
+
+
+def test_native_upgrade_native_tarball_uses_short_installer_url(monkeypatch):
+    import platform as _p
+
+    calls = []
+
+    def fake_run(cmd, *, check=False):
+        calls.append((cmd, check))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(sys, "platform", "linux", raising=False)
+    monkeypatch.setattr(_p, "machine", lambda: "x86_64")
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    assert update_mod.native_upgrade(InstallMethod.NATIVE_TARBALL, "2.7.0") == 0
+    assert calls == [
+        (
+            [
+                "bash",
+                "-c",
+                "curl -fsSL https://pythinker.com/ai | bash -s -- --version 2.7.0",
+            ],
+            False,
+        )
+    ]
 
 
 def test_no_auto_update_env_disables_startup_check(monkeypatch):

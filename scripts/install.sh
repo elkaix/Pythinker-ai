@@ -18,7 +18,7 @@ if [[ "${PYTHINKER_AI_INSTALL_QUIET_DEPRECATION:-0}" != "1" ]]; then
 [pythinker]   brew install mohamed-elkholy95/pythinker/pythinker-ai      (macOS)
 [pythinker]   sudo dpkg  -i pythinker-ai_*_amd64.deb                     (Debian/Ubuntu)
 [pythinker]   sudo rpm   -i pythinker-ai-*.x86_64.rpm                    (Fedora/RHEL)
-[pythinker]   curl -fsSL https://raw.githubusercontent.com/mohamed-elkholy95/Pythinker/main/scripts/install-native.sh | bash
+[pythinker]   curl -fsSL https://pythinker.com/ai | bash
 [pythinker] Silence this banner with PYTHINKER_AI_INSTALL_QUIET_DEPRECATION=1.
 
 BANNER
