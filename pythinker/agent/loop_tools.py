@@ -19,6 +19,7 @@ from loguru import logger
 
 from pythinker.agent.skills import BUILTIN_SKILLS_DIR
 from pythinker.agent.tools.cron import CronTool
+from pythinker.agent.tools.apply_patch import ApplyPatchTool
 from pythinker.agent.tools.filesystem import (
     EditFileTool,
     ListDirTool,
@@ -29,7 +30,8 @@ from pythinker.agent.tools.image_generation import ImageGenerationTool
 from pythinker.agent.tools.message import MessageTool
 from pythinker.agent.tools.notebook import NotebookEditTool
 from pythinker.agent.tools.pdf import MakePdfTool
-from pythinker.agent.tools.search import GlobTool, GrepTool
+from pythinker.agent.tools.exec_session import ListExecSessionsTool, WriteStdinTool
+from pythinker.agent.tools.search import FindFilesTool, GlobTool, GrepTool
 from pythinker.agent.tools.shell import ExecTool
 from pythinker.agent.tools.spawn import SpawnTool
 from pythinker.agent.tools.web import WebFetchTool, WebSearchTool
@@ -86,9 +88,9 @@ def register_default_tools(loop: "AgentLoop") -> None:
             workspace=loop.workspace, allowed_dir=allowed_dir, extra_allowed_dirs=extra_read
         )
     )
-    for cls in (WriteFileTool, EditFileTool, ListDirTool):
+    for cls in (WriteFileTool, EditFileTool, ApplyPatchTool, ListDirTool):
         loop.tools.register(cls(workspace=loop.workspace, allowed_dir=allowed_dir))
-    for cls in (GlobTool, GrepTool):
+    for cls in (FindFilesTool, GlobTool, GrepTool):
         loop.tools.register(cls(workspace=loop.workspace, allowed_dir=allowed_dir))
     loop.tools.register(NotebookEditTool(workspace=loop.workspace, allowed_dir=allowed_dir))
     loop.tools.register(MakePdfTool(workspace=loop.workspace, allowed_dir=allowed_dir))
@@ -101,8 +103,12 @@ def register_default_tools(loop: "AgentLoop") -> None:
                 sandbox=loop.exec_config.sandbox,
                 path_append=loop.exec_config.path_append,
                 allowed_env_keys=loop.exec_config.allowed_env_keys,
+                allow_patterns=loop.exec_config.allow_patterns,
+                deny_patterns=loop.exec_config.deny_patterns,
             )
         )
+        loop.tools.register(WriteStdinTool())
+        loop.tools.register(ListExecSessionsTool())
     if loop.web_config.enable:
         loop.tools.register(
             WebSearchTool(config=loop.web_config.search, proxy=loop.web_config.proxy)

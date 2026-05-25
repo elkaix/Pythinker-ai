@@ -250,6 +250,99 @@ class GlobTool(_SearchTool):
             return f"Error finding files: {e}"
 
 
+class FindFilesTool(_SearchTool):
+    """Find files by path fragment, glob, or type."""
+
+    @property
+    def name(self) -> str:
+        return "find_files"
+
+    @property
+    def description(self) -> str:
+        return (
+            "Find files by path fragment, glob, or file type. Use this before read_file "
+            "when you need to locate files, and prefer it over shell find/ls."
+        )
+
+    @property
+    def read_only(self) -> bool:
+        return True
+
+    @property
+    def parameters(self) -> dict[str, Any]:
+        return {
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "Directory or file to search in"},
+                "query": {"type": "string", "description": "Case-insensitive path fragments"},
+                "glob": {"type": "string", "description": "Optional glob filter"},
+                "type": {"type": "string", "description": "Optional file type shorthand"},
+                "include_dirs": {"type": "boolean", "description": "Include matching directories"},
+                "sort": {"type": "string", "enum": ["path", "modified"]},
+                "head_limit": {"type": "integer", "minimum": 0, "maximum": 1000},
+                "offset": {"type": "integer", "minimum": 0, "maximum": 100000},
+            },
+        }
+
+    async def execute(
+        self,
+        path: str = ".",
+        query: str | None = None,
+        glob: str | None = None,
+        type: str | None = None,
+        include_dirs: bool = False,
+        sort: str = "path",
+        head_limit: int | None = None,
+        offset: int = 0,
+        **kwargs: Any,
+    ) -> str:
+        try:
+            root = self._resolve(path or ".")
+            if not root.exists():
+                return f"Error: Path not found: {path}"
+            if not (root.is_dir() or root.is_file()):
+                return f"Error: Unsupported path: {path}"
+            if sort not in {"path", "modified"}:
+                return "Error: sort must be 'path' or 'modified'"
+
+            limit = _DEFAULT_HEAD_LIMIT if head_limit is None else None if head_limit == 0 else head_limit
+            base = root if root.is_dir() else root.parent
+            terms = [part for part in (query or "").lower().split() if part]
+            matches: list[tuple[str, float]] = []
+            for entry in self._iter_entries(root, include_files=True, include_dirs=include_dirs):
+                rel_path = entry.relative_to(base).as_posix()
+                display = self._display_path(entry, base)
+                if entry.is_dir():
+                    display += "/"
+                if glob and not _match_glob(rel_path, entry.name, glob):
+                    continue
+                if entry.is_file() and not _matches_type(entry.name, type):
+                    continue
+                if entry.is_dir() and type:
+                    continue
+                if terms and not all(term in display.lower() for term in terms):
+                    continue
+                try:
+                    mtime = entry.stat().st_mtime
+                except OSError:
+                    mtime = 0.0
+                matches.append((display, mtime))
+
+            matches.sort(key=(lambda item: (-item[1], item[0])) if sort == "modified" else (lambda item: item[0]))
+            paths = [name for name, _ in matches]
+            paged, truncated = _paginate(paths, limit, offset)
+            if not paged:
+                return "No files found"
+            result = "\n".join(paged)
+            if note := _pagination_note(limit, offset, truncated):
+                result += f"\n\n{note}"
+            return result
+        except PermissionError as e:
+            return f"Error: {e}"
+        except Exception as e:
+            return f"Error finding files: {e}"
+
+
 class GrepTool(_SearchTool):
     """Search file contents using a regex-like pattern."""
     _MAX_RESULT_CHARS = 128_000

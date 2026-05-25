@@ -14,9 +14,11 @@ from pythinker.agent.hook import AgentHook, AgentHookContext
 from pythinker.agent.runner import AgentRunner, AgentRunSpec
 from pythinker.agent.skills import BUILTIN_SKILLS_DIR
 from pythinker.agent.task_store import TaskStore
+from pythinker.agent.tools.apply_patch import ApplyPatchTool
+from pythinker.agent.tools.exec_session import ListExecSessionsTool, WriteStdinTool
 from pythinker.agent.tools.filesystem import EditFileTool, ListDirTool, ReadFileTool, WriteFileTool
 from pythinker.agent.tools.registry import ToolRegistry
-from pythinker.agent.tools.search import GlobTool, GrepTool
+from pythinker.agent.tools.search import FindFilesTool, GlobTool, GrepTool
 from pythinker.agent.tools.shell import ExecTool
 from pythinker.agent.tools.web import WebFetchTool, WebSearchTool
 from pythinker.bus.events import InboundMessage
@@ -267,7 +269,9 @@ class SubagentManager:
             if allow_writes:
                 tools.register(WriteFileTool(workspace=self.workspace, allowed_dir=allowed_dir))
                 tools.register(EditFileTool(workspace=self.workspace, allowed_dir=allowed_dir))
+                tools.register(ApplyPatchTool(workspace=self.workspace, allowed_dir=allowed_dir))
             tools.register(ListDirTool(workspace=self.workspace, allowed_dir=allowed_dir))
+            tools.register(FindFilesTool(workspace=self.workspace, allowed_dir=allowed_dir))
             tools.register(GlobTool(workspace=self.workspace, allowed_dir=allowed_dir))
             tools.register(GrepTool(workspace=self.workspace, allowed_dir=allowed_dir))
             if allow_exec and self.exec_config.enable:
@@ -278,7 +282,11 @@ class SubagentManager:
                     sandbox=self.exec_config.sandbox,
                     path_append=self.exec_config.path_append,
                     allowed_env_keys=self.exec_config.allowed_env_keys,
+                    allow_patterns=self.exec_config.allow_patterns,
+                    deny_patterns=self.exec_config.deny_patterns,
                 ))
+                tools.register(WriteStdinTool())
+                tools.register(ListExecSessionsTool())
             if self.web_config.enable:
                 tools.register(WebSearchTool(config=self.web_config.search, proxy=self.web_config.proxy))
                 tools.register(WebFetchTool(proxy=self.web_config.proxy))

@@ -839,7 +839,11 @@ without restarting the TUI.
 | `tools.restrictToWorkspace` | `false` | When `true`, restricts **all** agent tools (shell, file read/write/edit, list) to the workspace directory. Prevents path traversal and out-of-scope access. |
 | `tools.exec.sandbox` | `""` | Sandbox backend for shell commands. Set to `"bwrap"` to wrap exec calls in a [bubblewrap](https://github.com/containers/bubblewrap) sandbox — the process can only see the workspace (read-write) and media directory (read-only); config files and API keys are hidden. Automatically enables `restrictToWorkspace` for file tools. **Linux only** — requires `bwrap` installed (`apt install bubblewrap`; pre-installed in the Docker image). Not available on macOS or Windows (bwrap depends on Linux kernel namespaces). |
 | `tools.exec.enable` | `true` | When `false`, the shell `exec` tool is not registered at all. Use this to completely disable shell command execution. |
+| `tools.exec.timeout` | `60` | Default hard timeout for shell commands in seconds. Set to `0` to disable the default hard limit; per-call model-supplied timeouts remain capped. |
 | `tools.exec.pathAppend` | `""` | Extra directories to append to `PATH` when running shell commands (e.g. `/usr/sbin` for `ufw`). |
+| `tools.exec.allowedEnvKeys` | `[]` | Environment variable names to forward into shell commands. Secrets are not forwarded unless explicitly listed. |
+| `tools.exec.allowPatterns` | `[]` | Optional regex allowlist. When set, commands must match at least one pattern. |
+| `tools.exec.denyPatterns` | `[]` | Optional extra regex denylist entries layered on top of built-in dangerous-command guards. |
 | `channels.*.allowFrom` | `[]` (deny all) | Whitelist of user IDs. Empty denies all; use `["*"]` to allow everyone. |
 
 **Docker security**: The official Docker image runs as a non-root user (`pythinker`, UID 1000) with bubblewrap pre-installed. When using `docker-compose.yml`, the container drops all Linux capabilities except `SYS_ADMIN` (required for bwrap's namespace isolation).

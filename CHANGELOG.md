@@ -6,6 +6,16 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+### Added
+
+- Added structured `apply_patch`, long-running exec sessions, `write_stdin`,
+  `list_exec_sessions`, and `find_files` for safer coding workflows.
+
+### Changed
+
+- Improved file-edit progress events and coding-tool guidance for patch, search,
+  file, and process workflows.
+
 ## [2.7.1] - 2026-05-24
 
 ### Changed

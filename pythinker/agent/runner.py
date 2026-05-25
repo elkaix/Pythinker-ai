@@ -22,7 +22,7 @@ from pythinker.utils.file_edit_events import (
     build_file_edit_error_event,
     build_file_edit_start_event,
     is_file_edit_tool,
-    prepare_file_edit_tracker,
+    prepare_file_edit_trackers,
 )
 from pythinker.utils.helpers import (
     build_assistant_message,
@@ -993,7 +993,7 @@ class AgentRunner:
             }
             return prep_error + hint, event, RuntimeError(prep_error) if spec.fail_on_tool_error else None
 
-        tracker: FileEditTracker | None = None
+        trackers: list[FileEditTracker] = []
         if spec.file_activity_callback is not None and is_file_edit_tool(tool_call.name):
             resolver_tool = tool
             if resolver_tool is None and hasattr(spec.tools, "get"):
@@ -1009,14 +1009,15 @@ class AgentRunner:
             # composite for the round-trip.
             raw_id = str(tool_call.id or "")
             chip_call_id = raw_id.split("|", 1)[0] if "|" in raw_id else raw_id
-            tracker = prepare_file_edit_tracker(
+            tracker_params = params if isinstance(params, dict) else tool_call.arguments
+            trackers = prepare_file_edit_trackers(
                 call_id=chip_call_id,
                 tool_name=tool_call.name,
                 tool=resolver_tool,
                 workspace=spec.workspace,
-                params=params if isinstance(params, dict) else tool_call.arguments,
+                params=tracker_params,
             )
-            if tracker is not None:
+            if trackers:
                 # The streaming tracker already announced this call via live
                 # events. Re-emitting ``start`` here would reset added/deleted
                 # to 0 on the WebUI side because its merge takes the latest.
@@ -1025,29 +1026,32 @@ class AgentRunner:
                 )
                 if not already_streamed:
                     try:
-                        await spec.file_activity_callback(
-                            build_file_edit_start_event(tracker)
-                        )
+                        for tracker in trackers:
+                            await spec.file_activity_callback(
+                                build_file_edit_start_event(tracker, tracker_params)
+                            )
                     except Exception:
                         logger.debug(
                             "file_activity_callback start failed", exc_info=True,
                         )
 
         async def _emit_end() -> None:
-            if tracker is None or spec.file_activity_callback is None:
+            if not trackers or spec.file_activity_callback is None:
                 return
             try:
-                await spec.file_activity_callback(build_file_edit_end_event(tracker))
+                for tracker in trackers:
+                    await spec.file_activity_callback(build_file_edit_end_event(tracker, tracker_params))
             except Exception:
                 logger.debug("file_activity_callback end failed", exc_info=True)
 
         async def _emit_error(error: str | None) -> None:
-            if tracker is None or spec.file_activity_callback is None:
+            if not trackers or spec.file_activity_callback is None:
                 return
             try:
-                await spec.file_activity_callback(
-                    build_file_edit_error_event(tracker, error)
-                )
+                for tracker in trackers:
+                    await spec.file_activity_callback(
+                        build_file_edit_error_event(tracker, error)
+                    )
             except Exception:
                 logger.debug("file_activity_callback error failed", exc_info=True)
 
