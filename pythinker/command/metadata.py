@@ -33,6 +33,7 @@ class CommandMeta:
 
 BUILTIN_COMMAND_METADATA: tuple[CommandMeta, ...] = (
     CommandMeta("/new", "Stop current task and start a new conversation"),
+    CommandMeta("/goal", "Start a long-running goal the agent tracks until done"),
     CommandMeta("/stop", "Stop the current task"),
     CommandMeta("/restart", "Restart the bot"),
     CommandMeta("/status", "Show bot status"),
