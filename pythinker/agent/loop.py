@@ -37,14 +37,10 @@ from pythinker.providers.limits import derive_window
 from pythinker.providers.model_profiles import get_profile
 from pythinker.runtime.egress import ToolEgressGateway
 from pythinker.runtime.policy import PolicyService
-from pythinker.session.goal_state import (
-    goal_state_runtime_lines,
-    runner_wall_llm_timeout_s,
-    sustained_goal_active,
-)
+from pythinker.session.goal_state import sustained_goal_active
 from pythinker.session.manager import Session, SessionManager
 from pythinker.utils.document import extract_documents
-from pythinker.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE, SUSTAINED_GOAL_CONTINUE_PROMPT
+from pythinker.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
 
 if TYPE_CHECKING:
     from pythinker.config.schema import (
@@ -883,20 +879,11 @@ class AgentLoop:
             if isinstance(override, str) and override.strip():
                 effective_model = override.strip()
 
-        # Sustained-goal continuation: when a goal is active, embed the objective in the
-        # continuation prompt (so the model sees it even if Runtime Context was truncated)
-        # and disable the per-request wall-clock timeout so long goals are not cut off.
-        _goal_meta = session.metadata if session is not None else None
-        _goal_lines = goal_state_runtime_lines(_goal_meta)
-        if _goal_lines:
-            _goal_continue = (
-                "You have an active sustained goal:\n\n"
-                + "\n".join(_goal_lines)
-                + "\n\nPlease continue working toward the objective using your tools, "
-                "or call complete_goal if the work is truly finished."
-            )
-        else:
-            _goal_continue = SUSTAINED_GOAL_CONTINUE_PROMPT
+        # Sustained-goal continuation: the active objective is already mirrored into the
+        # Runtime Context block every turn (see ContextBuilder.build_messages), so the
+        # continuation prompt stays short — re-embedding the full goal each cycle would
+        # bloat history. Pythinker keeps its finite per-call LLM timeout even during goals
+        # (the anti-lock-starvation invariant in AgentRunner._request_model takes priority).
         result = await self.runner.run(AgentRunSpec(
             initial_messages=initial_messages,
             tools=self.tools,
@@ -921,12 +908,6 @@ class AgentLoop:
             request_context=ctx_for_run,
             goal_active_predicate=(
                 (lambda: sustained_goal_active(session.metadata)) if session is not None else None
-            ),
-            goal_continue_message=_goal_continue,
-            llm_timeout_s=runner_wall_llm_timeout_s(
-                self.sessions,
-                session.key if session is not None else None,
-                metadata=_goal_meta,
             ),
         ))
         self._last_usage = result.usage

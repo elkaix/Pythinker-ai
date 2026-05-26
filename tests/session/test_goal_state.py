@@ -9,10 +9,8 @@ from pythinker.session.goal_state import (
     goal_state_runtime_lines,
     goal_state_ws_blob,
     parse_goal_state,
-    runner_wall_llm_timeout_s,
     sustained_goal_active,
 )
-from pythinker.session.manager import SessionManager
 
 
 def test_parse_goal_state_accepts_dict_and_json_string():
@@ -46,14 +44,3 @@ def test_ws_blob_shape():
     active = goal_state_ws_blob({GOAL_STATE_KEY: {"status": "active", "objective": "Ship X"}})
     assert active == {"active": True, "objective": "Ship X"}
     assert goal_state_ws_blob({}) == {"active": False}
-
-
-def test_runner_wall_timeout_disabled_only_when_goal_active(tmp_path):
-    sessions = SessionManager(tmp_path)
-    assert runner_wall_llm_timeout_s(sessions, "cli:c") is None
-    assert (
-        runner_wall_llm_timeout_s(
-            sessions, "cli:c", metadata={GOAL_STATE_KEY: {"status": "active"}}
-        )
-        == 0.0
-    )

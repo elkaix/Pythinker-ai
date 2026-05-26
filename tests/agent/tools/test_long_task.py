@@ -54,6 +54,14 @@ async def test_complete_goal_noop_without_active_goal(tmp_path):
     assert "No active goal" in result
 
 
+async def test_long_task_rejects_blank_goal(tmp_path):
+    sessions = SessionManager(tmp_path)
+    tool = _bound(LongTaskTool, sessions)
+    result = await tool.execute(goal="   ")
+    assert "non-empty" in result
+    assert GOAL_STATE_KEY not in sessions.get_or_create("cli:c").metadata
+
+
 async def test_long_task_requires_session_context(tmp_path):
     sessions = SessionManager(tmp_path)
     tool = LongTaskTool(sessions, bus=None)  # no set_context → no session key

@@ -10,8 +10,6 @@ from __future__ import annotations
 import json
 from typing import Any, Mapping, MutableMapping
 
-from pythinker.session.manager import SessionManager
-
 GOAL_STATE_KEY = "goal_state"
 # Older builds stored the same JSON blob under this key.
 _LEGACY_GOAL_STATE_SESSION_KEY = "thread_goal"
@@ -91,21 +89,3 @@ def goal_state_ws_blob(metadata: Mapping[str, Any] | None) -> dict[str, Any]:
             blob["objective"] = objective
         return blob
     return {"active": False}
-
-
-def runner_wall_llm_timeout_s(
-    sessions: SessionManager,
-    session_key: str | None,
-    *,
-    metadata: Mapping[str, Any] | None = None,
-) -> float | None:
-    """Wall-clock cap for :class:`~pythinker.agent.runner.AgentRunner` when streaming an LLM.
-
-    Returns ``0.0`` to disable ``asyncio.wait_for`` around the request when a sustained goal is
-    active; ``None`` means use ``PYTHINKER_AI_LLM_TIMEOUT_S``. Pass in-memory ``metadata`` when the
-    caller already holds :attr:`~pythinker.session.manager.Session.metadata` for this turn.
-    """
-    meta: Mapping[str, Any] | None = metadata
-    if meta is None and session_key:
-        meta = sessions.get_or_create(session_key).metadata
-    return 0.0 if sustained_goal_active(meta) else None
