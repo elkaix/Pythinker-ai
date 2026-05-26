@@ -126,6 +126,9 @@ class LongTaskTool(Tool, _GoalToolsMixin):
         sess = self._session()
         if sess is None:
             return "Error: long_task requires an active chat session (missing routing context)."
+        objective = goal.strip()
+        if not objective:
+            return "Error: long_task requires a non-empty goal objective."
         prior = parse_goal_state(goal_state_raw(sess.metadata))
         if isinstance(prior, dict) and prior.get("status") == "active":
             return (
@@ -136,7 +139,7 @@ class LongTaskTool(Tool, _GoalToolsMixin):
         summary = (ui_summary or "").strip()[:120]
         blob = {
             "status": "active",
-            "objective": goal.strip(),
+            "objective": objective,
             "ui_summary": summary,
             "started_at": _iso_now(),
         }
