@@ -49,6 +49,20 @@ class TestInit:
         assert len(commits) == 1
         assert "init" in commits[0].message
 
+    def test_commits_do_not_inherit_global_signing_requirement(self, tmp_path, monkeypatch):
+        home = tmp_path / "home"
+        home.mkdir()
+        (home / ".gitconfig").write_text("[commit]\n    gpgsign = true\n", encoding="utf-8")
+        workspace = tmp_path / "workspace"
+        workspace.mkdir()
+        monkeypatch.setenv("HOME", str(home))
+
+        git = GitStore(workspace, tracked_files=TRACKED)
+        assert git.init()
+
+        (workspace / "SOUL.md").write_text("updated", encoding="utf-8")
+        assert git.auto_commit("update soul") is not None
+
 
 class TestBuildGitignore:
     def test_subdirectory_dirs(self, git):

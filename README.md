@@ -15,19 +15,19 @@
 
 🤖 **Pythinker** is an open-source tiny agent framework. It keeps the core agent loop compact and readable while still supporting chat channels, long-term memory, MCP, and practical deployment paths — so you can go from local setup to a long-running personal agent with minimal overhead.
 
-> Powered by a tiny, multiplexing agent loop: one Python process listens to Slack, Telegram, Discord, WhatsApp, Matrix, MS Teams, email, a WebSocket WebUI, and an OpenAI-compatible HTTP API — all backed by a single session-scoped memory layer.
+> Powered by a tiny, multiplexing agent loop: one Python process listens to Slack, Telegram, Discord, WhatsApp, Signal, Matrix, MS Teams, email, a WebSocket WebUI, and an OpenAI-compatible HTTP API — all backed by a single session-scoped memory layer.
 
-> **What's new in 2.6.0** — New **Signal channel** (signal-cli HTTP/SSE) with full DM and group support. New **DM pairing system**: first-time senders receive a one-time code; owner approves via `/pairing approve`. Channel modules now load lazily (only enabled channels import their SDKs at startup), and the OpenAI-compatible provider client initializes on first use (~700 ms cold-start savings). `AnthropicProvider` transparently retries long requests via streaming. Shell tool detaches stdin so interactive prompts no longer block turns. See the [changelog](CHANGELOG.md) for details.
+> **What's new in 2.7.1** — The public command is now `pythinker-ai`, runtime state lives under `~/.pythinker-ai/` / `.pythinker-ai/`, and environment variables use the `PYTHINKER_AI_` prefix so Pythinker can coexist with `pythinker-code`. Native installers are the canonical install path and use short URLs. Coding workflows gained structured `apply_patch`, long-running exec sessions (`write_stdin`, `list_exec_sessions`), and `find_files`; OpenAI providers can force Chat Completions vs. Responses API via `providers.openai.apiType`. See the [changelog](CHANGELOG.md) for details.
 
 ## 💡 Key Features
 
 - **Tiny agent** — a compact readable core. Stable long-running behavior without orchestration sprawl.
-- **Channel-agnostic** — Slack, Telegram, Discord, WhatsApp, Matrix, MS Teams, email, WebSocket, plus an OpenAI-compatible HTTP API.
+- **Channel-agnostic** — Slack, Telegram, Discord, WhatsApp, Signal, Matrix, MS Teams, email, WebSocket, plus an OpenAI-compatible HTTP API.
 - **Full-screen TUI** — `pythinker-ai tui` (alias `chat`) opens a `prompt_toolkit` chat with live streaming, slash-command pickers (`/model`, `/provider`, `/sessions`, `/theme`, `/help`, `/status`), fuzzy search, themable chrome (default + monochrome), and Ctrl+C cancellation of in-flight turns.
 - **Provider-rich** — 25+ LLM providers (Anthropic, OpenAI, Azure OpenAI, OpenAI Codex, GitHub Copilot, Qwen/DashScope, MiniMax, VolcEngine, Moonshot, DeepSeek, StepFun, and more) behind a single interface.
 - **Provider hot-reload** — edits to model / provider / API key in `~/.pythinker-ai/config.json` land at the next turn boundary. No restart of the SDK or gateway. Same-signature snapshots short-circuit; broken configs are logged and swallowed so an in-flight session can't crash on a typo.
 - **Headless browser tool** *(opt-in)* — drives Playwright-managed Chromium for JavaScript-rendered pages, click/form flows, screenshots, and DOM snapshots. `mode="auto"` launches a packaged headless Chromium without Docker; `mode="cdp"` connects to an external service for hardened deployments. First-use Chromium binary installs lazily, with idle eviction, per-context page caps, SSRF route handling, and turn-boundary hot reload of browser config.
-- **Governed-execution runtime** *(off by default)* — opt-in `RuntimeConfig` wires a `PolicyService` (allow-lists from agent manifests, per-turn budgets, recursion depth), a `ToolEgressGateway` chokepoint, an `AgentRegistry` directory loader, `RequestContext` + `BudgetCounters` plumbing, and a pluggable `TelemetrySink` (loguru / JSONL / composite). When the loader is `None` and policy is off, the runtime is bit-for-bit identical to the legacy path.
+- **Governed-execution runtime** *(off by default)* — opt-in `RuntimeConfig` wires a `PolicyService` (allow-lists from agent manifests, per-turn budgets, recursion depth), a `ToolEgressGateway` chokepoint, an `AgentRegistry` directory loader, `RequestContext` + `BudgetCounters` plumbing, and a pluggable `TelemetrySink` (loguru / JSONL / composite). When the loader is `None` and policy is off, the runtime follows the default lightweight path.
 - **Autonomous subagent tracking** — spawned subagents are first-class task records with durable output under `.pythinker-ai/task-results/`. Pick a role at spawn time — `coder` (full tools), `explore` (read-only navigation), or `plan` (planning-only, no write/edit/shell) — and use `/tasks`, `/task-output <task_id>`, and `/task-stop <task_id>` to inspect or stop background work from chat.
 - **Memory that learns** — a two-phase "Dream" process consolidates long-term memory into `MEMORY.md` / `SOUL.md` / `USER.md`, auto-versioned with pure-Python git.
 - **Skills & MCP** — bundled skills (GitHub, cron, weather, tmux, summarize, skill-creator, …) plus first-class [Model Context Protocol](https://modelcontextprotocol.io/) tool access with defensive HTTP probing and provider-safe tool names.
@@ -51,7 +51,7 @@ for the native paths.
 | 🪟 **Windows** | `irm https://pythinker.com/ai.ps1 \| iex` | `PythinkerSetup-<version>.exe` |
 | 🍎 / 🐧 **macOS / Linux** | `curl -fsSL https://pythinker.com/ai \| bash` | native tarball |
 | 🍎 **macOS (Homebrew)** | `brew install mohamed-elkholy95/pythinker/pythinker-ai` | Homebrew tap |
-| 🐧 **Linux packages** | `.deb` / `.rpm` from [Releases](https://github.com/mohamed-elkholy95/Pythinker/releases/latest) | system package |
+| 🐧 **Linux packages** | `.deb` / `.rpm` from [Releases](https://github.com/mohamed-elkholy95/Pythinker-ai/releases/latest) | system package |
 | 🐍 **Python fallback** | `pip install pythinker-ai` | [PyPI](https://pypi.org/project/pythinker-ai/) |
 
 Every artifact ships with a matching `.sha256` file — verify before install on
@@ -91,7 +91,7 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1 -Version 2.7.1
 powershell -ExecutionPolicy Bypass -File .\install.ps1 -AllUsers
 ```
 
-Manual `.exe` downloads from [Releases](https://github.com/mohamed-elkholy95/Pythinker/releases/latest)
+Manual `.exe` downloads from [Releases](https://github.com/mohamed-elkholy95/Pythinker-ai/releases/latest)
 still work; verify them with `Get-FileHash` before running.
 
 **Upgrade:** `pythinker-ai update` from inside the running app — it downloads
@@ -208,82 +208,46 @@ PyInstaller-built Intel Darwin binary is published.
 
 **Uninstall:** `rm ~/.local/bin/pythinker-ai`.
 
-### 🛠 Power-user / legacy install paths
+### 3. Optional Python extras
 
-> 🚧 **Deprecated.** These paths still work, but the per-OS native installers
-> above are the canonical install method for **all new releases**. The legacy
-> options below remain for existing automation; new tooling, examples, and
-> support docs target the native installers exclusively.
-
-<details>
-<summary>Legacy uv / pipx / pip / source paths</summary>
+Native installers include the common runtime surface. If you install from PyPI
+and need add-on channels or heavier document features, install the matching
+extra explicitly:
 
 ```bash
-# uv (one-off run)
-uvx pythinker-ai
-
-# uv tool install (isolated env)
-uv tool install pythinker-ai
-
-# pipx (equivalent to uv tool install, slower):
-pipx install pythinker-ai
-
-# Plain pip (last resort — you may need to add ~/.local/bin to PATH):
-pip install --user pythinker-ai
-
-# From source (contributors only):
-git clone git@github.com:mohamed-elkholy95/Pythinker.git
-cd Pythinker && uv sync --all-extras
+python -m pip install 'pythinker-ai[reports]'   # Markdown → PDF reports
+python -m pip install 'pythinker-ai[matrix]'    # Matrix channel (E2E messaging)
+python -m pip install 'pythinker-ai[discord]'   # Discord channel
+python -m pip install 'pythinker-ai[msteams]'   # Microsoft Teams channel
+python -m pip install 'pythinker-ai[pdf]'       # Read PDF files (PyMuPDF)
+python -m pip install 'pythinker-ai[api]'       # OpenAI-compatible HTTP server
+# Combine: python -m pip install 'pythinker-ai[reports,discord,api]'
 ```
 
-If `pythinker-ai` isn't found after install, run `pythinker-ai doctor` (via
-`python -m pythinker doctor` if needed) for diagnostics.
-
-The legacy `scripts/install.sh` and `scripts/install.ps1` wrappers print a
-deprecation banner; set `PYTHINKER_AI_INSTALL_QUIET_DEPRECATION=1` to silence it.
-
-</details>
-
-### 3. Optional extras
-
-Pythinker ships with the Python browser automation library needed by the
-`browser` tool. Optional extras are for add-on channels and heavier document
-features:
-
-```bash
-uv tool install 'pythinker-ai[reports]'   # Markdown → PDF reports (research/report deliverables)
-uv tool install 'pythinker-ai[matrix]'    # Matrix channel (E2E messaging)
-uv tool install 'pythinker-ai[discord]'   # Discord channel
-uv tool install 'pythinker-ai[msteams]'   # Microsoft Teams channel
-uv tool install 'pythinker-ai[pdf]'       # Read PDF files (PyMuPDF)
-uv tool install 'pythinker-ai[api]'       # OpenAI-compatible HTTP server
-# Combine: uv tool install 'pythinker-ai[reports,discord,api]'
-```
-
-The historical `pythinker-ai[browser]` extra is still accepted as a
-compatibility alias, but it no longer adds packages. Enable the browser tool in
-config with `tools.web.browser.enable=true`; the managed Chromium binary is
-installed lazily on first browser use when allowed, or explicitly with
+The `pythinker-ai[browser]` compatibility extra is still accepted but no longer
+adds packages. Enable the browser tool in config with
+`tools.web.browser.enable=true`; the managed Chromium binary installs lazily on
+first browser use when allowed, or explicitly with
 `python -m playwright install chromium`.
 
 ### 4. Install / pin a specific version
 
-`pythinker-ai` follows [SemVer](https://semver.org/) — major-version
-upgrades **are not** auto-installed. To pin or to opt into a major bump,
-use the explicit pin form for your install method:
+`pythinker-ai` follows [SemVer](https://semver.org/) — major-version upgrades
+are not auto-installed. To pin or to opt into a major bump, use the explicit pin
+form for your install method:
 
 | Goal | Command |
 |---|---|
-| Pin exactly `2.0.0` (uv tool — recommended) | `uv tool install --reinstall "pythinker-ai==2.0.0"` |
-| Pin exactly `2.0.0` (pipx) | `pipx install --force "pythinker-ai==2.0.0"` |
-| Pin exactly `2.0.0` (plain pip) | `python -m pip install --force-reinstall "pythinker-ai==2.0.0"` |
+| Pin Windows native installer | `powershell -ExecutionPolicy Bypass -File .\install.ps1 -Version 2.7.1` |
+| Pin macOS / Linux native installer | `curl -fsSL https://pythinker.com/ai \| bash -s -- --version 2.7.1` |
+| Pin Python fallback | `python -m pip install --force-reinstall "pythinker-ai==2.7.1"` |
 | Stay at the latest stable release | `pythinker-ai upgrade` |
-| From inside pythinker, target a specific version | `pythinker-ai update --target 2.0.0 -y` |
+| From inside Pythinker, target a specific version | `pythinker-ai update --target 2.7.1 -y` |
 
-`pip install -U pythinker-ai==2.0.0` works too, but it's semantically
-noisy: the **exact pin** controls the version, not `-U`. `pythinker
-upgrade` will refuse to cross a major version (e.g. `1.x → 2.x`)
-without an explicit `pythinker-ai update --target` opt-in.
+`pip install -U pythinker-ai==2.7.1` works too, but it is semantically noisy:
+the exact pin controls the version, not `-U`. `pythinker-ai upgrade` refuses to
+cross a major version (for example, `1.x → 2.x`) without an explicit
+`pythinker-ai update --target` opt-in.
 
 ## 🚀 Quick Start
 
@@ -296,10 +260,10 @@ pythinker-ai tui                               # full-screen interactive chat (a
 
 `pythinker-ai onboard` ships a config preconfigured for **OpenAI Codex via ChatGPT OAuth** (no API key needed). To use a different provider/model, edit `~/.pythinker-ai/config.json` — see [Configuration](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/configuration.md) for the full catalog of 25+ providers.
 
-Want several independent agents on one host? `pythinker agents` lays out per-agent configs under `~/.pythinker-ai/agents/<name>/` with isolated workspace, history, and memory; pass `--agent <name>` to any subcommand to target one.
+Want several independent agents on one host? `pythinker-ai agents` lays out per-agent configs under `~/.pythinker-ai/agents/<name>/` with isolated workspace, history, and memory; pass `--agent <name>` to any subcommand to target one.
 
 - Want different LLM providers, web search, MCP, security settings, or more config options? See [Configuration](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/configuration.md).
-- Want to run Pythinker in chat apps like Telegram, Discord, Slack, WhatsApp, or Matrix? See [Chat Apps](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/chat-apps.md).
+- Want to run Pythinker in chat apps like Telegram, Discord, Slack, WhatsApp, Signal, Matrix, or MS Teams? See [Chat Apps](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/chat-apps.md).
 - Want Docker or Linux service deployment? See [Deployment](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/deployment.md).
 - Want governed-execution (policy allow-lists, budgets, telemetry) for hardened deployments? See [Architecture §5.X — `pythinker/runtime/`](https://github.com/mohamed-elkholy95/Pythinker-ai/blob/main/docs/ARCHITECTURE.md). The layer is opt-in via `runtime.policyEnabled` in `config.json`.
 

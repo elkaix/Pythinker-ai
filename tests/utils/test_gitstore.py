@@ -190,6 +190,8 @@ class TestNestedRepoProtection:
                 "user.name=test",
                 "-c",
                 "user.email=test@example.com",
+                "-c",
+                "commit.gpgsign=false",
                 "commit",
                 "-q",
                 "-m",

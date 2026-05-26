@@ -109,6 +109,7 @@ class GitStore:
                 message=b"init: pythinker memory store",
                 author=b"pythinker <pythinker@dream>",
                 committer=b"pythinker <pythinker@dream>",
+                sign=False,
             )
             logger.info("Git store initialized at {}", self._workspace)
             return True
@@ -142,6 +143,7 @@ class GitStore:
                 message=msg_bytes,
                 author=b"pythinker <pythinker@dream>",
                 committer=b"pythinker <pythinker@dream>",
+                sign=False,
             )
             if sha_bytes is None:
                 return None

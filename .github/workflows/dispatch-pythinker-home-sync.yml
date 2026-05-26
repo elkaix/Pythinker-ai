@@ -21,8 +21,13 @@ jobs:
       - name: Trigger pythinker-home sync
         env:
           DISPATCH_TOKEN: ${{ secrets.PYTHINKER_HOME_REPO_DISPATCH_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
           if [ -z "$DISPATCH_TOKEN" ]; then
+            if [ "$EVENT_NAME" = "push" ]; then
+              echo "::notice::Skipping pythinker-home sync: PYTHINKER_HOME_REPO_DISPATCH_TOKEN is unavailable for this push."
+              exit 0
+            fi
             echo "Missing secret: PYTHINKER_HOME_REPO_DISPATCH_TOKEN" >&2
             exit 1
           fi
