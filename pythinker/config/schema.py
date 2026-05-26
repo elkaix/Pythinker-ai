@@ -440,6 +440,7 @@ class RuntimeConfig(Base):
     max_tool_calls_per_turn: int = Field(default=0, ge=0)  # 0 = disabled
     max_wall_clock_s: float = Field(default=0.0, ge=0.0)  # 0 = disabled
     max_subagent_recursion_depth: int = Field(default=3, ge=0)
+    max_concurrent_subagents: int = Field(default=0, ge=0)  # 0 = unlimited
     manifests_dir: str | None = None
     default_agent_id: str = "default"  # which manifest agent_id is bound to inbound contexts
     # Each entry is a "<channel>:<sender_id>" identifier rejected at ingress

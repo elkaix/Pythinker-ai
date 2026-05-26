@@ -13,6 +13,7 @@ def test_runtime_defaults_to_off():
     assert cfg.runtime.max_tool_calls_per_turn == 0
     assert cfg.runtime.max_wall_clock_s == 0.0
     assert cfg.runtime.max_subagent_recursion_depth == 3
+    assert cfg.runtime.max_concurrent_subagents == 0  # 0 = unlimited
     assert cfg.runtime.manifests_dir is None
     assert cfg.runtime.default_agent_id == "default"
 
@@ -28,6 +29,7 @@ def test_runtime_accepts_camelcase_aliases():
             "maxToolCallsPerTurn": 50,
             "maxWallClockS": 120.0,
             "maxSubagentRecursionDepth": 5,
+            "maxConcurrentSubagents": 4,
             "manifestsDir": "/tmp/agents",
             "defaultAgentId": "research",
         }}
@@ -40,6 +42,7 @@ def test_runtime_accepts_camelcase_aliases():
     assert cfg.runtime.max_tool_calls_per_turn == 50
     assert cfg.runtime.max_wall_clock_s == 120.0
     assert cfg.runtime.max_subagent_recursion_depth == 5
+    assert cfg.runtime.max_concurrent_subagents == 4
     assert cfg.runtime.manifests_dir == "/tmp/agents"
     assert cfg.runtime.default_agent_id == "research"
 

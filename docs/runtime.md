@@ -19,6 +19,7 @@ Add this to `~/.pythinker-ai/config.json`:
     "maxToolCallsPerTurn": 50,
     "maxWallClockS": 120.0,
     "maxSubagentRecursionDepth": 3,
+    "maxConcurrentSubagents": 0,
     "manifestsDir": null
   }
 }

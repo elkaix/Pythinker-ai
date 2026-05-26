@@ -6,7 +6,10 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
-Nothing yet.
+### Added
+
+- Added `runtime.maxConcurrentSubagents` to cap how many subagents run their
+  LLM/tool loop at once (`0` = unlimited, preserving prior behavior).
 
 ## [2.7.1] - 2026-05-25
 
