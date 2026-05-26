@@ -10,6 +10,9 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 - Added `runtime.maxConcurrentSubagents` to cap how many subagents run their
   LLM/tool loop at once (`0` = unlimited, preserving prior behavior).
+- Added Telegram webhook mode (`channels.telegram.mode: "webhook"`) with
+  `webhookUrl`/`webhookSecretToken` and related listener settings, plus
+  per-conversation ordered delivery of incoming Telegram updates.
 
 ## [2.7.1] - 2026-05-25
 
