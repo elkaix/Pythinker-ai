@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import re
 import time
 from dataclasses import dataclass
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from loguru import logger
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from telegram import BotCommand, ReactionTypeEmoji, ReplyParameters, Update
 from telegram.error import BadRequest, NetworkError, TimedOut
 from telegram.ext import Application, ContextTypes, MessageHandler, filters
@@ -66,11 +68,22 @@ class _StreamBuf:
     stream_id: str | None = None
 
 
+@dataclass
+class _QueuedTelegramUpdate:
+    """Telegram update staged for per-session ordered processing."""
+
+    kind: Literal["command", "message"]
+    update: Update
+    context: Any
+    sort_key: tuple[int, int]
+
+
 class TelegramConfig(Base):
     """Telegram channel configuration."""
 
     enabled: bool = False
     token: str = ""
+    mode: Literal["polling", "webhook"] = "polling"
     allow_from: list[str] = Field(
         default_factory=list,
         description="Allowed IDs",
@@ -92,6 +105,13 @@ class TelegramConfig(Base):
     pool_timeout: float = 5.0
     streaming: bool = True
     stream_edit_interval: float = Field(default=_STREAM_EDIT_INTERVAL_DEFAULT, ge=0.1)
+    # Webhook mode (mode="webhook"); ignored under the default polling mode.
+    webhook_url: str = ""
+    webhook_listen_host: str = "127.0.0.1"
+    webhook_listen_port: int = Field(default=8081, ge=1, le=65535)
+    webhook_path: str = "/telegram"
+    webhook_secret_token: str = ""
+    webhook_max_connections: int = Field(default=4, ge=1, le=100)
 
     @field_validator("token", mode="before")
     @classmethod
@@ -101,6 +121,33 @@ class TelegramConfig(Base):
         # `InvalidURL("non-printable ASCII character")` and the gateway fails
         # to start with an opaque message.  Trim here so that never surfaces.
         return v.strip() if isinstance(v, str) else v
+
+    @field_validator("webhook_path")
+    @classmethod
+    def _webhook_path_must_start_with_slash(cls, value: str) -> str:
+        value = value.strip() or "/telegram"
+        if not value.startswith("/"):
+            raise ValueError('webhook_path must start with "/"')
+        return value
+
+    @model_validator(mode="after")
+    def _validate_webhook_config(self) -> "TelegramConfig":
+        if self.mode != "webhook":
+            return self
+        url = self.webhook_url.strip()
+        if not url:
+            raise ValueError("webhook_url is required when Telegram mode is webhook")
+        parsed = urlparse(url)
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise ValueError("webhook_url must be a public HTTPS URL")
+        secret = self.webhook_secret_token.strip()
+        if not secret:
+            raise ValueError("webhook_secret_token is required when Telegram mode is webhook")
+        if len(secret) > 256 or re.match(r"^[A-Za-z0-9_-]+$", secret) is None:
+            raise ValueError(
+                "webhook_secret_token must be 1-256 characters using only A-Z, a-z, 0-9, _ and -"
+            )
+        return self
 
 
 class TelegramChannel(BaseChannel):
@@ -144,6 +191,9 @@ class TelegramChannel(BaseChannel):
         self._bot_user_id: int | None = None
         self._bot_username: str | None = None
         self._stream_bufs: dict[str, _StreamBuf] = {}  # chat_id -> streaming state
+        # Per-session ordered ingress: buffer + drain worker keyed by session.
+        self._inbound_buffers: dict[str, list[_QueuedTelegramUpdate]] = {}
+        self._inbound_workers: dict[str, asyncio.Task] = {}
 
     def is_allowed(self, sender_id: str) -> bool:
         """Preserve Telegram's legacy id|username allowlist matching."""
@@ -234,9 +284,12 @@ class TelegramChannel(BaseChannel):
             )
         )
 
-        logger.info("Starting Telegram bot (polling mode)...")
+        if self.config.mode == "webhook":
+            logger.info("Starting Telegram bot (webhook mode)...")
+        else:
+            logger.info("Starting Telegram bot (polling mode)...")
 
-        # Initialize and start polling
+        # Initialize and start receiving updates
         await self._app.initialize()
         await self._app.start()
 
@@ -252,12 +305,26 @@ class TelegramChannel(BaseChannel):
         except Exception as e:
             logger.warning("Failed to register bot commands: {}", e)
 
-        # Start polling (this runs until stopped)
-        await self._app.updater.start_polling(
-            allowed_updates=["message"],
-            drop_pending_updates=False,  # Process pending messages on startup
-            error_callback=self._on_polling_error,
-        )
+        if self.config.mode == "webhook":
+            # ``url_path`` is the local HTTP route. ``webhook_url`` is the
+            # public HTTPS URL Telegram calls; reverse proxies may rewrite it.
+            await self._app.updater.start_webhook(
+                listen=self.config.webhook_listen_host,
+                port=self.config.webhook_listen_port,
+                url_path=self.config.webhook_path.lstrip("/"),
+                webhook_url=self.config.webhook_url.strip(),
+                allowed_updates=["message"],
+                drop_pending_updates=False,
+                secret_token=self.config.webhook_secret_token.strip(),
+                max_connections=self.config.webhook_max_connections,
+            )
+        else:
+            # Start polling (this runs until stopped)
+            await self._app.updater.start_polling(
+                allowed_updates=["message"],
+                drop_pending_updates=False,  # Process pending messages on startup
+                error_callback=self._on_polling_error,
+            )
 
         # Keep running until stopped
         while self._running:
@@ -275,6 +342,11 @@ class TelegramChannel(BaseChannel):
             task.cancel()
         self._media_group_tasks.clear()
         self._media_group_buffers.clear()
+
+        for task in self._inbound_workers.values():
+            task.cancel()
+        self._inbound_workers.clear()
+        self._inbound_buffers.clear()
 
         if self._app:
             logger.info("Stopping Telegram bot...")
@@ -800,10 +872,83 @@ class TelegramChannel(BaseChannel):
         if len(self._message_threads) > 1000:
             self._message_threads.pop(next(iter(self._message_threads)))
 
+    @staticmethod
+    def _queue_key_for_message(message) -> str:
+        """Return the session key used for ordered Telegram ingress."""
+        return TelegramChannel._derive_topic_session_key(message) or f"telegram:{message.chat_id}"
+
+    @staticmethod
+    def _sort_key_for_update(update: Update) -> tuple[int, int]:
+        """Sort by chat message id first, then Telegram update id."""
+        message = getattr(update, "message", None)
+        message_id = int(getattr(message, "message_id", 0) or 0)
+        update_id = int(getattr(update, "update_id", 0) or 0)
+        return (message_id, update_id)
+
+    def _enqueue_ordered_update(
+        self,
+        *,
+        kind: Literal["command", "message"],
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> None:
+        """Stage a Telegram update behind a short per-session reorder window."""
+        message = update.message
+        key = self._queue_key_for_message(message)
+        self._inbound_buffers.setdefault(key, []).append(
+            _QueuedTelegramUpdate(
+                kind=kind,
+                update=update,
+                context=context,
+                sort_key=self._sort_key_for_update(update),
+            )
+        )
+        if key not in self._inbound_workers:
+            self._inbound_workers[key] = asyncio.create_task(self._drain_ordered_updates(key))
+
+    async def _drain_ordered_updates(self, key: str) -> None:
+        """Drain one Telegram session buffer in stable message order."""
+        try:
+            while self._running:
+                await asyncio.sleep(0.2)
+                batch = self._inbound_buffers.get(key, [])
+                if not batch:
+                    break
+                self._inbound_buffers[key] = []
+                batch.sort(key=lambda item: item.sort_key)
+                for item in batch:
+                    try:
+                        if item.kind == "command":
+                            await self._process_forward_command(item.update, item.context)
+                        else:
+                            await self._process_message_update(item.update, item.context)
+                    except Exception as e:
+                        logger.warning(
+                            "Telegram queued update handling failed for {}: {}", key, e
+                        )
+            if not self._inbound_buffers.get(key):
+                self._inbound_buffers.pop(key, None)
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            logger.warning("Telegram ordered update worker failed for {}: {}", key, e)
+        finally:
+            if not self._inbound_buffers.get(key):
+                self._inbound_workers.pop(key, None)
+
     async def _forward_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Forward slash commands to the bus for unified handling in AgentLoop."""
         if not update.message or not update.effective_user:
             return
+        if not self._running:
+            await self._process_forward_command(update, context)
+            return
+        self._enqueue_ordered_update(kind="command", update=update, context=context)
+
+    async def _process_forward_command(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Process a queued slash command."""
         message = update.message
         user = update.effective_user
         sender_id = self._sender_id(user)
@@ -837,7 +982,15 @@ class TelegramChannel(BaseChannel):
         """Handle incoming messages (text, photos, voice, documents)."""
         if not update.message or not update.effective_user:
             return
+        if not self._running:
+            await self._process_message_update(update, context)
+            return
+        self._enqueue_ordered_update(kind="message", update=update, context=context)
 
+    async def _process_message_update(
+        self, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        """Process a queued Telegram message update."""
         message = update.message
         user = update.effective_user
         chat_id = message.chat_id

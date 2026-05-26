@@ -45,6 +45,43 @@ Connect pythinker to your favorite chat platform. Want to build your own? See th
 pythinker-ai gateway
 ```
 
+**Webhook mode (optional)**
+
+Telegram uses long polling by default. To receive updates through a webhook, expose
+a public HTTPS URL that forwards to Pythinker's local listener and set `mode` to
+`webhook`:
+
+```json
+{
+  "channels": {
+    "telegram": {
+      "enabled": true,
+      "token": "YOUR_BOT_TOKEN",
+      "mode": "webhook",
+      "webhookUrl": "https://example.com/telegram",
+      "webhookListenHost": "127.0.0.1",
+      "webhookListenPort": 8081,
+      "webhookPath": "/telegram",
+      "webhookSecretToken": "CHANGE_ME_RANDOM_SECRET",
+      "webhookMaxConnections": 4,
+      "allowFrom": ["YOUR_USER_ID"]
+    }
+  }
+}
+```
+
+> `webhookSecretToken` is required in webhook mode. Do not expose the local
+> webhook listener directly to the public internet without a reverse proxy or
+> tunnel in front of it. TLS/Host policy is handled by your proxy; Pythinker only
+> listens on `webhookListenHost:webhookListenPort` and validates Telegram's
+> webhook secret token. `webhookMaxConnections` defaults to `4`; Pythinker
+> still serializes Telegram updates per conversation before forwarding them to
+> the agent.
+>
+> `webhookUrl` is the public HTTPS URL registered with Telegram.
+> `webhookPath` is the local path Pythinker listens on. They often use the same
+> path, but may differ when a reverse proxy or tunnel rewrites the request path.
+
 </details>
 
 <details>
