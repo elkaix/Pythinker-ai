@@ -2000,6 +2000,20 @@ class WebSocketChannel(BaseChannel):
         if not conns:
             logger.warning("websocket: no active subscribers for chat_id={}", msg.chat_id)
             return
+        # Sustained-goal state sync is a typed event, not a chat row: surface the
+        # authoritative goal snapshot so the WebUI can reflect it without rendering
+        # an empty assistant message.
+        if msg.metadata.get("_goal_state_sync"):
+            goal_blob = msg.metadata.get("goal_state")
+            body = {
+                "event": "goal_state",
+                "chat_id": msg.chat_id,
+                "goal_state": goal_blob if isinstance(goal_blob, dict) else {"active": False},
+            }
+            raw = json.dumps(body, ensure_ascii=False)
+            for connection in conns:
+                await self._safe_send_to(connection, raw, label=" goal ")
+            return
         # File-edit activity is a typed event, not a chat row: surface the
         # structured payload so the WebUI can render a progress chip without
         # confusing it for an assistant message.
