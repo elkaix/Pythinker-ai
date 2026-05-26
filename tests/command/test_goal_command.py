@@ -7,11 +7,14 @@ from pythinker.command.builtin import cmd_goal
 from pythinker.command.router import CommandContext
 
 
-def _ctx(content: str, args: str) -> CommandContext:
+def _ctx(content: str, args: str, *, continue_as_turn: bool = True) -> CommandContext:
     msg = InboundMessage(
         channel="websocket", sender_id="u", chat_id="c", content=content, metadata={}
     )
-    return CommandContext(msg=msg, session=None, key=msg.session_key, raw=content, args=args)
+    return CommandContext(
+        msg=msg, session=None, key=msg.session_key, raw=content, args=args,
+        continue_as_turn=continue_as_turn,
+    )
 
 
 async def test_goal_without_args_returns_usage() -> None:
@@ -30,6 +33,16 @@ async def test_goal_rewrites_content_and_continues() -> None:
     assert "ship the release" in ctx.msg.content
     assert ctx.msg.metadata["original_command"] == "/goal"
     assert "goal_started_at" in ctx.msg.metadata
+
+
+async def test_goal_midtask_replies_instead_of_dropping() -> None:
+    # continue_as_turn=False mimics dispatch during an in-flight task.
+    ctx = _ctx("/goal ship it", "ship it", continue_as_turn=False)
+    result = await cmd_goal(ctx)
+    assert result is not None
+    assert "/stop" in result.content
+    # The message content must NOT be rewritten (it would otherwise be lost).
+    assert ctx.msg.content == "/goal ship it"
 
 
 def test_goal_is_registered_with_metadata() -> None:

@@ -287,6 +287,18 @@ async def cmd_goal(ctx: CommandContext) -> OutboundMessage | None:
             content="Usage: /goal <long-running task description>",
             metadata={**dict(ctx.msg.metadata or {}), "render_as": "text"},
         )
+    if not ctx.continue_as_turn:
+        # Dispatched mid-task (or as a priority command), where we can't fold the
+        # rewritten objective into a fresh agent turn. Reply instead of dropping it.
+        return OutboundMessage(
+            channel=ctx.msg.channel,
+            chat_id=ctx.msg.chat_id,
+            content=(
+                "A task is already running for this chat. Use `/stop` first, then send "
+                "`/goal <long-running task description>` again."
+            ),
+            metadata={**dict(ctx.msg.metadata or {}), "render_as": "text"},
+        )
     ctx.msg.metadata = {
         **dict(ctx.msg.metadata or {}),
         "original_command": "/goal",
