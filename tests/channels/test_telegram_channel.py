@@ -197,7 +197,6 @@ def test_webhook_config_requires_https_url_and_secret() -> None:
         )
 
 
-@pytest.mark.asyncio
 async def test_start_webhook_mode(monkeypatch) -> None:
     _FakeHTTPXRequest.clear()
     config = TelegramConfig(
@@ -238,7 +237,6 @@ async def test_start_webhook_mode(monkeypatch) -> None:
     }
 
 
-@pytest.mark.asyncio
 async def test_running_message_handler_reorders_same_session_updates() -> None:
     channel = TelegramChannel(
         TelegramConfig(enabled=True, token="123:abc", allow_from=["*"]),
@@ -263,6 +261,8 @@ async def test_running_message_handler_reorders_same_session_updates() -> None:
     await channel._on_message(first, None)
     await asyncio.sleep(0.3)
     channel._running = False
+    if channel._inbound_workers:
+        await asyncio.gather(*list(channel._inbound_workers.values()), return_exceptions=True)
 
     assert seen == [1, 2]
 
