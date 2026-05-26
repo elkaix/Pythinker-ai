@@ -21,6 +21,9 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 - Updated the Kagi web-search integration to the v1 Search API (`POST`,
   `Bearer` auth, `data.search` results).
+- Codex provider transport/API failures now return typed, retryable error
+  metadata (status, kind, retry-after) instead of a bare error string, and no
+  longer leak raw upstream response bodies into error messages or logs.
 
 ## [2.7.1] - 2026-05-25
 
