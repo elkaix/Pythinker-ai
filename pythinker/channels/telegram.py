@@ -57,6 +57,7 @@ CONFIG_FIELDS = {
 _SEND_MAX_RETRIES = 3
 _SEND_RETRY_BASE_DELAY = 0.5  # seconds, doubled each retry
 _STREAM_EDIT_INTERVAL_DEFAULT = 0.6  # min seconds between edit_message_text calls
+_INBOUND_BUFFER_MAX = 500  # cap per-session ordered-ingress staging to bound memory
 
 
 @dataclass
@@ -895,7 +896,18 @@ class TelegramChannel(BaseChannel):
         """Stage a Telegram update behind a short per-session reorder window."""
         message = update.message
         key = self._queue_key_for_message(message)
-        self._inbound_buffers.setdefault(key, []).append(
+        buffer = self._inbound_buffers.setdefault(key, [])
+        # Bound the buffer so a noisy chat or a slow handler can't grow it without
+        # limit (the drain worker only wakes every 200 ms). Shed the oldest staged
+        # update and warn rather than processing it late.
+        if len(buffer) >= _INBOUND_BUFFER_MAX:
+            buffer.pop(0)
+            logger.warning(
+                "Telegram inbound buffer for {} exceeded {} updates; dropping oldest",
+                key,
+                _INBOUND_BUFFER_MAX,
+            )
+        buffer.append(
             _QueuedTelegramUpdate(
                 kind=kind,
                 update=update,
