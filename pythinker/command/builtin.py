@@ -46,6 +46,7 @@ from pythinker.command.builtins.lifecycle import (
     _cmd_upgrade_impl,
     build_help_text,  # noqa: F401  (re-exported for tests/channels)
     cmd_edit,
+    cmd_goal,
     cmd_help,
     cmd_new,
     cmd_regenerate,
@@ -91,6 +92,8 @@ def register_builtin_commands(router: CommandRouter) -> None:
     router.priority("/regenerate", cmd_regenerate)
     router.priority("/edit", cmd_edit)
     router.exact("/new", cmd_new)
+    router.exact("/goal", cmd_goal)
+    router.prefix("/goal ", cmd_goal)
     router.exact("/status", cmd_status)
     router.exact("/tasks", cmd_tasks)
     router.exact("/task-output", cmd_task_output)
