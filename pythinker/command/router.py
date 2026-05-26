@@ -22,6 +22,11 @@ class CommandContext:
     raw: str
     args: str = ""
     loop: Any = None
+    # False when the command is dispatched on a path that cannot continue the
+    # rewritten message as an agent turn (priority / mid-task inline dispatch).
+    # Commands that rely on the "rewrite content + return None" pattern (e.g.
+    # ``/goal``) must reply gracefully instead of silently no-op'ing.
+    continue_as_turn: bool = True
 
 
 class CommandRouter:

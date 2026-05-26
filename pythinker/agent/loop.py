@@ -580,7 +580,11 @@ class AgentLoop:
     ) -> None:
         """Dispatch a command directly from the run() loop and publish the result."""
         session = self.sessions.get_or_create(key)
-        ctx = CommandContext(msg=msg, session=session, key=key, raw=raw, loop=self)
+        # Inline dispatch (priority commands, and dispatchable commands during an
+        # in-flight task) cannot continue the rewritten message as an agent turn.
+        ctx = CommandContext(
+            msg=msg, session=session, key=key, raw=raw, loop=self, continue_as_turn=False
+        )
         result = await dispatch_fn(ctx)
         if result:
             self._persist_command_turn(msg, session, raw, result)
