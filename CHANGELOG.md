@@ -13,6 +13,9 @@ All notable user-visible changes to Pythinker land here. The project follows
 - Added Telegram webhook mode (`channels.telegram.mode: "webhook"`) with
   `webhookUrl`/`webhookSecretToken` and related listener settings, plus
   per-conversation ordered delivery of incoming Telegram updates.
+- Added sustained-goal support: the `/goal` command plus `long_task` /
+  `complete_goal` tools let the agent track a long-running objective across
+  turns (mirrored into runtime context, kept active until `complete_goal`).
 
 ### Fixed
 

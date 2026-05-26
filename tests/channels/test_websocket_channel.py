@@ -192,6 +192,28 @@ async def test_send_delivers_json_message_with_media_and_reply() -> None:
 
 
 @pytest.mark.asyncio
+async def test_send_goal_state_sync_emits_typed_frame_not_message() -> None:
+    bus = MagicMock()
+    channel = WebSocketChannel({"enabled": True, "allowFrom": ["*"]}, bus)
+    mock_ws = AsyncMock()
+    channel._attach(mock_ws, "chat-1")
+
+    msg = OutboundMessage(
+        channel="websocket",
+        chat_id="chat-1",
+        content="",
+        metadata={"_goal_state_sync": True, "goal_state": {"active": True, "objective": "Ship X"}},
+    )
+    await channel.send(msg)
+
+    mock_ws.send.assert_awaited_once()
+    payload = json.loads(mock_ws.send.call_args[0][0])
+    assert payload["event"] == "goal_state"
+    assert payload["chat_id"] == "chat-1"
+    assert payload["goal_state"] == {"active": True, "objective": "Ship X"}
+
+
+@pytest.mark.asyncio
 async def test_send_missing_connection_is_noop_without_error() -> None:
     bus = MagicMock()
     channel = WebSocketChannel({"enabled": True, "allowFrom": ["*"]}, bus)
