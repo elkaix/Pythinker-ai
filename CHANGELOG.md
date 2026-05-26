@@ -14,6 +14,11 @@ All notable user-visible changes to Pythinker land here. The project follows
   `webhookUrl`/`webhookSecretToken` and related listener settings, plus
   per-conversation ordered delivery of incoming Telegram updates.
 
+### Fixed
+
+- Updated the Kagi web-search integration to the v1 Search API (`POST`,
+  `Bearer` auth, `data.search` results).
+
 ## [2.7.1] - 2026-05-25
 
 ### Added
