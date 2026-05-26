@@ -1285,6 +1285,7 @@ class AgentLoop:
                 chat_id=chat_id,
                 session_summary=pending,
                 current_role=current_role,
+                session_metadata=session.metadata if session is not None else None,
             )
             t_wall = time.time()
             final_content, _, all_msgs, _, _ = await self._run_agent_loop(
@@ -1357,6 +1358,7 @@ class AgentLoop:
             media=msg.media if msg.media else None,
             channel=msg.channel,
             chat_id=msg.chat_id,
+            session_metadata=session.metadata if session is not None else None,
         )
 
         async def _bus_progress(content: str, *, tool_hint: bool = False) -> None:

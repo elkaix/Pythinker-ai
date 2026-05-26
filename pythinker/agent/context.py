@@ -5,10 +5,11 @@ import mimetypes
 import platform
 from importlib.resources import files as pkg_files
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping, Sequence
 
 from pythinker.agent.memory import MemoryStore
 from pythinker.agent.skills import SkillsLoader
+from pythinker.session.goal_state import goal_state_runtime_lines
 from pythinker.utils.helpers import build_assistant_message, current_time_str, detect_image_mime
 from pythinker.utils.prompt_templates import render_template
 
@@ -80,6 +81,7 @@ class ContextBuilder:
     def _build_runtime_context(
         channel: str | None, chat_id: str | None, timezone: str | None = None,
         session_summary: str | None = None,
+        supplemental_lines: Sequence[str] | None = None,
     ) -> str:
         """Build untrusted runtime metadata block for injection before the user message."""
         lines = [f"Current Time: {current_time_str(timezone)}"]
@@ -87,6 +89,8 @@ class ContextBuilder:
             lines += [f"Channel: {channel}", f"Chat ID: {chat_id}"]
         if session_summary:
             lines += ["", "[Resumed Session]", session_summary]
+        if supplemental_lines:
+            lines.extend(supplemental_lines)
         return ContextBuilder._RUNTIME_CONTEXT_TAG + "\n" + "\n".join(lines) + "\n" + ContextBuilder._RUNTIME_CONTEXT_END
 
     @staticmethod
@@ -136,9 +140,15 @@ class ContextBuilder:
         chat_id: str | None = None,
         current_role: str = "user",
         session_summary: str | None = None,
+        session_metadata: Mapping[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
         """Build the complete message list for an LLM call."""
-        runtime_ctx = self._build_runtime_context(channel, chat_id, self.timezone, session_summary=session_summary)
+        extra = goal_state_runtime_lines(session_metadata)
+        runtime_ctx = self._build_runtime_context(
+            channel, chat_id, self.timezone,
+            session_summary=session_summary,
+            supplemental_lines=extra or None,
+        )
         merged = self.build_user_content(current_message, media, runtime_context=runtime_ctx)
 
         messages = [
