@@ -36,6 +36,7 @@ from pythinker.utils.prompt_templates import render_template
 from pythinker.utils.runtime import (
     EMPTY_FINAL_RESPONSE_MESSAGE,
     build_finalization_retry_message,
+    build_goal_continue_message,
     build_length_recovery_message,
     ensure_nonempty_tool_result,
     is_blank_text,
@@ -113,6 +114,11 @@ class AgentRunSpec:
     retry_wait_callback: Any | None = None
     checkpoint_callback: Any | None = None
     injection_callback: Any | None = None
+    # Sustained-goal continuation: when ``goal_active_predicate`` returns True at the
+    # natural completion checkpoint and no real injection is pending, the runner injects
+    # ``goal_continue_message`` (or a default prompt) to keep working instead of stopping.
+    goal_active_predicate: Callable[[], bool] | None = None
+    goal_continue_message: str | None = None
     # Awaitable invoked with each ``dict`` produced by
     # ``pythinker.utils.file_edit_events`` when a filesystem tool starts,
     # completes, or fails. None disables emission.
@@ -220,6 +226,7 @@ class AgentRunner:
         *,
         phase: str = "after error",
         iteration: int | None = None,
+        allow_goal_continue: bool = False,
     ) -> tuple[bool, int]:
         """Drain pending injections. Returns (should_continue, updated_cycles).
 
@@ -227,13 +234,25 @@ class AgentRunner:
         append them to *messages* (and emit a checkpoint if *assistant_message*
         and *iteration* are both provided) and return (True, cycles+1) so the
         caller continues the iteration loop.  Otherwise return (False, cycles).
+
+        When *allow_goal_continue* is set and no real injection is pending, an active
+        sustained goal (per ``spec.goal_active_predicate``) injects a continuation
+        prompt instead — independent of the injection-cycle cap, so a long goal keeps
+        going even after real injections are exhausted.
         """
-        if injection_cycles >= _MAX_INJECTION_CYCLES:
-            return False, injection_cycles
-        injections = await self._drain_injections(spec)
+        injections: list[dict[str, Any]] = []
+        real_injection = False
+        if injection_cycles < _MAX_INJECTION_CYCLES:
+            injections = await self._drain_injections(spec)
+            real_injection = bool(injections)
+        if not injections and allow_goal_continue and assistant_message is not None:
+            predicate = spec.goal_active_predicate
+            if predicate is not None and predicate():
+                injections = [build_goal_continue_message(spec.goal_continue_message)]
         if not injections:
             return False, injection_cycles
-        injection_cycles += 1
+        if real_injection:
+            injection_cycles += 1
         if assistant_message is not None:
             messages.append(assistant_message)
             if iteration is not None:
@@ -249,10 +268,13 @@ class AgentRunner:
                     },
                 )
         self._append_injected_messages(messages, injections)
-        logger.info(
-            "Injected {} follow-up message(s) {} ({}/{})",
-            len(injections), phase, injection_cycles, _MAX_INJECTION_CYCLES,
-        )
+        if real_injection:
+            logger.info(
+                "Injected {} follow-up message(s) {} ({}/{})",
+                len(injections), phase, injection_cycles, _MAX_INJECTION_CYCLES,
+            )
+        else:
+            logger.info("Injected sustained-goal continuation {}", phase)
         return True, injection_cycles
 
     async def _drain_injections(self, spec: AgentRunSpec) -> list[dict[str, Any]]:
@@ -433,6 +455,7 @@ class AgentRunner:
                 spec, messages, assistant_message, injection_cycles,
                 phase="after final response",
                 iteration=iteration,
+                allow_goal_continue=True,
             )
             if should_continue:
                 had_injections = True
