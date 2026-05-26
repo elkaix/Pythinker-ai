@@ -112,6 +112,7 @@ class SubagentManager:
         restrict_to_workspace: bool = False,
         disabled_skills: list[str] | None = None,
         max_recursion_depth: int = 3,
+        max_concurrent_subagents: int = 0,
         task_store: TaskStore | None = None,
     ):
         self.provider = provider
@@ -124,6 +125,11 @@ class SubagentManager:
         self.restrict_to_workspace = restrict_to_workspace
         self.disabled_skills = set(disabled_skills or [])
         self._max_recursion_depth = max_recursion_depth
+        # 0 means unlimited; a positive value caps how many subagents run their
+        # LLM/tool loop at once (queued spawns wait on the semaphore).
+        self._subagent_semaphore = (
+            asyncio.Semaphore(max_concurrent_subagents) if max_concurrent_subagents > 0 else None
+        )
         self.runner = AgentRunner(provider)
         self.task_store = task_store or TaskStore(workspace)
         self._running_tasks: dict[str, asyncio.Task[None]] = {}
@@ -245,6 +251,10 @@ class SubagentManager:
         temperature: float | None = None,
     ) -> None:
         """Execute the subagent task and announce the result."""
+        # Gate concurrent execution when a cap is configured; queued spawns
+        # wait here for a free slot before doing any LLM/tool work.
+        if self._subagent_semaphore is not None:
+            await self._subagent_semaphore.acquire()
         logger.info("Subagent [{}] starting task: {}", task_id, label)
 
         async def _on_checkpoint(payload: dict) -> None:
@@ -372,6 +382,9 @@ class SubagentManager:
             self.task_store.append_output(task_id, output)
             self.task_store.finish_task(task_id, status="failed", error=str(e))
             await self._announce_result(task_id, label, task, output, origin, "error")
+        finally:
+            if self._subagent_semaphore is not None:
+                self._subagent_semaphore.release()
 
     async def _announce_result(
         self,

@@ -312,6 +312,7 @@ class AgentLoop:
             restrict_to_workspace=restrict_to_workspace,
             disabled_skills=disabled_skills,
             max_recursion_depth=self._runtime_config.max_subagent_recursion_depth,
+            max_concurrent_subagents=self._runtime_config.max_concurrent_subagents,
             task_store=self.task_store,
         )
         self._unified_session = unified_session
