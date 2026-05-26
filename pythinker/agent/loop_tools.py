@@ -27,6 +27,7 @@ from pythinker.agent.tools.filesystem import (
     WriteFileTool,
 )
 from pythinker.agent.tools.image_generation import ImageGenerationTool
+from pythinker.agent.tools.long_task import CompleteGoalTool, LongTaskTool
 from pythinker.agent.tools.message import MessageTool
 from pythinker.agent.tools.notebook import NotebookEditTool
 from pythinker.agent.tools.pdf import MakePdfTool
@@ -117,6 +118,8 @@ def register_default_tools(loop: "AgentLoop") -> None:
         loop._register_browser_tool(loop.web_config.browser)
     loop.tools.register(MessageTool(send_callback=loop.bus.publish_outbound))
     loop.tools.register(SpawnTool(manager=loop.subagents))
+    loop.tools.register(LongTaskTool(loop.sessions, loop.bus))
+    loop.tools.register(CompleteGoalTool(loop.sessions, loop.bus))
     image_gen_cfg = loop.tools_config.image_generation
     if image_gen_cfg.enabled:
         loop.tools.register(

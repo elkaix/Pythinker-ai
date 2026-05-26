@@ -522,10 +522,10 @@ class AgentLoop:
             if session_key is not None
             else (UNIFIED_SESSION_KEY if self._unified_session else f"{channel}:{chat_id}")
         )
-        for name in ("message", "spawn", "cron", "my", "browser"):
+        for name in ("message", "spawn", "cron", "my", "browser", "long_task", "complete_goal"):
             if tool := self.tools.get(name):
                 if hasattr(tool, "set_context"):
-                    if name in ("spawn", "browser"):
+                    if name in ("spawn", "browser", "long_task", "complete_goal"):
                         tool.set_context(channel, chat_id, effective_key=effective_key)
                     else:
                         tool.set_context(channel, chat_id, *([message_id] if name == "message" else []))
