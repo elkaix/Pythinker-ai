@@ -39,6 +39,7 @@ from websockets.http11 import Response
 
 from pythinker.bus.events import OutboundMessage
 from pythinker.bus.queue import MessageBus
+from pythinker.session.goal_state import goal_state_ws_blob
 from pythinker.channels.base import BaseChannel
 from pythinker.channels.websocket.auth import (
     _b64url_decode,
@@ -178,6 +179,28 @@ class WebSocketChannel(BaseChannel):
                 self._subs.pop(cid, None)
         self._conn_default.pop(connection, None)
         self._admin_connections.discard(connection)
+
+    async def _push_active_goal_state(self, connection: Any, chat_id: str) -> None:
+        """Replay an active sustained goal to *connection* after it subscribes to *chat_id*.
+
+        Goal metadata lives on the session JSONL and survives gateway restarts, so a
+        refresh/reconnect can restore the current state without waiting for the next
+        ``goal_state`` event. No-op when there is no active goal.
+        """
+        if self._session_manager is None:
+            return
+        try:
+            row = self._session_manager.read_session_file(f"websocket:{chat_id}")
+        except Exception:
+            return
+        meta = row.get("metadata", {}) if isinstance(row, dict) else {}
+        if not isinstance(meta, dict):
+            meta = {}
+        blob = goal_state_ws_blob(meta)
+        if not blob.get("active"):
+            return
+        body = {"event": "goal_state", "chat_id": chat_id, "goal_state": blob}
+        await self._safe_send_to(connection, json.dumps(body, ensure_ascii=False), label=" goal ")
 
     async def _send_event(self, connection: Any, event: str, **fields: Any) -> None:
         """Send a control event (attached, error, ...) to a single connection."""
@@ -1294,6 +1317,7 @@ class WebSocketChannel(BaseChannel):
                 return
             self._attach(connection, cid)
             await self._send_event(connection, "attached", chat_id=cid)
+            await self._push_active_goal_state(connection, cid)
             return
         if t == "message":
             cid = envelope.get("chat_id")
