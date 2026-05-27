@@ -1457,6 +1457,22 @@ def test_step_channels_quickstart_decline_continues():
     mock_select.assert_not_called()
 
 
+def test_step_channels_quickstart_cancel_continues():
+    """Ctrl-C / Esc on the QuickStart opt-in confirm continues without opening
+    the picker — same outcome as an explicit decline."""
+    from pythinker.cli.onboard import _step_channels
+    from pythinker.cli.onboard_views.clack import WizardCancelled
+
+    ctx = _WizardContext(draft=Config(), flow="quickstart")
+    with patch("pythinker.cli.onboard_views.clack.confirm", side_effect=WizardCancelled), \
+         patch("pythinker.cli.onboard._configure_channel") as mock_configure, \
+         patch("pythinker.cli.onboard_views.clack.select") as mock_select:
+        result = _step_channels(ctx)
+    assert result.status == "continue"
+    mock_configure.assert_not_called()
+    mock_select.assert_not_called()
+
+
 def test_step_channels_quickstart_accept_opens_picker():
     """Accepting the QuickStart opt-in falls through to the same picker loop as
     Manual flow; picking 'Done' then continues."""
