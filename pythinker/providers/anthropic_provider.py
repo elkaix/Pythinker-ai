@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import os
 import re
 import secrets
 import string
@@ -13,7 +12,12 @@ from typing import Any
 import json_repair
 
 from pythinker.providers.anthropic_count_tokens import AnthropicCountTokensClient
-from pythinker.providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from pythinker.providers.base import (
+    LLMProvider,
+    LLMResponse,
+    ToolCallRequest,
+    stream_idle_timeout_s,
+)
 
 _ALNUM = string.ascii_letters + string.digits
 
@@ -657,7 +661,7 @@ class AnthropicProvider(LLMProvider):
             messages, tools, model, max_tokens, temperature,
             reasoning_effort, tool_choice,
         )
-        idle_timeout_s = int(os.environ.get("PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S", "90"))
+        idle_timeout_s = stream_idle_timeout_s()
         try:
             async with self._client.messages.stream(**kwargs) as stream:
                 if on_content_delta or on_tool_call_delta:

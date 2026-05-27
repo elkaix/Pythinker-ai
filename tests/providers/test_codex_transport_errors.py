@@ -118,3 +118,26 @@ async def test_request_codex_honors_stream_idle_timeout_env(monkeypatch) -> None
     await _request_codex("https://codex.example/responses", {}, {"input": []}, verify=True)
 
     assert seen["timeout"] == 5
+
+
+async def test_request_codex_invalid_timeout_env_falls_back(monkeypatch) -> None:
+    """A malformed PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S must not crash the request;
+    it falls back to the 90s default."""
+    monkeypatch.setenv("PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S", "not-a-number")
+    original_client = httpx.AsyncClient
+    seen: dict[str, int] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, request=request)
+
+    def fake_client(*, timeout: int, verify: bool) -> httpx.AsyncClient:
+        seen["timeout"] = timeout
+        return original_client(transport=httpx.MockTransport(handler), timeout=timeout)
+
+    monkeypatch.setattr(
+        "pythinker.providers.openai_codex_provider.httpx.AsyncClient", fake_client
+    )
+
+    await _request_codex("https://codex.example/responses", {}, {"input": []}, verify=True)
+
+    assert seen["timeout"] == 90

@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
-import os
 import re
 from collections.abc import Awaitable, Callable
 from typing import Any
@@ -15,7 +14,12 @@ from loguru import logger
 from oauth_cli_kit import get_token as get_codex_token
 
 from pythinker.auth.refresh_lock import refresh_lock
-from pythinker.providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from pythinker.providers.base import (
+    LLMProvider,
+    LLMResponse,
+    ToolCallRequest,
+    stream_idle_timeout_s,
+)
 from pythinker.providers.openai_responses import (
     consume_sse,
     convert_messages,
@@ -240,7 +244,7 @@ async def _request_codex(
     *,
     on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
 ) -> tuple[str, list[ToolCallRequest], str]:
-    idle_timeout_s = int(os.environ.get("PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S", "90"))
+    idle_timeout_s = stream_idle_timeout_s()
     async with httpx.AsyncClient(timeout=idle_timeout_s, verify=verify) as client:
         async with client.stream("POST", url, headers=headers, json=body) as response:
             if response.status_code != 200:

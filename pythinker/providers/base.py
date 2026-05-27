@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import os
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable, Callable
@@ -15,6 +16,25 @@ from loguru import logger
 from pythinker.providers.model_metadata import ModelMetadata
 from pythinker.providers.model_metadata import get_model_metadata as _static_model_metadata
 from pythinker.utils.helpers import image_placeholder_text
+
+
+def stream_idle_timeout_s(default: int = 90) -> int:
+    """Return the streaming idle timeout in seconds.
+
+    Reads ``PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S`` and falls back to ``default``
+    when the variable is unset or not a valid integer, so a malformed value
+    cannot crash a streaming request.
+    """
+    raw = os.environ.get("PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S")
+    if raw is None:
+        return default
+    try:
+        return int(raw)
+    except ValueError:
+        logger.warning(
+            "Invalid PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S={!r}; using {}s", raw, default
+        )
+        return default
 
 
 @dataclass

@@ -27,6 +27,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 - Codex provider now honors `PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S` (default 90s)
   for its stream timeout instead of a hardcoded 60s, matching the other
   streaming providers.
+- A non-integer `PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S` now falls back to the 90s
+  default across all streaming providers instead of crashing the request.
 
 ## [2.7.1] - 2026-05-25
 

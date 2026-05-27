@@ -23,7 +23,12 @@ from pythinker.providers._message_sanitize import (
     normalize_tool_call_id,
     sanitize_openai_messages,
 )
-from pythinker.providers.base import LLMProvider, LLMResponse, ToolCallRequest
+from pythinker.providers.base import (
+    LLMProvider,
+    LLMResponse,
+    ToolCallRequest,
+    stream_idle_timeout_s,
+)
 from pythinker.providers.openai_responses import (
     _RESPONSES_FAILURE_THRESHOLD as _RESPONSES_FAILURE_THRESHOLD,
 )
@@ -1087,7 +1092,7 @@ class OpenAICompatProvider(LLMProvider):
         on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
         await self._ensure_client()
-        idle_timeout_s = int(os.environ.get("PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S", "90"))
+        idle_timeout_s = stream_idle_timeout_s()
         try:
             if self._should_use_responses_api(model, reasoning_effort):
                 try:
