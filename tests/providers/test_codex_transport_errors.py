@@ -95,3 +95,26 @@ async def test_request_codex_non_200_populates_http_metadata(monkeypatch) -> Non
     assert error.error_type == "rate_limit_exceeded"
     assert error.error_code == "rate_limit_exceeded"
     assert error.should_retry is True
+
+
+async def test_request_codex_honors_stream_idle_timeout_env(monkeypatch) -> None:
+    """PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S overrides the default Codex stream timeout,
+    matching anthropic/openai_compat instead of a hardcoded value."""
+    monkeypatch.setenv("PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S", "5")
+    original_client = httpx.AsyncClient
+    seen: dict[str, int] = {}
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, request=request)
+
+    def fake_client(*, timeout: int, verify: bool) -> httpx.AsyncClient:
+        seen["timeout"] = timeout
+        return original_client(transport=httpx.MockTransport(handler), timeout=timeout)
+
+    monkeypatch.setattr(
+        "pythinker.providers.openai_codex_provider.httpx.AsyncClient", fake_client
+    )
+
+    await _request_codex("https://codex.example/responses", {}, {"input": []}, verify=True)
+
+    assert seen["timeout"] == 5

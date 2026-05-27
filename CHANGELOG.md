@@ -24,6 +24,9 @@ All notable user-visible changes to Pythinker land here. The project follows
 - Codex provider transport/API failures now return typed, retryable error
   metadata (status, kind, retry-after) instead of a bare error string, and no
   longer leak raw upstream response bodies into error messages or logs.
+- Codex provider now honors `PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S` (default 90s)
+  for its stream timeout instead of a hardcoded 60s, matching the other
+  streaming providers.
 
 ## [2.7.1] - 2026-05-25
 
