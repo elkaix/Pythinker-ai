@@ -1432,12 +1432,57 @@ def test_step_workspace_fresh_dir_skips_picker(tmp_path):
     mock_action.assert_not_called()
 
 
-def test_step_channels_skipped_in_quickstart():
+def test_step_channels_quickstart_non_interactive_skips():
+    """Unattended QuickStart (CI / non-interactive) must not prompt — it keeps
+    the original skip so the wizard never blocks waiting on input."""
+    from pythinker.cli.onboard import _step_channels
+
+    ctx = _WizardContext(draft=Config(), flow="quickstart", non_interactive=True)
+    result = _step_channels(ctx)
+    assert result.status == "skip"
+
+
+def test_step_channels_quickstart_decline_continues():
+    """Interactive QuickStart shows an opt-in confirm; declining it continues
+    without opening the picker or touching the draft."""
     from pythinker.cli.onboard import _step_channels
 
     ctx = _WizardContext(draft=Config(), flow="quickstart")
-    result = _step_channels(ctx)
-    assert result.status == "skip"
+    with patch("pythinker.cli.onboard_views.clack.confirm", return_value=False), \
+         patch("pythinker.cli.onboard._configure_channel") as mock_configure, \
+         patch("pythinker.cli.onboard_views.clack.select") as mock_select:
+        result = _step_channels(ctx)
+    assert result.status == "continue"
+    mock_configure.assert_not_called()
+    mock_select.assert_not_called()
+
+
+def test_step_channels_quickstart_accept_opens_picker():
+    """Accepting the QuickStart opt-in falls through to the same picker loop as
+    Manual flow; picking 'Done' then continues."""
+    from pythinker.cli.onboard import _step_channels
+
+    ctx = _WizardContext(draft=Config(), flow="quickstart")
+    with patch("pythinker.cli.onboard_views.clack.confirm", return_value=True), \
+         patch("pythinker.cli.onboard_views.clack.select", return_value="__done__"), \
+         patch("pythinker.cli.onboard._configure_channel") as mock_configure, \
+         patch("pythinker.cli.onboard_views.clack.note"), \
+         patch("pythinker.cli.onboard_views.clack.bar_break"):
+        result = _step_channels(ctx)
+    assert result.status == "continue"
+    mock_configure.assert_not_called()
+
+
+def test_every_discovered_channel_has_setup_instructions():
+    """Every channel the picker can surface must ship a setup-instructions panel,
+    or users drop into the per-field walker with no guidance. Guards against a
+    new channel landing without a CHANNEL_INSTRUCTIONS entry."""
+    from pythinker.channels.registry import discover_all
+    from pythinker.cli.onboard_views.panels import CHANNEL_INSTRUCTIONS
+
+    discovered = set(discover_all())
+    missing = discovered - set(CHANNEL_INSTRUCTIONS)
+    assert not missing, f"channels without setup instructions: {sorted(missing)}"
 
 
 def test_step_channels_none_selected_continues():

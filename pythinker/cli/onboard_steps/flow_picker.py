@@ -48,7 +48,7 @@ def _step_quickstart_summary(ctx: _WizardContext) -> StepResult:
         "2. Default model: use a recommended model or enter one manually.",
         "3. Workspace: ~/.pythinker-ai/workspace unless overridden.",
         "4. Gateway: loopback on 127.0.0.1:18790.",
-        "5. Channels: configured later via `pythinker-ai onboard --flow manual`.",
+        "5. Channels: optional quick prompt to connect one now; full setup via `pythinker-ai onboard --flow manual`.",
         "6. Review + health: redacted diff, workspace check, auth/model check, port check.",
     ]
     clack.note("QuickStart", body)
