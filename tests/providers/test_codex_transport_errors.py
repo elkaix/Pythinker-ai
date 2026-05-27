@@ -17,6 +17,11 @@ from pythinker.providers.openai_codex_provider import (
     _should_retry_status,
 )
 
+# A minimal but valid Responses-API SSE 200 body: a single text delta followed
+# by the blank-line flush. Lets the timeout tests drive the real consume_sse
+# path and assert parsed output instead of relying on an empty stream.
+_SSE_OK_BODY = 'data: {"type": "response.output_text.delta", "delta": "ok"}\n\n'
+
 
 def test_friendly_error_omits_raw_body() -> None:
     raw = "raw upstream body with PRIVATE PROMPT MUST NOT APPEAR"
@@ -105,7 +110,7 @@ async def test_request_codex_honors_stream_idle_timeout_env(monkeypatch) -> None
     seen: dict[str, int] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, request=request)
+        return httpx.Response(200, text=_SSE_OK_BODY, request=request)
 
     def fake_client(*, timeout: int, verify: bool) -> httpx.AsyncClient:
         seen["timeout"] = timeout
@@ -115,9 +120,12 @@ async def test_request_codex_honors_stream_idle_timeout_env(monkeypatch) -> None
         "pythinker.providers.openai_codex_provider.httpx.AsyncClient", fake_client
     )
 
-    await _request_codex("https://codex.example/responses", {}, {"input": []}, verify=True)
+    content, _tool_calls, _finish = await _request_codex(
+        "https://codex.example/responses", {}, {"input": []}, verify=True
+    )
 
     assert seen["timeout"] == 5
+    assert content == "ok"
 
 
 async def test_request_codex_invalid_timeout_env_falls_back(monkeypatch) -> None:
@@ -128,7 +136,7 @@ async def test_request_codex_invalid_timeout_env_falls_back(monkeypatch) -> None
     seen: dict[str, int] = {}
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, request=request)
+        return httpx.Response(200, text=_SSE_OK_BODY, request=request)
 
     def fake_client(*, timeout: int, verify: bool) -> httpx.AsyncClient:
         seen["timeout"] = timeout
@@ -138,6 +146,9 @@ async def test_request_codex_invalid_timeout_env_falls_back(monkeypatch) -> None
         "pythinker.providers.openai_codex_provider.httpx.AsyncClient", fake_client
     )
 
-    await _request_codex("https://codex.example/responses", {}, {"input": []}, verify=True)
+    content, _tool_calls, _finish = await _request_codex(
+        "https://codex.example/responses", {}, {"input": []}, verify=True
+    )
 
     assert seen["timeout"] == 90
+    assert content == "ok"
