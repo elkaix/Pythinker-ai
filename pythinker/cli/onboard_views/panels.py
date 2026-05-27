@@ -169,6 +169,12 @@ CHANNEL_INSTRUCTIONS = {
         "2) Create an Azure AD app reg; copy Application ID + client secret",
         "3) Set tenant_id, app_id, app_password (use ${MSTEAMS_APP_PASSWORD})",
     ],
+    "signal": [
+        "1) Install signal-cli and register/link your number (github.com/AsamK/signal-cli)",
+        "2) Start the daemon in HTTP mode: signal-cli -a +1234567890 daemon --http localhost:8080",
+        "3) Set 'phone_number' (+countrycode) and daemon_host/daemon_port to match (defaults localhost:8080)",
+        "4) Enable 'dm' and/or 'group' and set their allowlists",
+    ],
     "whatsapp": [
         "1) WhatsApp uses the Node Baileys bridge (bundled in pythinker/bridge/)",
         "2) Run: cd bridge && npm install && npm run build (once)",

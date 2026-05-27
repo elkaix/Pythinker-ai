@@ -8,7 +8,8 @@ from pythinker.cli.onboard_types import StepResult, _WizardContext
 def _step_channels(ctx: _WizardContext) -> StepResult:
     """Step 12 — channel picker loop.
 
-    Skipped in QuickStart. Manual flow:
+    In QuickStart, gated behind a single opt-in confirm (skipped when running
+    non-interactively). Manual flow:
       1) Show "How channels work" panel.
       2) Loop: pick a channel from the dynamically-discovered registry
          (telegram, discord, slack, email, matrix, msteams, whatsapp, websocket),
@@ -24,8 +25,21 @@ def _step_channels(ctx: _WizardContext) -> StepResult:
     from pythinker.cli.onboard_views import clack
     from pythinker.cli.onboard_views.panels import CHANNEL_INSTRUCTIONS, CHANNELS_INTRO
 
-    if ctx.flow != "manual":
+    if ctx.flow not in ("manual", "quickstart"):
         return StepResult(status="skip")
+
+    # QuickStart historically skipped channels entirely, hiding channel setup
+    # behind `--flow manual`. Offer an opt-in gate instead so the fast path can
+    # still connect a channel without re-running. Non-interactive runs (CI /
+    # unattended) must never prompt, so they keep the original skip behavior.
+    if ctx.flow == "quickstart":
+        if ctx.non_interactive:
+            return StepResult(status="skip")
+        try:
+            if not clack.confirm("Connect a chat channel now?", default=True):
+                return StepResult(status="continue")
+        except clack.WizardCancelled:
+            return StepResult(status="continue")
 
     clack.note("How channels work", CHANNELS_INTRO)
     clack.bar_break()
