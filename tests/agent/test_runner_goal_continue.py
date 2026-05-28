@@ -6,7 +6,7 @@ active, the runner injects a continuation prompt instead of stopping.
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 from pythinker.agent.runner import AgentRunner, AgentRunSpec
 from pythinker.providers.base import LLMResponse

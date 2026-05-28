@@ -15,6 +15,7 @@ GOAL_STATE_KEY = "goal_state"
 _LEGACY_GOAL_STATE_SESSION_KEY = "thread_goal"
 _MAX_OBJECTIVE_IN_RUNTIME = 4000
 _MAX_OBJECTIVE_WS = 600
+_MAX_SUMMARY_IN_RUNTIME = 240
 
 
 def _session_goal_raw(metadata: Mapping[str, Any] | None) -> Any:
@@ -69,6 +70,8 @@ def goal_state_runtime_lines(metadata: Mapping[str, Any] | None) -> list[str]:
         objective = objective[:_MAX_OBJECTIVE_IN_RUNTIME].rstrip() + "\n… (truncated)"
     out = ["Goal (active):", objective]
     hint = str(goal.get("ui_summary") or "").strip()
+    if len(hint) > _MAX_SUMMARY_IN_RUNTIME:
+        hint = hint[:_MAX_SUMMARY_IN_RUNTIME].rstrip() + "…"
     if hint:
         out.append(f"Summary: {hint}")
     return out

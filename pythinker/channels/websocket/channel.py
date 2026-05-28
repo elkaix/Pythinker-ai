@@ -190,7 +190,13 @@ class WebSocketChannel(BaseChannel):
         if self._session_manager is None:
             return
         try:
-            row = self._session_manager.read_session_file(f"websocket:{chat_id}")
+            # In unified-session mode goal state is stored under "unified:default"
+            # (pythinker.agent.loop.UNIFIED_SESSION_KEY); fall back to the per-chat key.
+            unified = (
+                self._agent_defaults is not None and self._agent_defaults.unified_session
+            )
+            session_key = "unified:default" if unified else f"websocket:{chat_id}"
+            row = self._session_manager.read_session_file(session_key)
         except Exception:
             return
         meta = row.get("metadata", {}) if isinstance(row, dict) else {}

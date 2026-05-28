@@ -191,7 +191,6 @@ async def test_send_delivers_json_message_with_media_and_reply() -> None:
     assert payload["media"] == ["/tmp/a.png"]
 
 
-@pytest.mark.asyncio
 async def test_send_goal_state_sync_emits_typed_frame_not_message() -> None:
     bus = MagicMock()
     channel = WebSocketChannel({"enabled": True, "allowFrom": ["*"]}, bus)
@@ -213,7 +212,6 @@ async def test_send_goal_state_sync_emits_typed_frame_not_message() -> None:
     assert payload["goal_state"] == {"active": True, "objective": "Ship X"}
 
 
-@pytest.mark.asyncio
 async def test_push_active_goal_state_replays_on_subscribe(tmp_path) -> None:
     from pythinker.session.goal_state import GOAL_STATE_KEY
     from pythinker.session.manager import SessionManager
@@ -237,7 +235,6 @@ async def test_push_active_goal_state_replays_on_subscribe(tmp_path) -> None:
     assert payload["goal_state"]["objective"] == "Ship X"
 
 
-@pytest.mark.asyncio
 async def test_push_active_goal_state_noop_without_active_goal(tmp_path) -> None:
     from pythinker.session.manager import SessionManager
 

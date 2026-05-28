@@ -915,7 +915,8 @@ class TelegramChannel(BaseChannel):
                 sort_key=self._sort_key_for_update(update),
             )
         )
-        if key not in self._inbound_workers:
+        worker = self._inbound_workers.get(key)
+        if worker is None or worker.done():
             self._inbound_workers[key] = asyncio.create_task(self._drain_ordered_updates(key))
 
     async def _drain_ordered_updates(self, key: str) -> None:

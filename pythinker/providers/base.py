@@ -29,7 +29,10 @@ def stream_idle_timeout_s(default: int = 90) -> int:
     if raw is None:
         return default
     try:
-        return int(raw)
+        value = int(raw)
+        if value <= 0:
+            raise ValueError("must be > 0")
+        return value
     except ValueError:
         logger.warning(
             "Invalid PYTHINKER_AI_STREAM_IDLE_TIMEOUT_S={!r}; using {}s", raw, default
