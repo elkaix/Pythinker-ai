@@ -25,6 +25,7 @@ from pythinker.agent.tools.exec_session import (
     format_session_poll,
 )
 from pythinker.agent.tools.sandbox import wrap_command
+from pythinker.security.workspace_policy import is_path_within
 from pythinker.agent.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
 from pythinker.config.paths import get_media_dir
 from pythinker.config.schema import ExecToolConfig
@@ -347,7 +348,7 @@ class ExecTool(Tool):
                     "Error: working_dir could not be resolved"
                     + _WORKSPACE_BOUNDARY_NOTE
                 )
-            if requested != workspace_root and workspace_root not in requested.parents:
+            if not is_path_within(requested, workspace_root):
                 return (
                     "Error: working_dir is outside the configured workspace"
                     + _WORKSPACE_BOUNDARY_NOTE
@@ -568,11 +569,9 @@ class ExecTool(Tool):
                     continue
 
                 media_path = get_media_dir().resolve()
-                if (p.is_absolute()
-                    and cwd_path not in p.parents
-                    and p != cwd_path
-                    and media_path not in p.parents
-                    and p != media_path
+                if p.is_absolute() and not (
+                    is_path_within(p, cwd_path)
+                    or is_path_within(p, media_path)
                 ):
                     return "Error: Command blocked by safety guard (path outside working dir)"
 
