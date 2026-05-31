@@ -1,6 +1,8 @@
+import { useMemo } from "react";
+
 import { MessageBubble } from "@/components/MessageBubble";
 import { AgentActivityCluster } from "@/components/thread/AgentActivityCluster";
-import { extractThinkBlocks } from "@/lib/extractThinkBlocks";
+import { normalizeActivityTimeline, type TurnUnit } from "@/lib/activity-timeline";
 import type { FileEditActivity, UIMessage } from "@/lib/types";
 
 interface ThreadMessagesProps {
@@ -11,24 +13,14 @@ interface ThreadMessagesProps {
   onEdit?: (messageId: string, newContent: string) => void;
   /** Open the read-only side panel when a file chip is clicked. */
   onOpenFile?: (path: string) => void;
+  /** Whether the agent is currently streaming (keeps activity clusters open). */
+  isStreaming?: boolean;
 }
 
-/**
- * Tool-pivot assistant turns persist with only ``<think>...</think>`` content
- * (the model emitted reasoning + a tool call, no user-facing answer). The
- * MessageBubble returns ``null`` for those, but a ``null`` child still keeps
- * its wrapper div in the flex layout and contributes a ``gap-5`` slot —
- * stacking 80–120 px of phantom whitespace per pivot. Drop those messages
- * here so the layout never even allocates a row.
- */
-function isRenderable(message: UIMessage): boolean {
-  if (message.kind === "file_activity_cluster") {
-    return (message.activities ?? []).length > 0;
-  }
-  if (message.role !== "assistant" || message.kind === "trace") return true;
-  if (message.isStreaming) return true;
-  const visible = extractThinkBlocks(message.content).visible.trim();
-  return visible.length > 0;
+export type DisplayUnit = TurnUnit;
+
+export function buildDisplayUnits(messages: UIMessage[]): DisplayUnit[] {
+  return normalizeActivityTimeline(messages);
 }
 
 export function ThreadMessages({
@@ -36,25 +28,27 @@ export function ThreadMessages({
   onRegenerate,
   onEdit,
   onOpenFile,
+  isStreaming,
 }: ThreadMessagesProps) {
-  const renderable = messages.filter(isRenderable);
+  const units = useMemo(() => buildDisplayUnits(messages), [messages]);
+
   return (
     <div className="flex w-full flex-col gap-3">
-      {renderable.map((message) => (
+      {units.map((unit, i) => (
         <div
-          key={message.id}
-          data-message-id={message.id}
+          key={unitKey(unit, i)}
+          data-message-id={unit.type === "message" ? unit.message.id : unit.messages[0]?.id}
           className="rounded-md"
         >
-          {message.kind === "file_activity_cluster" ? (
+          {unit.type === "activity" ? (
             <AgentActivityCluster
-              activities={message.activities as FileEditActivity[]}
-              isStreaming={!!message.isStreaming}
-              onChipClick={(a) => onOpenFile?.(a.path)}
+              messages={unit.messages}
+              isStreaming={isStreaming}
+              onChipClick={(a: FileEditActivity) => onOpenFile?.(a.path)}
             />
           ) : (
             <MessageBubble
-              message={message}
+              message={unit.message}
               onRegenerate={onRegenerate}
               onEdit={onEdit}
             />
@@ -63,4 +57,11 @@ export function ThreadMessages({
       ))}
     </div>
   );
+}
+
+function unitKey(unit: DisplayUnit, index: number): string {
+  if (unit.type === "activity") {
+    return unit.messages[0]?.id ?? `activity-${index}`;
+  }
+  return unit.message.id;
 }
