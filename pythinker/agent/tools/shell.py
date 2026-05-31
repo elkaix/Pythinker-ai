@@ -395,15 +395,28 @@ class ExecTool(Tool):
         command: str, cwd: str, env: dict[str, str],
         shell_program: str | None = None,
         login: bool = True,
+        *,
+        stdin: int = asyncio.subprocess.DEVNULL,
     ) -> asyncio.subprocess.Process:
         """Launch *command* in a platform-appropriate shell."""
         if _IS_WINDOWS:
+            # Multi-line commands break under cmd.exe (newlines are command
+            # separators). Use powershell to bypass cmd.exe entirely.
+            if "\n" in command:
+                return await asyncio.create_subprocess_exec(
+                    "powershell", "-NoProfile", "-Command", command,
+                    stdin=stdin,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=cwd,
+                    env=env,
+                )
             comspec = env.get("COMSPEC", os.environ.get("COMSPEC", "cmd.exe"))
             return await asyncio.create_subprocess_exec(
                 comspec,
                 "/c",
                 command,
-                stdin=asyncio.subprocess.DEVNULL,
+                stdin=stdin,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=cwd,
@@ -417,7 +430,7 @@ class ExecTool(Tool):
         args.extend(["-c", command])
         return await asyncio.create_subprocess_exec(
             *args,
-            stdin=asyncio.subprocess.DEVNULL,
+            stdin=stdin,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=cwd,

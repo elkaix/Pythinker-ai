@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import shutil
 import time
 import uuid
 from contextlib import suppress
@@ -271,29 +270,11 @@ class ExecSessionManager:
         shell_program: str | None,
         login: bool,
     ) -> asyncio.subprocess.Process:
-        from pythinker.agent.tools import shell
+        from pythinker.agent.tools.shell import ExecTool
 
-        if shell._IS_WINDOWS:
-            return await asyncio.create_subprocess_shell(
-                command,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=cwd,
-                env=env,
-            )
-        shell_program = shell_program or shutil.which("bash") or "/bin/bash"
-        args = [shell_program]
-        if login and shell_program.rsplit("/", 1)[-1] in {"bash", "zsh"}:
-            args.append("-l")
-        args.extend(["-c", command])
-        return await asyncio.create_subprocess_exec(
-            *args,
+        return await ExecTool._spawn(
+            command, cwd, env, shell_program, login,
             stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=cwd,
-            env=env,
         )
 
 
