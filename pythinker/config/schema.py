@@ -84,6 +84,7 @@ FallbackCandidate = str | InlineFallbackConfig
 class ModelPresetConfig(Base):
     """A named set of model + generation parameters for quick switching."""
 
+    label: str | None = None
     model: str
     provider: str = "auto"
     max_tokens: int = 8192
@@ -123,6 +124,9 @@ class AgentDefaults(Base):
         serialization_alias="idleCompactAfterMinutes",
     )  # Auto-compact idle threshold in minutes (0 = disabled)
     dream: DreamConfig = Field(default_factory=DreamConfig)
+    bot_name: str = "Pythinker"  # Display name shown in WebUI
+    bot_icon: str = ""  # Emoji or URL for the bot avatar
+    tool_hint_max_length: int = 60  # Max chars in tool-hint breadcrumb lines
 
 
 class AgentsConfig(Base):

@@ -79,6 +79,7 @@ from pythinker.channels.websocket.rest import (
     _safe_int,
 )
 from pythinker.config.schema import AgentDefaults
+from pythinker.webui.settings_routes import WebUISettingsRouter
 from pythinker.utils.media_decode import (
     FileSizeExceeded,
     save_base64_data_url,
@@ -186,6 +187,16 @@ class WebSocketChannel(BaseChannel):
         # become self-expiring (callers just refresh the session list).
         self._media_secret: bytes = secrets.token_bytes(32)
         self._stream_text_buffers: dict[tuple[str, str], list[str]] = {}
+        self._settings_routes = WebUISettingsRouter(
+            bus=bus,
+            logger=logger,
+            check_api_token=self._check_api_token,
+            parse_query=_parse_query,
+            json_response=_http_json_response,
+            error_response=_http_error,
+            runtime_surface="browser",
+            runtime_capabilities={},
+        )
 
     # -- Subscription bookkeeping -------------------------------------------
 
@@ -403,6 +414,12 @@ class WebSocketChannel(BaseChannel):
         m = re.match(r"^/api/admin/subagents/([^/]+)/cancel$", got)
         if m:
             return await self._handle_admin_subagent_cancel(request, m.group(1))
+
+        # Settings API surface.
+        if got.startswith("/api/settings"):
+            settings_response = await self._settings_routes.dispatch(request, got)
+            if settings_response is not None:
+                return settings_response
 
         # Signed media fetch: ``<sig>`` is an HMAC over ``<payload>``; the
         # payload decodes to a path inside :func:`get_media_dir`. See
