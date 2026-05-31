@@ -60,7 +60,7 @@ async def test_decide_returns_skip_when_no_tool_call(tmp_path) -> None:
 
 @pytest.mark.asyncio
 async def test_trigger_now_executes_when_decision_is_run(tmp_path) -> None:
-    (tmp_path / "HEARTBEAT.md").write_text("- [ ] do thing", encoding="utf-8")
+    (tmp_path / "HEARTBEAT.md").write_text("## Active Tasks\n\n- [ ] do thing", encoding="utf-8")
 
     provider = DummyProvider([
         LLMResponse(
@@ -95,7 +95,7 @@ async def test_trigger_now_executes_when_decision_is_run(tmp_path) -> None:
 
 @pytest.mark.asyncio
 async def test_trigger_now_returns_none_when_decision_is_skip(tmp_path) -> None:
-    (tmp_path / "HEARTBEAT.md").write_text("- [ ] do thing", encoding="utf-8")
+    (tmp_path / "HEARTBEAT.md").write_text("## Active Tasks\n\n- [ ] do thing", encoding="utf-8")
 
     provider = DummyProvider([
         LLMResponse(
@@ -126,7 +126,7 @@ async def test_trigger_now_returns_none_when_decision_is_skip(tmp_path) -> None:
 @pytest.mark.asyncio
 async def test_tick_notifies_when_evaluator_says_yes(tmp_path, monkeypatch) -> None:
     """Phase 1 run -> Phase 2 execute -> Phase 3 evaluate=notify -> on_notify called."""
-    (tmp_path / "HEARTBEAT.md").write_text("- [ ] check deployments", encoding="utf-8")
+    (tmp_path / "HEARTBEAT.md").write_text("## Active Tasks\n\n- [ ] check deployments", encoding="utf-8")
 
     provider = DummyProvider([
         LLMResponse(
@@ -172,7 +172,7 @@ async def test_tick_notifies_when_evaluator_says_yes(tmp_path, monkeypatch) -> N
 @pytest.mark.asyncio
 async def test_tick_suppresses_when_evaluator_says_no(tmp_path, monkeypatch) -> None:
     """Phase 1 run -> Phase 2 execute -> Phase 3 evaluate=silent -> on_notify NOT called."""
-    (tmp_path / "HEARTBEAT.md").write_text("- [ ] check status", encoding="utf-8")
+    (tmp_path / "HEARTBEAT.md").write_text("## Active Tasks\n\n- [ ] check status", encoding="utf-8")
 
     provider = DummyProvider([
         LLMResponse(
@@ -240,7 +240,7 @@ def test_is_deliverable_unit_filters_finalization_fallback_and_leaks() -> None:
 @pytest.mark.asyncio
 async def test_tick_suppresses_non_deliverable_response(tmp_path, monkeypatch) -> None:
     """Pre-evaluator filter drops leaked-reasoning output without calling evaluator/notify."""
-    (tmp_path / "HEARTBEAT.md").write_text("- [ ] check deployments", encoding="utf-8")
+    (tmp_path / "HEARTBEAT.md").write_text("## Active Tasks\n\n- [ ] check deployments", encoding="utf-8")
 
     provider = DummyProvider([
         LLMResponse(

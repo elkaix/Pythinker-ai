@@ -90,6 +90,35 @@ class HeartbeatService:
                 return None
         return None
 
+    @staticmethod
+    def _has_active_tasks(content: str) -> bool:
+        """Fast text-parser pre-check: True when HEARTBEAT.md has task lines under
+        ## Active Tasks, ignoring headers, blanks, and HTML comments.
+
+        This short-circuits the LLM decision call when the file has no tasks at all.
+        """
+        in_comment = False
+        in_active_section: bool = False
+        for line in content.splitlines():
+            stripped = line.strip()
+            if in_comment:
+                if "-->" in stripped:
+                    in_comment = False
+                continue
+            if not stripped or stripped.startswith("#"):
+                if stripped.startswith("##") and not stripped.startswith("###"):
+                    heading = stripped.lstrip("#").strip().lower()
+                    in_active_section = heading.startswith("active tasks")
+                continue
+            if stripped.startswith("<!--"):
+                if "-->" not in stripped[4:]:
+                    in_comment = True
+                continue
+            if not in_active_section:
+                continue
+            return True
+        return False
+
     async def _decide(self, content: str) -> tuple[str, str]:
         """Phase 1: ask LLM to decide skip/run via virtual tool call.
 
@@ -192,6 +221,9 @@ class HeartbeatService:
         if not content:
             logger.debug("Heartbeat: HEARTBEAT.md missing or empty")
             return
+        if not self._has_active_tasks(content):
+            logger.debug("Heartbeat: HEARTBEAT.md has no active tasks")
+            return
 
         logger.info("Heartbeat: checking for tasks...")
 
@@ -219,6 +251,7 @@ class HeartbeatService:
                 llm = self._llm_runtime()
                 should_notify = await evaluate_response(
                     response, tasks, llm.provider, llm.model,
+                    default_notify=False,
                 )
                 if should_notify and self.on_notify:
                     logger.info("Heartbeat: completed, delivering response")
