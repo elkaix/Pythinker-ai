@@ -67,6 +67,7 @@ from pythinker.channels.websocket.multiplex import (
     _parse_inbound_payload,
 )
 from pythinker.channels.websocket.rest import (
+    _case_insensitive_header,
     _decode_api_key,
     _http_error,
     _http_json_response,
@@ -91,6 +92,32 @@ if TYPE_CHECKING:
 _FILE_READ_MAX_BYTES = 1_048_576   # 1 MiB — hard cap for WebUI file panel reads
 _FILE_READ_PROBE_BYTES = 8192      # binary-detection scan window (null-byte check)
 _MARKDOWN_IMAGE_RE = re.compile(r"!\[([^\]]*)\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+_BYTE_RANGE_RE = re.compile(r"^bytes=(\d*)-(\d*)$")
+
+
+def _parse_single_byte_range(range_header: str, size: int) -> tuple[int, int]:
+    """Parse a single HTTP byte range for signed media responses."""
+    if size <= 0 or "," in range_header:
+        raise ValueError("invalid byte range")
+    m = _BYTE_RANGE_RE.fullmatch(range_header.strip())
+    if m is None:
+        raise ValueError("invalid byte range")
+    start_text, end_text = m.groups()
+    if not start_text and not end_text:
+        raise ValueError("invalid byte range")
+    if not start_text:
+        suffix_length = int(end_text)
+        if suffix_length <= 0:
+            raise ValueError("invalid byte range")
+        start = max(size - suffix_length, 0)
+        end = size - 1
+    else:
+        start = int(start_text)
+        end = int(end_text) if end_text else size - 1
+        if start >= size or start > end:
+            raise ValueError("invalid byte range")
+        end = min(end, size - 1)
+    return start, end
 
 
 def _get_media_dir(*args: Any, **kwargs: Any) -> Path:
@@ -383,7 +410,7 @@ class WebSocketChannel(BaseChannel):
         # these URLs when replaying a session.
         m = re.match(r"^/api/media/([A-Za-z0-9_-]+)/([A-Za-z0-9_-]+)$", got)
         if m:
-            return self._handle_media_fetch(m.group(1), m.group(2))
+            return self._handle_media_fetch(m.group(1), m.group(2), request)
 
         # 4. WebSocket upgrade (the channel's primary purpose). Only run the
         # handshake gate on requests that actually ask to upgrade; otherwise
@@ -659,12 +686,15 @@ class WebSocketChannel(BaseChannel):
 
         return _MARKDOWN_IMAGE_RE.sub(replace, text)
 
-    def _handle_media_fetch(self, sig: str, payload: str) -> Response:
+    def _handle_media_fetch(
+        self, sig: str, payload: str, request: "WsRequest | None" = None
+    ) -> Response:
         """Serve a single media file previously signed via
         :meth:`_sign_media_path`. Validates the signature, decodes the
         payload to a relative path, and streams the file bytes with a
         long-lived immutable cache header (the URL already encodes the
-        file identity, so caches can be aggressive)."""
+        file identity, so caches can be aggressive). Supports HTTP byte ranges
+        so video players can seek without downloading the full file."""
         try:
             provided_mac = _b64url_decode(sig)
         except (ValueError, binascii.Error):
@@ -689,22 +719,62 @@ class WebSocketChannel(BaseChannel):
             return _http_error(404, "not found")
         if not candidate.is_file():
             return _http_error(404, "not found")
+        mime, _ = mimetypes.guess_type(candidate.name)
+        if mime not in _MEDIA_ALLOWED_MIMES:
+            mime = "application/octet-stream"
+        common_headers = [
+            ("Accept-Ranges", "bytes"),
+            ("Cache-Control", "private, max-age=31536000, immutable"),
+            # Paired with the MIME whitelist above: prevents browsers from
+            # MIME-sniffing an octet-stream fallback into executable HTML.
+            ("X-Content-Type-Options", "nosniff"),
+        ]
+        try:
+            size = candidate.stat().st_size
+        except OSError:
+            return _http_error(500, "read error")
+
+        range_header = (
+            _case_insensitive_header(request.headers, "Range") if request else ""
+        )
+        if range_header:
+            try:
+                start, end = _parse_single_byte_range(range_header, size)
+            except ValueError:
+                return _http_response(
+                    b"range not satisfiable",
+                    status=416,
+                    extra_headers=[
+                        ("Accept-Ranges", "bytes"),
+                        ("Content-Range", f"bytes */{size}"),
+                        ("X-Content-Type-Options", "nosniff"),
+                    ],
+                )
+            try:
+                length = end - start + 1
+                with candidate.open("rb") as fh:
+                    fh.seek(start)
+                    body = fh.read(length)
+            except OSError:
+                return _http_error(500, "read error")
+            return _http_response(
+                body,
+                status=206,
+                content_type=mime,
+                extra_headers=[
+                    *common_headers,
+                    ("Content-Range", f"bytes {start}-{end}/{size}"),
+                ],
+            )
+
         try:
             body = candidate.read_bytes()
         except OSError:
             return _http_error(500, "read error")
-        mime, _ = mimetypes.guess_type(candidate.name)
-        if mime not in _MEDIA_ALLOWED_MIMES:
-            mime = "application/octet-stream"
         return _http_response(
             body,
             content_type=mime,
-            extra_headers=[
-                ("Cache-Control", "private, max-age=31536000, immutable"),
-                # Paired with the MIME whitelist above: prevents browsers from
-                # MIME-sniffing an octet-stream fallback into executable HTML.
-                ("X-Content-Type-Options", "nosniff"),
-            ],
+            extra_headers=common_headers,
         )
 
     def _handle_session_delete(self, request: WsRequest, key: str) -> Response:

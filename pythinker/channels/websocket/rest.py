@@ -103,6 +103,17 @@ def _decode_api_key(raw_key: str) -> str | None:
     return key
 
 
+def _case_insensitive_header(headers: Any, name: str) -> str:
+    """Return the first value of *name* from a websockets Headers object (case-insensitive)."""
+    try:
+        for key, val in headers.raw_items():
+            if key.lower() == name.lower():
+                return val
+    except Exception:
+        pass
+    return ""
+
+
 def _http_response(
     body: bytes,
     *,
