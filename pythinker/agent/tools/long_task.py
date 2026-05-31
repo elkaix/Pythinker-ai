@@ -48,6 +48,9 @@ class _GoalToolsMixin:
     def __init__(self, sessions: "SessionManager", bus: Any | None = None) -> None:
         self._sessions = sessions
         self._bus = bus
+        # Each subclass gets its own ContextVars so concurrent tasks across
+        # different tool types (LongTaskTool vs CompleteGoalTool) do not
+        # interfere with each other.
         self._channel: ContextVar[str] = ContextVar("goal_channel", default="cli")
         self._chat_id: ContextVar[str] = ContextVar("goal_chat_id", default="direct")
         self._session_key: ContextVar[str] = ContextVar("goal_session_key", default="")
