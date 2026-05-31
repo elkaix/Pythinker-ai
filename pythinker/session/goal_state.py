@@ -42,6 +42,19 @@ def sustained_goal_active(metadata: Mapping[str, Any] | None) -> bool:
     return isinstance(goal, dict) and goal.get("status") == "active"
 
 
+def sustained_goal_turn(
+    metadata: Mapping[str, Any] | None,
+    *,
+    message_metadata: Mapping[str, Any] | None = None,
+) -> bool:
+    """True when this turn should use sustained-goal runtime limits."""
+    if sustained_goal_active(metadata):
+        return True
+    if not message_metadata:
+        return False
+    return str(message_metadata.get("original_command") or "").strip() == "/goal"
+
+
 def parse_goal_state(blob: Any) -> dict[str, Any] | None:
     if blob is None:
         return None

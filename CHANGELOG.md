@@ -8,6 +8,10 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ### Added
 
+- Sustained-goal turns that hit the tool-call budget are now transparently continued
+  for up to 12 additional slices without surfacing a "max iterations" reply to the user.
+  Each continuation slice picks up seamlessly from saved context and completes normally
+  or calls `complete_goal` when finished.
 - Added `runtime.maxConcurrentSubagents` to cap how many subagents run their
   LLM/tool loop at once (`0` = unlimited, preserving prior behavior).
 - Added Telegram webhook mode (`channels.telegram.mode: "webhook"`) with
