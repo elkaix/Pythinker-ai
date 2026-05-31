@@ -70,7 +70,7 @@ async def test_prompt_cache_key_uses_stable_conversation_prefix(monkeypatch):
 
     async def fake_request(url, headers, body, verify, on_content_delta=None, **_kwargs):
         bodies.append(body)
-        return "ok", [], "stop"
+        return "ok", [], "stop", None
 
     monkeypatch.setattr("pythinker.providers.openai_codex_provider._request_codex", fake_request)
 
@@ -96,7 +96,7 @@ async def test_prompt_cache_key_uses_stable_conversation_prefix(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_codex_reasoning_effort_none_omits_reasoning_body(monkeypatch):
+async def test_codex_reasoning_effort_none_sends_explicit_disable(monkeypatch):
     bodies: list[dict] = []
 
     monkeypatch.setattr(
@@ -106,7 +106,7 @@ async def test_codex_reasoning_effort_none_omits_reasoning_body(monkeypatch):
 
     async def fake_request(url, headers, body, verify, on_content_delta=None, **_kwargs):
         bodies.append(body)
-        return "ok", [], "stop"
+        return "ok", [], "stop", None
 
     monkeypatch.setattr("pythinker.providers.openai_codex_provider._request_codex", fake_request)
 
@@ -116,4 +116,4 @@ async def test_codex_reasoning_effort_none_omits_reasoning_body(monkeypatch):
         reasoning_effort="none",
     )
 
-    assert "reasoning" not in bodies[0]
+    assert bodies[0].get("reasoning") == {"effort": "none"}

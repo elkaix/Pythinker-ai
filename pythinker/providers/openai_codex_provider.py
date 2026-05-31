@@ -21,7 +21,7 @@ from pythinker.providers.base import (
     stream_idle_timeout_s,
 )
 from pythinker.providers.openai_responses import (
-    consume_sse,
+    consume_sse_with_reasoning,
     convert_messages,
     convert_tools,
 )
@@ -95,6 +95,7 @@ class OpenAICodexProvider(LLMProvider):
         reasoning_effort: str | None,
         tool_choice: str | dict[str, Any] | None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+        on_thinking_delta: Callable[[str], Awaitable[None]] | None = None,
         *,
         on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
@@ -123,28 +124,36 @@ class OpenAICodexProvider(LLMProvider):
             "tool_choice": tool_choice or "auto",
             "parallel_tool_calls": True,
         }
-        if reasoning_effort and reasoning_effort.lower() != "none":
-            body["reasoning"] = {"effort": reasoning_effort}
+        reasoning_options = _build_reasoning_options(reasoning_effort)
+        if reasoning_options:
+            body["reasoning"] = reasoning_options
         if tools:
             body["tools"] = convert_tools(tools)
 
         try:
             try:
-                content, tool_calls, finish_reason = await _request_codex(
+                content, tool_calls, finish_reason, reasoning_content = await _request_codex(
                     DEFAULT_CODEX_URL, headers, body, verify=True,
                     on_content_delta=on_content_delta,
+                    on_thinking_delta=on_thinking_delta,
                     on_tool_call_delta=on_tool_call_delta,
                 )
             except Exception as e:
                 if "CERTIFICATE_VERIFY_FAILED" not in str(e):
                     raise
                 logger.warning("SSL verification failed for Codex API; retrying with verify=False")
-                content, tool_calls, finish_reason = await _request_codex(
+                content, tool_calls, finish_reason, reasoning_content = await _request_codex(
                     DEFAULT_CODEX_URL, headers, body, verify=False,
                     on_content_delta=on_content_delta,
+                    on_thinking_delta=on_thinking_delta,
                     on_tool_call_delta=on_tool_call_delta,
                 )
-            return LLMResponse(content=content, tool_calls=tool_calls, finish_reason=finish_reason)
+            return LLMResponse(
+                content=content,
+                tool_calls=tool_calls,
+                finish_reason=finish_reason,
+                reasoning_content=reasoning_content,
+            )
         except Exception as e:
             response = _codex_error_response(e)
             exc_type = "CodexHTTPError" if isinstance(e, _CodexHTTPError) else type(e).__name__
@@ -176,11 +185,12 @@ class OpenAICodexProvider(LLMProvider):
         reasoning_effort: str | None = None,
         tool_choice: str | dict[str, Any] | None = None,
         on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+        on_thinking_delta: Callable[[str], Awaitable[None]] | None = None,
         on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     ) -> LLMResponse:
         return await self._call_codex(
             messages, tools, model, reasoning_effort, tool_choice,
-            on_content_delta, on_tool_call_delta=on_tool_call_delta,
+            on_content_delta, on_thinking_delta, on_tool_call_delta=on_tool_call_delta,
         )
 
     def get_default_model(self) -> str:
@@ -196,6 +206,16 @@ def _locked_get_codex_token():
     """
     with refresh_lock("openai-codex"):
         return get_codex_token()
+
+
+def _build_reasoning_options(reasoning_effort: str | None) -> dict[str, str] | None:
+    """Opt in to visible summaries without changing provider-default effort."""
+    if reasoning_effort and reasoning_effort.lower() == "none":
+        return {"effort": "none"}
+    options: dict[str, str] = {"summary": "auto"}
+    if reasoning_effort:
+        options["effort"] = reasoning_effort
+    return options
 
 
 def _strip_model_prefix(model: str) -> str:
@@ -241,9 +261,10 @@ async def _request_codex(
     body: dict[str, Any],
     verify: bool,
     on_content_delta: Callable[[str], Awaitable[None]] | None = None,
+    on_thinking_delta: Callable[[str], Awaitable[None]] | None = None,
     *,
     on_tool_call_delta: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
-) -> tuple[str, list[ToolCallRequest], str]:
+) -> tuple[str, list[ToolCallRequest], str, str | None]:
     idle_timeout_s = stream_idle_timeout_s()
     async with httpx.AsyncClient(timeout=idle_timeout_s, verify=verify) as client:
         async with client.stream("POST", url, headers=headers, json=body) as response:
@@ -262,8 +283,11 @@ async def _request_codex(
                         response.status_code, error_type, error_code, raw
                     ),
                 )
-            return await consume_sse(
-                response, on_content_delta, on_tool_call_delta=on_tool_call_delta,
+            return await consume_sse_with_reasoning(
+                response,
+                on_content_delta=on_content_delta,
+                on_tool_call_delta=on_tool_call_delta,
+                on_reasoning_delta=on_thinking_delta,
             )
 
 
