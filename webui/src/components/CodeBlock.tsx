@@ -87,7 +87,7 @@ export function CodeBlock({ language, code, className }: CodeBlockProps) {
         </button>
       </div>
       <SyntaxHighlighter
-        language={language}
+        language={language || "text"}
         style={isDark ? oneDark : oneLight}
         customStyle={{
           margin: 0,

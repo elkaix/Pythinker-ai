@@ -165,7 +165,7 @@ export default function MarkdownTextRenderer({
               );
             }
             const code = String(kids).replace(/\n$/, "");
-            return <CodeBlock language={match[1]} code={code} className="my-3" />;
+            return <CodeBlock language={match[1] || "text"} code={code} className="my-3" />;
           },
           pre({ children: markdownChildren }) {
             return <>{markdownChildren}</>;
