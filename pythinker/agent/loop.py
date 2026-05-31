@@ -984,13 +984,13 @@ class AgentLoop:
                 )
                 continue
             raw = msg.content.strip()
+            effective_key = self._effective_session_key(msg)
             if self.commands.is_priority(raw):
                 await self._dispatch_command_inline(
-                    msg, msg.session_key, raw,
+                    msg, effective_key, raw,
                     self.commands.dispatch_priority,
                 )
                 continue
-            effective_key = self._effective_session_key(msg)
             # If this session already has an active pending queue (i.e. a task
             # is processing this session), route the message there for mid-turn
             # injection instead of creating a competing task.
@@ -1043,15 +1043,15 @@ class AgentLoop:
         lock = self._session_locks.setdefault(session_key, asyncio.Lock())
         gate = self._concurrency_gate or nullcontext()
 
-        # Register a pending queue so follow-up messages for this session are
-        # routed here (mid-turn injection) instead of spawning a new task.
-        pending = asyncio.Queue(maxsize=20)
-        self._pending_queues[session_key] = pending
-
         ctx = getattr(msg, "context", None)
+        pending: asyncio.Queue | None = None
         try:
             t0 = time.monotonic()
             async with lock:
+                # Only the task that owns the session lock may publish the
+                # active mid-turn injection queue for this session.
+                pending = asyncio.Queue(maxsize=20)
+                self._pending_queues[session_key] = pending
                 t1 = time.monotonic()
                 async with gate:
                     t2 = time.monotonic()
@@ -1144,25 +1144,32 @@ class AgentLoop:
                             emit("turn_finished", ctx, {
                                 "duration_s": time.monotonic() - t2,
                             })
+                        # Drain any messages still in the pending queue and
+                        # re-publish them so they are processed as fresh inbound
+                        # messages rather than silently lost.  Only remove our
+                        # own queue; a later task waiting on the lock must not
+                        # steal cleanup ownership.
+                        queue = None
+                        if self._pending_queues.get(session_key) is pending:
+                            queue = self._pending_queues.pop(session_key, None)
+                        else:
+                            queue = pending
+                        if queue is not None:
+                            leftover = 0
+                            while True:
+                                try:
+                                    item = queue.get_nowait()
+                                except asyncio.QueueEmpty:
+                                    break
+                                await self.bus.publish_inbound(item)
+                                leftover += 1
+                            if leftover:
+                                logger.info(
+                                    "Re-published {} leftover message(s) to bus for session {}",
+                                    leftover, session_key,
+                                )
         finally:
-            # Drain any messages still in the pending queue and re-publish
-            # them to the bus so they are processed as fresh inbound messages
-            # rather than silently lost.
-            queue = self._pending_queues.pop(session_key, None)
-            if queue is not None:
-                leftover = 0
-                while True:
-                    try:
-                        item = queue.get_nowait()
-                    except asyncio.QueueEmpty:
-                        break
-                    await self.bus.publish_inbound(item)
-                    leftover += 1
-                if leftover:
-                    logger.info(
-                        "Re-published {} leftover message(s) to bus for session {}",
-                        leftover, session_key,
-                    )
+            pass
 
     async def close_mcp(self) -> None:
         """Drain pending background archives, then close MCP connections."""
