@@ -39,7 +39,7 @@ from pythinker.runtime.egress import ToolEgressGateway
 from pythinker.runtime.policy import PolicyService
 from pythinker.session.goal_state import sustained_goal_active
 from pythinker.session.manager import Session, SessionManager
-from pythinker.utils.document import extract_documents
+from pythinker.utils.document import extract_documents, reference_non_image_attachments
 from pythinker.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
 
 if TYPE_CHECKING:
@@ -613,6 +613,17 @@ class AgentLoop:
             return UNIFIED_SESSION_KEY
         return msg.session_key
 
+    def _prepare_message_media(self, content: str, media: list[str]) -> tuple[str, list[str]]:
+        if self._should_extract_document_text():
+            return extract_documents(content, media)
+        return reference_non_image_attachments(content, media)
+
+    def _should_extract_document_text(self) -> bool:
+        cfg = self.channels_config
+        if cfg is None:
+            return True
+        return getattr(cfg, "extract_document_text", True) is not False
+
     def _budget_template(self) -> "BudgetCounters":
         from pythinker.runtime.context import BudgetCounters
 
@@ -830,7 +841,7 @@ class AgentLoop:
                 content = pending_msg.content
                 media = pending_msg.media if pending_msg.media else None
                 if media:
-                    content, media = extract_documents(content, media)
+                    content, media = self._prepare_message_media(content, media)
                     media = media or None
                 user_content = self.context.build_user_content(content, media)
                 return {"role": "user", "content": user_content}
@@ -1332,7 +1343,7 @@ class AgentLoop:
         # Extract document text from media at the processing boundary so all
         # channels benefit without format-specific logic in ContextBuilder.
         if msg.media:
-            new_content, image_only = extract_documents(msg.content, msg.media)
+            new_content, image_only = self._prepare_message_media(msg.content, msg.media)
             msg = dataclasses.replace(msg, content=new_content, media=image_only)
 
         preview = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
