@@ -48,4 +48,7 @@ _MEDIA_ALLOWED_MIMES: frozenset[str] = frozenset({
     "image/jpeg",
     "image/webp",
     "image/gif",
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
 })

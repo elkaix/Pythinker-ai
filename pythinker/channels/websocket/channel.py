@@ -618,7 +618,7 @@ class WebSocketChannel(BaseChannel):
             return None
 
     def _stage_local_markdown_image(self, raw_src: str) -> str | None:
-        """Stage a relative workspace image under WebUI media and return a signed URL."""
+        """Stage a relative workspace image or video under WebUI media and return a signed URL."""
         src = raw_src.strip().strip("<>")
         if not src or re.match(r"^[A-Za-z][A-Za-z0-9+.-]*:", src) or src.startswith("/"):
             return None
@@ -633,7 +633,7 @@ class WebSocketChannel(BaseChannel):
         except (OSError, ValueError):
             return None
         mime, _ = mimetypes.guess_type(candidate.name)
-        if mime not in _MEDIA_ALLOWED_MIMES or not str(mime).startswith("image/"):
+        if mime not in _MEDIA_ALLOWED_MIMES:
             return None
         media_dir = _get_media_dir("websocket")
         try:
