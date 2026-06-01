@@ -1,5 +1,6 @@
 """Tests for the linear onboarding orchestrator."""
 
+import os
 import sys
 from io import StringIO
 from unittest.mock import patch
@@ -1329,6 +1330,10 @@ def test_step_workspace_default_accepts(tmp_path):
 @pytest.mark.skipif(
     sys.platform.startswith("win"),
     reason="POSIX chmod 0o500 doesn't make a directory unwritable on NTFS",
+)
+@pytest.mark.skipif(
+    os.getuid() == 0,
+    reason="chmod 0o500 doesn't restrict the root user",
 )
 def test_step_workspace_unwritable_re_prompts(tmp_path, monkeypatch):
     from pythinker.cli.onboard import _step_workspace
