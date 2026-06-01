@@ -45,9 +45,7 @@ function collectReasoning(messages: UIMessage[]): string {
   for (const m of messages) {
     if (m.role === "assistant" && m.kind !== "trace") {
       const content = m.content;
-      const thinkMatch = /<think>([\s\S]*?)<\/think>/g;
-      let match;
-      while ((match = thinkMatch.exec(content)) !== null) {
+      for (const match of content.matchAll(/<think>([\s\S]*?)<\/think>/g)) {
         const text = match[1].trim();
         if (text) parts.push(text);
       }

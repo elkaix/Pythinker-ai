@@ -412,10 +412,11 @@ class ExecTool(Tool):
                     cwd=cwd,
                     env=env,
                 )
-            comspec = env.get("COMSPEC", os.environ.get("COMSPEC", "cmd.exe"))
-            return await asyncio.create_subprocess_exec(
-                comspec,
-                "/c",
+            # Use create_subprocess_shell so Python builds the lpCommandLine as
+            # 'cmd.exe /c "command"' via string concatenation — not via
+            # list2cmdline, which would escape inner double-quotes with backslashes
+            # that cmd.exe does not recognise as an escape sequence.
+            return await asyncio.create_subprocess_shell(
                 command,
                 stdin=stdin,
                 stdout=asyncio.subprocess.PIPE,

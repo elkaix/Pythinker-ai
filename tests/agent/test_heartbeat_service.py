@@ -418,3 +418,34 @@ async def test_heartbeat_requires_provider_or_runtime(tmp_path):
 
     with pytest.raises(ValueError):
         HeartbeatService(workspace=tmp_path)
+
+
+class TestHasActiveTasks:
+    """_has_active_tasks should only trigger on unchecked items under ## Active Tasks."""
+
+    def _check(self, content: str) -> bool:
+        return HeartbeatService._has_active_tasks(content)
+
+    def test_unchecked_item_triggers(self):
+        assert self._check("## Active Tasks\n- [ ] do something")
+
+    def test_checked_item_does_not_trigger(self):
+        assert not self._check("## Active Tasks\n- [x] done already")
+
+    def test_completed_item_star_syntax(self):
+        assert not self._check("## Active Tasks\n* [x] finished")
+
+    def test_unchecked_star_triggers(self):
+        assert self._check("## Active Tasks\n* [ ] pending")
+
+    def test_prose_under_active_section_does_not_trigger(self):
+        assert not self._check("## Active Tasks\nSome descriptive text, not a task.")
+
+    def test_header_only_does_not_trigger(self):
+        assert not self._check("## Active Tasks\n")
+
+    def test_item_outside_active_section_ignored(self):
+        assert not self._check("## Other Section\n- [ ] task here")
+
+    def test_html_comment_before_active_section(self):
+        assert not self._check("<!-- comment -->\n## Active Tasks\n- [x] done")

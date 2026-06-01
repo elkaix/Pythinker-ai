@@ -112,22 +112,24 @@ class TestSpawnUnix:
 class TestSpawnWindows:
 
     @pytest.mark.asyncio
-    async def test_uses_comspec_from_env(self):
+    async def test_uses_create_subprocess_shell(self):
+        """Single-line Windows commands use create_subprocess_shell to avoid
+        list2cmdline re-quoting inner double-quotes."""
         env = {"COMSPEC": r"C:\Windows\system32\cmd.exe", "PATH": ""}
         with (
             patch("pythinker.agent.tools.shell._IS_WINDOWS", True),
-            patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
+            patch("asyncio.create_subprocess_shell", new_callable=AsyncMock) as mock_shell,
         ):
-            mock_exec.return_value = AsyncMock()
+            mock_shell.return_value = AsyncMock()
             await ExecTool._spawn("dir", r"C:\Users", env)
 
-        args = mock_exec.call_args[0]
-        assert "cmd.exe" in args[0]
-        assert "/c" in args
-        assert "dir" in args
+        assert mock_shell.called
+        cmd_arg = mock_shell.call_args[0][0]
+        assert cmd_arg == "dir"
 
     @pytest.mark.asyncio
-    async def test_falls_back_to_default_comspec(self):
+    async def test_multiline_uses_powershell(self):
+        """Multi-line Windows commands still fall through to PowerShell."""
         env = {"PATH": ""}
         with (
             patch("pythinker.agent.tools.shell._IS_WINDOWS", True),
@@ -135,10 +137,10 @@ class TestSpawnWindows:
             patch("asyncio.create_subprocess_exec", new_callable=AsyncMock) as mock_exec,
         ):
             mock_exec.return_value = AsyncMock()
-            await ExecTool._spawn("dir", r"C:\Users", env)
+            await ExecTool._spawn("line1\nline2", r"C:\Users", env)
 
         args = mock_exec.call_args[0]
-        assert args[0] == "cmd.exe"
+        assert "powershell" in args[0].lower()
 
 
 # ---------------------------------------------------------------------------

@@ -116,7 +116,8 @@ class HeartbeatService:
                 continue
             if not in_active_section:
                 continue
-            return True
+            if stripped.startswith("- [ ]") or stripped.startswith("* [ ]"):
+                return True
         return False
 
     async def _decide(self, content: str) -> tuple[str, str]:

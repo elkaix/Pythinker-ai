@@ -433,6 +433,21 @@ class CronService:
         logger.info("Cron: registered system job '{}' ({})", job.name, job.id)
         return job
 
+    def deregister_system_job(self, job_id: str) -> None:
+        """Remove a system job from the persisted store when a system feature is disabled.
+
+        Unlike :meth:`remove_job`, this bypasses the system-job protection so
+        that a previously-registered job does not survive a restart when its
+        feature has since been disabled in config.
+        """
+        store = self._load_store()
+        before = len(store.jobs)
+        store.jobs = [j for j in store.jobs if j.id != job_id]
+        if len(store.jobs) < before:
+            self._save_store()
+            self._arm_timer()
+            logger.info("Cron: deregistered system job {}", job_id)
+
     def remove_job(self, job_id: str) -> Literal["removed", "protected", "not_found"]:
         """Remove a job by ID, unless it is a protected system job."""
         store = self._load_store()

@@ -814,6 +814,7 @@ def _run_gateway(
         ))
         console.print(f"[green]✓[/green] Dream: {dream_cfg.describe_schedule()}")
     else:
+        cron.deregister_system_job("dream")
         console.print("[yellow]○[/yellow] Dream: disabled")
 
     async def _open_browser_when_ready() -> None:

@@ -872,7 +872,7 @@ class MatrixChannel(BaseChannel):
         )
         token = getattr(self.client, "access_token", None) or self.config.access_token
         headers = {"Authorization": f"Bearer {token}"} if token else None
-        timeout = aiohttp.ClientTimeout(total=None)
+        timeout = aiohttp.ClientTimeout(total=60, sock_connect=10, sock_read=30)
 
         try:
             async with aiohttp.ClientSession(timeout=timeout, headers=headers) as session:
@@ -927,7 +927,7 @@ class MatrixChannel(BaseChannel):
 
         limit_bytes = await self._effective_media_limit_bytes()
         declared = self._event_declared_size_bytes(event)
-        if declared is None or declared > limit_bytes:
+        if declared is not None and declared > limit_bytes:
             return None, _ATTACH_TOO_LARGE.format(filename)
 
         try:
