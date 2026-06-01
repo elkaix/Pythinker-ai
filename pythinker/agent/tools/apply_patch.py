@@ -13,7 +13,6 @@ from pythinker.agent.tools.base import tool_parameters
 from pythinker.agent.tools.filesystem import _FsTool
 from pythinker.agent.tools.schema import BooleanSchema, StringSchema, tool_parameters_schema
 
-
 PatchKind = Literal["add", "delete", "update"]
 
 
@@ -45,7 +44,7 @@ class _PatchError(ValueError):
     pass
 
 
-_ABSOLUTE_WINDOWS_RE = re.compile(r"^[A-Za-z]:[\\/]")
+_ABSOLUTE_WINDOWS_RE = re.compile(r"^[A-Za-z]:[\\\\]")
 
 
 def _is_file_header(line: str) -> bool:
