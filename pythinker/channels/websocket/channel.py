@@ -39,7 +39,6 @@ from websockets.http11 import Response
 
 from pythinker.bus.events import OutboundMessage
 from pythinker.bus.queue import MessageBus
-from pythinker.session.goal_state import goal_state_ws_blob
 from pythinker.channels.base import BaseChannel
 from pythinker.channels.websocket.auth import (
     _b64url_decode,
@@ -78,6 +77,7 @@ from pythinker.channels.websocket.rest import (
     _safe_int,
 )
 from pythinker.config.schema import AgentDefaults
+from pythinker.session.goal_state import goal_state_ws_blob
 from pythinker.utils.media_decode import (
     FileSizeExceeded,
     save_base64_data_url,
