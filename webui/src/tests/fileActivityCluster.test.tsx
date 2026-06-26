@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AgentActivityCluster } from "@/components/thread/AgentActivityCluster";
 import { usePythinkerStream } from "@/hooks/usePythinkerStream";
-import type { FileActivityPayload, InboundEvent } from "@/lib/types";
+import type { FileActivityPayload, FileEditActivity, InboundEvent, UIMessage } from "@/lib/types";
 import { ClientProvider } from "@/providers/ClientProvider";
 
 function fakeClient() {
@@ -70,57 +70,77 @@ function activity(overrides: Partial<FileActivityPayload> = {}): FileActivityPay
   };
 }
 
+function makeClusterMessage(activities: FileEditActivity[], id = "msg-1"): UIMessage {
+  return {
+    id,
+    role: "tool" as const,
+    content: "",
+    kind: "file_activity_cluster" as const,
+    isStreaming: false,
+    createdAt: Date.now(),
+    activities,
+  };
+}
+
 describe("AgentActivityCluster", () => {
   it("does not show unresolved pathless edit counters after completion", () => {
     render(
       <AgentActivityCluster
-        activities={[
-          {
-            call_id: "call-pending",
-            tool: "write_file",
-            path: "",
-            phase: "start",
-            status: "editing",
-            added: 98,
-            deleted: 0,
-            approximate: true,
-            binary: false,
-            updatedAt: Date.now(),
-          },
+        messages={[
+          makeClusterMessage([
+            {
+              call_id: "call-pending",
+              tool: "write_file",
+              path: "",
+              phase: "start",
+              status: "editing",
+              added: 98,
+              deleted: 0,
+              approximate: true,
+              binary: false,
+              updatedAt: Date.now(),
+            },
+          ]),
         ]}
         isStreaming={false}
       />,
     );
 
     expect(screen.queryByTestId("agent-activity-cluster")).not.toBeInTheDocument();
-    expect(screen.queryByText("~+98")).not.toBeInTheDocument();
   });
 
-  it("baseline-aligns visible file edit counters", () => {
+  it("shows diff stats for visible file edits after expanding", () => {
     render(
       <AgentActivityCluster
-        activities={[
-          {
-            call_id: "call-done",
-            tool: "write_file",
-            path: "pkg/mod.py",
-            phase: "end",
-            status: "done",
-            added: 12,
-            deleted: 3,
-            approximate: false,
-            binary: false,
-            updatedAt: Date.now(),
-          },
+        messages={[
+          makeClusterMessage([
+            {
+              call_id: "call-done",
+              tool: "write_file",
+              path: "pkg/mod.py",
+              phase: "end",
+              status: "done",
+              added: 12,
+              deleted: 3,
+              approximate: false,
+              binary: false,
+              updatedAt: Date.now(),
+            },
+          ]),
         ]}
         isStreaming={false}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /file edited/i }));
-    const stats = screen.getByText("+12 -3");
-    expect(stats).toHaveClass("items-baseline");
-    expect(stats).toHaveClass("leading-[inherit]");
+    // Cluster renders
+    expect(screen.getByTestId("agent-activity-cluster")).toBeInTheDocument();
+    // Expand the cluster
+    fireEvent.click(screen.getByRole("button"));
+    // Stats are visible
+    expect(screen.getByText("12")).toBeInTheDocument();
+    expect(screen.getByText("3")).toBeInTheDocument();
+    // File path label visible
+    expect(screen.getByText("mod.py")).toBeInTheDocument();
   });
 });
 

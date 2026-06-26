@@ -67,3 +67,18 @@ async def test_long_task_requires_session_context(tmp_path):
     tool = LongTaskTool(sessions, bus=None)  # no set_context → no session key
     result = await tool.execute(goal="x")
     assert "requires an active chat session" in result
+
+
+async def test_goal_tools_context_isolated_across_tool_types(tmp_path):
+    """LongTaskTool and CompleteGoalTool must not share routing context."""
+    sm = SessionManager(tmp_path)
+    lt = LongTaskTool(sessions=sm)
+    cg = CompleteGoalTool(sessions=sm)
+
+    lt.set_context("websocket", "a", effective_key="websocket:a")
+    # Setting lt's context must not affect cg's independent ContextVars.
+    assert cg._session_key.get() == ""
+
+    cg.set_context("websocket", "b", effective_key="websocket:b")
+    assert lt._session_key.get() == "websocket:a"
+    assert cg._session_key.get() == "websocket:b"

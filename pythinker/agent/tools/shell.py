@@ -25,6 +25,7 @@ from pythinker.agent.tools.exec_session import (
     format_session_poll,
 )
 from pythinker.agent.tools.sandbox import wrap_command
+from pythinker.security.workspace_policy import is_path_within
 from pythinker.agent.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
 from pythinker.config.paths import get_media_dir
 from pythinker.config.schema import ExecToolConfig
@@ -347,7 +348,7 @@ class ExecTool(Tool):
                     "Error: working_dir could not be resolved"
                     + _WORKSPACE_BOUNDARY_NOTE
                 )
-            if requested != workspace_root and workspace_root not in requested.parents:
+            if not is_path_within(requested, workspace_root):
                 return (
                     "Error: working_dir is outside the configured workspace"
                     + _WORKSPACE_BOUNDARY_NOTE
@@ -395,15 +396,29 @@ class ExecTool(Tool):
         command: str, cwd: str, env: dict[str, str],
         shell_program: str | None = None,
         login: bool = True,
+        *,
+        stdin: int = asyncio.subprocess.DEVNULL,
     ) -> asyncio.subprocess.Process:
         """Launch *command* in a platform-appropriate shell."""
         if _IS_WINDOWS:
-            comspec = env.get("COMSPEC", os.environ.get("COMSPEC", "cmd.exe"))
-            return await asyncio.create_subprocess_exec(
-                comspec,
-                "/c",
+            # Multi-line commands break under cmd.exe (newlines are command
+            # separators). Use powershell to bypass cmd.exe entirely.
+            if "\n" in command:
+                return await asyncio.create_subprocess_exec(
+                    "powershell", "-NoProfile", "-Command", command,
+                    stdin=stdin,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=cwd,
+                    env=env,
+                )
+            # Use create_subprocess_shell so Python builds the lpCommandLine as
+            # 'cmd.exe /c "command"' via string concatenation — not via
+            # list2cmdline, which would escape inner double-quotes with backslashes
+            # that cmd.exe does not recognise as an escape sequence.
+            return await asyncio.create_subprocess_shell(
                 command,
-                stdin=asyncio.subprocess.DEVNULL,
+                stdin=stdin,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=cwd,
@@ -417,7 +432,7 @@ class ExecTool(Tool):
         args.extend(["-c", command])
         return await asyncio.create_subprocess_exec(
             *args,
-            stdin=asyncio.subprocess.DEVNULL,
+            stdin=stdin,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=cwd,
@@ -555,11 +570,9 @@ class ExecTool(Tool):
                     continue
 
                 media_path = get_media_dir().resolve()
-                if (p.is_absolute()
-                    and cwd_path not in p.parents
-                    and p != cwd_path
-                    and media_path not in p.parents
-                    and p != media_path
+                if p.is_absolute() and not (
+                    is_path_within(p, cwd_path)
+                    or is_path_within(p, media_path)
                 ):
                     return "Error: Command blocked by safety guard (path outside working dir)"
 

@@ -236,3 +236,113 @@ export async function fetchAvailableModels(
   const body = await request<{ models: ModelRow[] }>(`${base}/api/models`, token);
   return body.models;
 }
+
+// ---- Settings API ----
+
+import type {
+  ProviderModelsPayload,
+  SettingsPayload,
+} from "@/lib/types";
+
+export async function fetchSettings(
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  return request<SettingsPayload>(`${base}/api/settings`, token);
+}
+
+export async function updateSettings(
+  update: Record<string, string>,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  const query = new URLSearchParams(update).toString();
+  return request<SettingsPayload>(`${base}/api/settings/update?${query}`, token);
+}
+
+export async function updateProviderSettings(
+  update: Record<string, string>,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  const query = new URLSearchParams(update).toString();
+  return request<SettingsPayload>(`${base}/api/settings/provider/update?${query}`, token);
+}
+
+export async function updateWebSearchSettings(
+  update: Record<string, string>,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  const query = new URLSearchParams(update).toString();
+  return request<SettingsPayload>(`${base}/api/settings/web-search/update?${query}`, token);
+}
+
+export async function updateImageGenerationSettings(
+  update: Record<string, string>,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  const query = new URLSearchParams(update).toString();
+  return request<SettingsPayload>(`${base}/api/settings/image-generation/update?${query}`, token);
+}
+
+export async function updateNetworkSafetySettings(
+  update: Record<string, string>,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  const query = new URLSearchParams(update).toString();
+  return request<SettingsPayload>(`${base}/api/settings/network-safety/update?${query}`, token);
+}
+
+export async function createModelConfiguration(
+  update: Record<string, string>,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  const query = new URLSearchParams(update).toString();
+  return request<SettingsPayload>(`${base}/api/settings/model-configurations/create?${query}`, token);
+}
+
+export async function updateModelConfiguration(
+  update: Record<string, string>,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  const query = new URLSearchParams(update).toString();
+  return request<SettingsPayload>(`${base}/api/settings/model-configurations/update?${query}`, token);
+}
+
+export async function fetchProviderModels(
+  provider: string,
+  token: string,
+  base: string = "",
+): Promise<ProviderModelsPayload> {
+  return request<ProviderModelsPayload>(
+    `${base}/api/settings/provider-models?provider=${encodeURIComponent(provider)}`,
+    token,
+  );
+}
+
+export async function loginProviderOAuth(
+  provider: string,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  return request<SettingsPayload>(
+    `${base}/api/settings/provider/oauth-login?provider=${encodeURIComponent(provider)}`,
+    token,
+  );
+}
+
+export async function logoutProviderOAuth(
+  provider: string,
+  token: string,
+  base: string = "",
+): Promise<SettingsPayload> {
+  return request<SettingsPayload>(
+    `${base}/api/settings/provider/oauth-logout?provider=${encodeURIComponent(provider)}`,
+    token,
+  );
+}

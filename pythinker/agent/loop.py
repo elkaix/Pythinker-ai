@@ -38,8 +38,9 @@ from pythinker.providers.model_profiles import get_profile
 from pythinker.runtime.egress import ToolEgressGateway
 from pythinker.runtime.policy import PolicyService
 from pythinker.session.goal_state import sustained_goal_active
+from pythinker.session import turn_continuation
 from pythinker.session.manager import Session, SessionManager
-from pythinker.utils.document import extract_documents
+from pythinker.utils.document import extract_documents, reference_non_image_attachments
 from pythinker.utils.runtime import EMPTY_FINAL_RESPONSE_MESSAGE
 
 if TYPE_CHECKING:
@@ -613,6 +614,17 @@ class AgentLoop:
             return UNIFIED_SESSION_KEY
         return msg.session_key
 
+    def _prepare_message_media(self, content: str, media: list[str]) -> tuple[str, list[str]]:
+        if self._should_extract_document_text():
+            return extract_documents(content, media)
+        return reference_non_image_attachments(content, media)
+
+    def _should_extract_document_text(self) -> bool:
+        cfg = self.channels_config
+        if cfg is None:
+            return True
+        return getattr(cfg, "extract_document_text", True) is not False
+
     def _budget_template(self) -> "BudgetCounters":
         from pythinker.runtime.context import BudgetCounters
 
@@ -830,7 +842,7 @@ class AgentLoop:
                 content = pending_msg.content
                 media = pending_msg.media if pending_msg.media else None
                 if media:
-                    content, media = extract_documents(content, media)
+                    content, media = self._prepare_message_media(content, media)
                     media = media or None
                 user_content = self.context.build_user_content(content, media)
                 return {"role": "user", "content": user_content}
@@ -930,9 +942,15 @@ class AgentLoop:
                 tlog.exception("Failed to record usage ledger row")
         if result.stop_reason == "max_iterations":
             tlog.warning("Max iterations ({}) reached", self.max_iterations)
+            should_stream = turn_continuation.should_stream_budget_response(
+                stop_reason=result.stop_reason,
+                pending_queue_available=pending_queue is not None and session is not None,
+                session_metadata=session.metadata if session is not None else None,
+                message_metadata=msg.metadata if msg is not None else None,
+            )
             # Push final content through stream so streaming channels
             # update the card instead of leaving it empty.
-            if on_stream and on_stream_end:
+            if on_stream and on_stream_end and should_stream:
                 await on_stream(result.final_content or "")
                 await on_stream_end(resuming=False)
         elif result.stop_reason == "error":
@@ -984,13 +1002,13 @@ class AgentLoop:
                 )
                 continue
             raw = msg.content.strip()
+            effective_key = self._effective_session_key(msg)
             if self.commands.is_priority(raw):
                 await self._dispatch_command_inline(
-                    msg, msg.session_key, raw,
+                    msg, effective_key, raw,
                     self.commands.dispatch_priority,
                 )
                 continue
-            effective_key = self._effective_session_key(msg)
             # If this session already has an active pending queue (i.e. a task
             # is processing this session), route the message there for mid-turn
             # injection instead of creating a competing task.
@@ -1043,15 +1061,15 @@ class AgentLoop:
         lock = self._session_locks.setdefault(session_key, asyncio.Lock())
         gate = self._concurrency_gate or nullcontext()
 
-        # Register a pending queue so follow-up messages for this session are
-        # routed here (mid-turn injection) instead of spawning a new task.
-        pending = asyncio.Queue(maxsize=20)
-        self._pending_queues[session_key] = pending
-
         ctx = getattr(msg, "context", None)
+        pending: asyncio.Queue | None = None
         try:
             t0 = time.monotonic()
             async with lock:
+                # Only the task that owns the session lock may publish the
+                # active mid-turn injection queue for this session.
+                pending = asyncio.Queue(maxsize=20)
+                self._pending_queues[session_key] = pending
                 t1 = time.monotonic()
                 async with gate:
                     t2 = time.monotonic()
@@ -1144,25 +1162,32 @@ class AgentLoop:
                             emit("turn_finished", ctx, {
                                 "duration_s": time.monotonic() - t2,
                             })
+                        # Drain any messages still in the pending queue and
+                        # re-publish them so they are processed as fresh inbound
+                        # messages rather than silently lost.  Only remove our
+                        # own queue; a later task waiting on the lock must not
+                        # steal cleanup ownership.
+                        queue = None
+                        if self._pending_queues.get(session_key) is pending:
+                            queue = self._pending_queues.pop(session_key, None)
+                        else:
+                            queue = pending
+                        if queue is not None:
+                            leftover = 0
+                            while True:
+                                try:
+                                    item = queue.get_nowait()
+                                except asyncio.QueueEmpty:
+                                    break
+                                await self.bus.publish_inbound(item)
+                                leftover += 1
+                            if leftover:
+                                logger.info(
+                                    "Re-published {} leftover message(s) to bus for session {}",
+                                    leftover, session_key,
+                                )
         finally:
-            # Drain any messages still in the pending queue and re-publish
-            # them to the bus so they are processed as fresh inbound messages
-            # rather than silently lost.
-            queue = self._pending_queues.pop(session_key, None)
-            if queue is not None:
-                leftover = 0
-                while True:
-                    try:
-                        item = queue.get_nowait()
-                    except asyncio.QueueEmpty:
-                        break
-                    await self.bus.publish_inbound(item)
-                    leftover += 1
-                if leftover:
-                    logger.info(
-                        "Re-published {} leftover message(s) to bus for session {}",
-                        leftover, session_key,
-                    )
+            pass
 
     async def close_mcp(self) -> None:
         """Drain pending background archives, then close MCP connections."""
@@ -1325,7 +1350,7 @@ class AgentLoop:
         # Extract document text from media at the processing boundary so all
         # channels benefit without format-specific logic in ContextBuilder.
         if msg.media:
-            new_content, image_only = extract_documents(msg.content, msg.media)
+            new_content, image_only = self._prepare_message_media(msg.content, msg.media)
             msg = dataclasses.replace(msg, content=new_content, media=image_only)
 
         preview = msg.content[:80] + "..." if len(msg.content) > 80 else msg.content
@@ -1441,7 +1466,11 @@ class AgentLoop:
         # doesn't silently lose the prompt on recovery. ``media`` rides along
         # as raw on-disk paths — sanitized image blocks are stripped from
         # JSONL, and webui replay needs the paths to mint signed URLs.
-        user_persisted_early = self.turn_writer.persist_user_message_early(msg, session)
+        # Internal continuation messages must not be persisted as user input.
+        if turn_continuation.should_persist_user_message(msg.metadata):
+            user_persisted_early = self.turn_writer.persist_user_message_early(msg, session)
+        else:
+            user_persisted_early = False
 
         t_wall = time.time()
         failover_token = set_failover_callback(_bus_provider_failover)
@@ -1465,19 +1494,59 @@ class AgentLoop:
             reset_failover_callback(failover_token)
         turn_latency_ms = max(0, int((time.time() - t_wall) * 1000))
 
-        if final_content is None or not final_content.strip():
-            final_content = EMPTY_FINAL_RESPONSE_MESSAGE
+        # When the sustained goal hits max_iterations and the continuation budget
+        # is not exhausted, queue an invisible continuation slice instead of
+        # surfacing a "max iterations" reply. The pending queue re-publishes it
+        # to the bus after the session lock drops, so the next slice runs in its
+        # own task without holding the current one open.
+        continuing = turn_continuation.continuation_available(
+            stop_reason=stop_reason,
+            session_metadata=session.metadata if session is not None else None,
+            message_metadata=msg.metadata,
+            pending_queue=pending_queue,
+        )
+        if continuing and session is not None and pending_queue is not None:
+            all_msgs = turn_continuation.strip_terminal_assistant(all_msgs, final_content)
+            continuation_meta = turn_continuation.build_continuation_metadata(
+                msg.metadata,
+                run_started_at=turn_continuation.internal_continuation_run_started_at(msg.metadata)
+                or t_wall,
+            )
+            turn_continuation.increment_goal_continuation_round(session.metadata)
+            msg.metadata[turn_continuation.INTERNAL_CONTINUATION_PENDING_META] = True
+            logger.info("Turn budget reached; scheduling internal continuation")
+            await pending_queue.put(
+                dataclasses.replace(
+                    msg,
+                    sender_id=turn_continuation._GOAL_CONTINUATION_SENDER,
+                    content=turn_continuation.goal_continuation_prompt(session.metadata),
+                    media=[],
+                    metadata=continuation_meta,
+                    session_key_override=self._effective_session_key(msg),
+                )
+            )
 
-        # Skip the already-persisted user message when saving the turn
-        save_skip = 1 + len(history) + (1 if user_persisted_early else 0)
+        if final_content is None or not (final_content or "").strip():
+            if not continuing:
+                final_content = EMPTY_FINAL_RESPONSE_MESSAGE
+        save_skip = turn_continuation.save_skip_for_turn(
+            message_metadata=msg.metadata,
+            initial_message_count=len(initial_messages),
+            history_count=len(history),
+            user_persisted_early=user_persisted_early,
+        )
         self._save_turn(session, all_msgs, save_skip, turn_latency_ms=turn_latency_ms)
-        self._clear_pending_user_turn(session)
+        if not continuing:
+            self._clear_pending_user_turn(session)
         self._clear_runtime_checkpoint(session)
+        if session is not None:
+            turn_continuation.clear_internal_continuation_state(session.metadata)
         self.sessions.save(session)
         # Mark the turn boundary in the WebUI activity transcript so refresh
         # replay rebuilds one cluster per turn instead of merging everything
-        # into a single super-cluster.
-        if msg.channel == "websocket":
+        # into a single super-cluster. Skip for continuation slices — the
+        # boundary fires when the sustained goal fully completes.
+        if msg.channel == "websocket" and not continuing:
             from pythinker.webui.activity_transcript import append_webui_activity
 
             append_webui_activity(msg.chat_id, "turn_boundary")
@@ -1486,6 +1555,11 @@ class AgentLoop:
         # Best-effort: name freshly-created webui chats from the first turn so
         # the sidebar shows something meaningful instead of "New chat".
         self._maybe_schedule_chat_title(session, msg.content or "", final_content)
+
+        # Suppress the outbound reply for internal continuation slices — the user
+        # never sees the budget boundary; the next slice takes over seamlessly.
+        if continuing:
+            return None
 
         # When follow-up messages were injected mid-turn, a later natural
         # language reply may address those follow-ups and should not be

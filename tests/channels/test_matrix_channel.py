@@ -37,6 +37,11 @@ class _DummyTask:
         return _done().__await__()
 
 
+async def _async_iter(items):
+    for item in items:
+        yield item
+
+
 class _FakeAsyncClient:
     def __init__(self, homeserver, user, store_path, config) -> None:
         self.homeserver = homeserver
@@ -56,10 +61,6 @@ class _FakeAsyncClient:
         self.typing_calls: list[tuple[str, bool, int]] = []
         self.download_calls: list[dict[str, object]] = []
         self.upload_calls: list[dict[str, object]] = []
-        self.download_response: object | None = None
-        self.download_bytes: bytes = b"media"
-        self.download_content_type: str = "application/octet-stream"
-        self.download_filename: str | None = None
         self.upload_response: object | None = None
         self.content_repository_config_response: object = SimpleNamespace(upload_size=None)
         self.raise_on_send = False
@@ -113,13 +114,6 @@ class _FakeAsyncClient:
 
     async def download(self, **kwargs):
         self.download_calls.append(kwargs)
-        if self.download_response is not None:
-            return self.download_response
-        return matrix_module.MemoryDownloadResponse(
-            body=self.download_bytes,
-            content_type=self.download_content_type,
-            filename=self.download_filename,
-        )
 
     async def upload(
         self,
@@ -574,11 +568,12 @@ async def test_on_message_sets_thread_metadata_when_threaded_event() -> None:
 async def test_on_media_message_downloads_attachment_and_sets_metadata(
     monkeypatch, tmp_path
 ) -> None:
+    import unittest.mock as mock
     monkeypatch.setattr("pythinker.channels.matrix.get_data_dir", lambda: tmp_path)
 
     channel = MatrixChannel(_make_config(), MessageBus())
-    client = _FakeAsyncClient("", "", "", None)
-    client.download_bytes = b"image"
+    client = _FakeAsyncClient("https://matrix.org", "", "", None)
+    client.access_token = "token"
     channel.client = client
 
     handled: list[dict[str, object]] = []
@@ -602,9 +597,21 @@ async def test_on_media_message_downloads_attachment_and_sets_metadata(
         },
     )
 
-    await channel._on_media_message(room, event)
+    # Mock aiohttp to return the image bytes
+    fake_response = mock.AsyncMock()
+    fake_response.status = 200
+    fake_response.headers = {}
+    fake_response.content.iter_chunked = mock.MagicMock(return_value=_async_iter([b"image"]))
+    fake_response.__aenter__ = mock.AsyncMock(return_value=fake_response)
+    fake_response.__aexit__ = mock.AsyncMock(return_value=False)
+    fake_session = mock.AsyncMock()
+    fake_session.get = mock.MagicMock(return_value=fake_response)
+    fake_session.__aenter__ = mock.AsyncMock(return_value=fake_session)
+    fake_session.__aexit__ = mock.AsyncMock(return_value=False)
 
-    assert len(client.download_calls) == 1
+    with mock.patch("pythinker.channels.matrix.aiohttp.ClientSession", return_value=fake_session):
+        await channel._on_media_message(room, event)
+
     assert len(handled) == 1
     assert client.typing_calls == [("!room:matrix.org", True, TYPING_NOTICE_TIMEOUT_MS)]
 
@@ -741,11 +748,12 @@ async def test_on_media_message_uses_server_limit_when_smaller_than_local_limit(
 
 @pytest.mark.asyncio
 async def test_on_media_message_handles_download_error(monkeypatch, tmp_path) -> None:
+    import unittest.mock as mock
     monkeypatch.setattr("pythinker.channels.matrix.get_data_dir", lambda: tmp_path)
 
     channel = MatrixChannel(_make_config(), MessageBus())
-    client = _FakeAsyncClient("", "", "", None)
-    client.download_response = matrix_module.DownloadError("download failed")
+    client = _FakeAsyncClient("https://matrix.org", "", "", None)
+    client.access_token = "token"
     channel.client = client
 
     handled: list[dict[str, object]] = []
@@ -761,12 +769,23 @@ async def test_on_media_message_handles_download_error(monkeypatch, tmp_path) ->
         body="photo.png",
         url="mxc://example.org/mediaid",
         event_id="$event3",
-        source={"content": {"msgtype": "m.image"}},
+        # Include a declared size so we proceed past the guard
+        source={"content": {"msgtype": "m.image", "info": {"size": 5}}},
     )
 
-    await channel._on_media_message(room, event)
+    # Mock aiohttp to return a 401 (download failure)
+    fake_response = mock.AsyncMock()
+    fake_response.status = 401
+    fake_response.__aenter__ = mock.AsyncMock(return_value=fake_response)
+    fake_response.__aexit__ = mock.AsyncMock(return_value=False)
+    fake_session = mock.AsyncMock()
+    fake_session.get = mock.MagicMock(return_value=fake_response)
+    fake_session.__aenter__ = mock.AsyncMock(return_value=fake_session)
+    fake_session.__aexit__ = mock.AsyncMock(return_value=False)
 
-    assert len(client.download_calls) == 1
+    with mock.patch("pythinker.channels.matrix.aiohttp.ClientSession", return_value=fake_session):
+        await channel._on_media_message(room, event)
+
     assert len(handled) == 1
     assert handled[0]["media"] == []
     assert handled[0]["metadata"]["attachments"] == []
@@ -782,9 +801,10 @@ async def test_on_media_message_decrypts_encrypted_media(monkeypatch, tmp_path) 
         lambda ciphertext, key, sha256, iv: b"plain",
     )
 
+    import unittest.mock as mock
     channel = MatrixChannel(_make_config(), MessageBus())
-    client = _FakeAsyncClient("", "", "", None)
-    client.download_bytes = b"cipher"
+    client = _FakeAsyncClient("https://matrix.org", "", "", None)
+    client.access_token = "token"
     channel.client = client
 
     handled: list[dict[str, object]] = []
@@ -806,7 +826,19 @@ async def test_on_media_message_decrypts_encrypted_media(monkeypatch, tmp_path) 
         source={"content": {"msgtype": "m.file", "info": {"size": 6}}},
     )
 
-    await channel._on_media_message(room, event)
+    fake_response = mock.AsyncMock()
+    fake_response.status = 200
+    fake_response.headers = {}
+    fake_response.content.iter_chunked = mock.MagicMock(return_value=_async_iter([b"cipher"]))
+    fake_response.__aenter__ = mock.AsyncMock(return_value=fake_response)
+    fake_response.__aexit__ = mock.AsyncMock(return_value=False)
+    fake_session = mock.AsyncMock()
+    fake_session.get = mock.MagicMock(return_value=fake_response)
+    fake_session.__aenter__ = mock.AsyncMock(return_value=fake_session)
+    fake_session.__aexit__ = mock.AsyncMock(return_value=False)
+
+    with mock.patch("pythinker.channels.matrix.aiohttp.ClientSession", return_value=fake_session):
+        await channel._on_media_message(room, event)
 
     assert len(handled) == 1
     media_path = Path(handled[0]["media"][0])
@@ -825,9 +857,10 @@ async def test_on_media_message_handles_decrypt_error(monkeypatch, tmp_path) -> 
 
     monkeypatch.setattr(matrix_module, "decrypt_attachment", _raise)
 
+    import unittest.mock as mock
     channel = MatrixChannel(_make_config(), MessageBus())
-    client = _FakeAsyncClient("", "", "", None)
-    client.download_bytes = b"cipher"
+    client = _FakeAsyncClient("https://matrix.org", "", "", None)
+    client.access_token = "token"
     channel.client = client
 
     handled: list[dict[str, object]] = []
@@ -846,10 +879,23 @@ async def test_on_media_message_handles_decrypt_error(monkeypatch, tmp_path) -> 
         key={"k": "key"},
         hashes={"sha256": "hash"},
         iv="iv",
-        source={"content": {"msgtype": "m.file"}},
+        # Include a size so we proceed past the guard
+        source={"content": {"msgtype": "m.file", "info": {"size": 6}}},
     )
 
-    await channel._on_media_message(room, event)
+    fake_response = mock.AsyncMock()
+    fake_response.status = 200
+    fake_response.headers = {}
+    fake_response.content.iter_chunked = mock.MagicMock(return_value=_async_iter([b"cipher"]))
+    fake_response.__aenter__ = mock.AsyncMock(return_value=fake_response)
+    fake_response.__aexit__ = mock.AsyncMock(return_value=False)
+    fake_session = mock.AsyncMock()
+    fake_session.get = mock.MagicMock(return_value=fake_response)
+    fake_session.__aenter__ = mock.AsyncMock(return_value=fake_session)
+    fake_session.__aexit__ = mock.AsyncMock(return_value=False)
+
+    with mock.patch("pythinker.channels.matrix.aiohttp.ClientSession", return_value=fake_session):
+        await channel._on_media_message(room, event)
 
     assert len(handled) == 1
     assert handled[0]["media"] == []

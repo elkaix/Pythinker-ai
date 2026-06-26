@@ -15,6 +15,7 @@ GOAL_STATE_KEY = "goal_state"
 _LEGACY_GOAL_STATE_SESSION_KEY = "thread_goal"
 _MAX_OBJECTIVE_IN_RUNTIME = 4000
 _MAX_OBJECTIVE_WS = 600
+_MAX_SUMMARY_IN_RUNTIME = 240
 
 
 def _session_goal_raw(metadata: Mapping[str, Any] | None) -> Any:
@@ -39,6 +40,19 @@ def sustained_goal_active(metadata: Mapping[str, Any] | None) -> bool:
     """True when this session has an active sustained objective (``long_task`` bookkeeping)."""
     goal = parse_goal_state(goal_state_raw(metadata))
     return isinstance(goal, dict) and goal.get("status") == "active"
+
+
+def sustained_goal_turn(
+    metadata: Mapping[str, Any] | None,
+    *,
+    message_metadata: Mapping[str, Any] | None = None,
+) -> bool:
+    """True when this turn should use sustained-goal runtime limits."""
+    if sustained_goal_active(metadata):
+        return True
+    if not message_metadata:
+        return False
+    return str(message_metadata.get("original_command") or "").strip() == "/goal"
 
 
 def parse_goal_state(blob: Any) -> dict[str, Any] | None:
@@ -69,6 +83,8 @@ def goal_state_runtime_lines(metadata: Mapping[str, Any] | None) -> list[str]:
         objective = objective[:_MAX_OBJECTIVE_IN_RUNTIME].rstrip() + "\n… (truncated)"
     out = ["Goal (active):", objective]
     hint = str(goal.get("ui_summary") or "").strip()
+    if len(hint) > _MAX_SUMMARY_IN_RUNTIME:
+        hint = hint[:_MAX_SUMMARY_IN_RUNTIME].rstrip() + "…"
     if hint:
         out.append(f"Summary: {hint}")
     return out

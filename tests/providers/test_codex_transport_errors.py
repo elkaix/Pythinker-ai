@@ -120,7 +120,7 @@ async def test_request_codex_honors_stream_idle_timeout_env(monkeypatch) -> None
         "pythinker.providers.openai_codex_provider.httpx.AsyncClient", fake_client
     )
 
-    content, _tool_calls, _finish = await _request_codex(
+    content, _tool_calls, _finish, _reasoning = await _request_codex(
         "https://codex.example/responses", {}, {"input": []}, verify=True
     )
 
@@ -146,7 +146,7 @@ async def test_request_codex_invalid_timeout_env_falls_back(monkeypatch) -> None
         "pythinker.providers.openai_codex_provider.httpx.AsyncClient", fake_client
     )
 
-    content, _tool_calls, _finish = await _request_codex(
+    content, _tool_calls, _finish, _reasoning = await _request_codex(
         "https://codex.example/responses", {}, {"input": []}, verify=True
     )
 

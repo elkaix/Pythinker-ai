@@ -17,6 +17,7 @@
 
 > Powered by a tiny, multiplexing agent loop: one Python process listens to Slack, Telegram, Discord, WhatsApp, Signal, Matrix, MS Teams, email, a WebSocket WebUI, and an OpenAI-compatible HTTP API — all backed by a single session-scoped memory layer.
 
+
 > **What's new in 2.7.1** — The public command is now `pythinker-ai`, runtime state lives under `~/.pythinker-ai/` / `.pythinker-ai/`, and environment variables use the `PYTHINKER_AI_` prefix so Pythinker can coexist with `pythinker-code`. Native installers are the canonical install path and use short URLs. Coding workflows gained structured `apply_patch`, long-running exec sessions (`write_stdin`, `list_exec_sessions`), and `find_files`; OpenAI providers can force Chat Completions vs. Responses API via `providers.openai.apiType`. See the [changelog](CHANGELOG.md) for details.
 
 ## 💡 Key Features

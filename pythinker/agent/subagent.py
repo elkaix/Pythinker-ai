@@ -125,6 +125,8 @@ class SubagentManager:
         self.restrict_to_workspace = restrict_to_workspace
         self.disabled_skills = set(disabled_skills or [])
         self._max_recursion_depth = max_recursion_depth
+        if max_concurrent_subagents < 0:
+            raise ValueError("max_concurrent_subagents must be >= 0")
         # 0 means unlimited; a positive value caps how many subagents run their
         # LLM/tool loop at once (queued spawns wait on the semaphore).
         self._subagent_semaphore = (

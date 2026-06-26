@@ -259,7 +259,9 @@ async def test_running_message_handler_reorders_same_session_updates() -> None:
 
     await channel._on_message(second, None)
     await channel._on_message(first, None)
-    await asyncio.sleep(0.3)
+    deadline = asyncio.get_running_loop().time() + 2.0
+    while len(seen) < 2 and asyncio.get_running_loop().time() < deadline:
+        await asyncio.sleep(0.01)
     channel._running = False
     if channel._inbound_workers:
         await asyncio.gather(*list(channel._inbound_workers.values()), return_exceptions=True)

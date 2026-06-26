@@ -430,3 +430,143 @@ export type Outbound =
       chat_id: string;
       max_events?: number;
     };
+
+// ---- Settings API types ----
+
+export interface SettingsProviderRow {
+  name: string;
+  label: string;
+  configured: boolean;
+  auth_type: "api_key" | "oauth";
+  api_key_required: boolean;
+  api_key_hint?: string | null;
+  api_base?: string | null;
+  default_api_base?: string | null;
+  oauth_account?: string | null;
+  oauth_expires_at?: number | null;
+  oauth_login_supported?: boolean;
+  api_type?: string;
+}
+
+export interface SettingsModelPreset {
+  name: string;
+  label: string;
+  active: boolean;
+  is_default: boolean;
+  model: string;
+  provider: string;
+  max_tokens: number;
+  context_window_tokens: number;
+  temperature: number;
+  reasoning_effort?: string | null;
+}
+
+export interface SettingsAgentSection {
+  model: string;
+  provider: string;
+  resolved_provider: string;
+  has_api_key: boolean;
+  model_preset: string;
+  max_tokens: number;
+  context_window_tokens: number;
+  temperature: number;
+  reasoning_effort?: string | null;
+  timezone: string;
+  bot_name: string;
+  bot_icon: string;
+  tool_hint_max_length: number;
+}
+
+export interface SettingsRuntimeSection {
+  config_path: string;
+  workspace_path: string;
+  gateway_host: string;
+  gateway_port: number;
+  heartbeat: { enabled: boolean; interval_s: number; keep_recent_messages: number };
+  dream: {
+    schedule: string;
+    max_batch_size: number;
+    max_iterations: number;
+    annotate_line_ages: boolean;
+  };
+  unified_session: boolean;
+}
+
+export interface SettingsAdvancedSection {
+  restrict_to_workspace: boolean;
+  workspace_sandbox: {
+    level: string;
+    enforced: boolean;
+    provider: string;
+    provider_label: string;
+    summary: string;
+  };
+  webui_allow_local_service_access: boolean;
+  webui_default_access_mode: string;
+  ssrf_whitelist_count: number;
+  mcp_server_count: number;
+  exec_enabled: boolean;
+  exec_sandbox?: string | null;
+}
+
+export interface SettingsWebSearchSection {
+  provider: string;
+  api_key_hint?: string | null;
+  base_url?: string | null;
+  max_results: number;
+  timeout: number;
+  providers: { name: string; label: string; credential: string }[];
+}
+
+export interface SettingsImageGenerationSection {
+  enabled: boolean;
+  provider: string;
+  provider_configured: boolean;
+  model: string;
+  default_aspect_ratio: string;
+  default_image_size: string;
+  max_images_per_turn: number;
+  save_dir: string;
+  providers: {
+    name: string;
+    label: string;
+    configured: boolean;
+    auth_type: string;
+    api_key_hint?: string | null;
+    api_base?: string | null;
+  }[];
+}
+
+export interface SettingsPayload {
+  agent: SettingsAgentSection;
+  model_presets: SettingsModelPreset[];
+  providers: SettingsProviderRow[];
+  web_search: SettingsWebSearchSection;
+  image_generation: SettingsImageGenerationSection;
+  runtime: SettingsRuntimeSection;
+  advanced: SettingsAdvancedSection;
+  requires_restart: boolean;
+  surface?: string;
+  runtime_surface?: string;
+  runtime_capabilities?: Record<string, boolean>;
+}
+
+export type WebuiDefaultAccessMode = "default" | "full";
+
+export interface ProviderModelInfo {
+  id: string;
+  label?: string | null;
+  owned_by?: string | null;
+  context_window?: number | null;
+}
+
+export interface ProviderModelsPayload {
+  provider: string;
+  label: string;
+  status: "available" | "unsupported" | "not_configured" | "missing_api_base" | "error";
+  catalog_kind: "official" | "catalog" | "local" | "custom" | "unsupported";
+  models: ProviderModelInfo[];
+  model_count: number;
+  message?: string | null;
+  fetched_at?: number;
+}

@@ -573,3 +573,24 @@ async def test_list_jobs_during_on_job_does_not_cause_stale_reload(tmp_path) -> 
         next_run = j["state"]["nextRunAtMs"]
         assert next_run is not None
         assert next_run > now_ms, f"Job '{j['name']}' next_run should be in the future"
+
+
+def test_deregister_system_job_removes_persisted_entry(tmp_path) -> None:
+    service = CronService(tmp_path / "cron" / "jobs.json")
+    service.register_system_job(CronJob(
+        id="dream",
+        name="dream",
+        schedule=CronSchedule(kind="every", every_ms=3_600_000),
+        payload=CronPayload(kind="system_event"),
+    ))
+    assert any(j.id == "dream" for j in service.list_jobs(include_disabled=True))
+
+    service.deregister_system_job("dream")
+    assert not any(j.id == "dream" for j in service.list_jobs(include_disabled=True))
+
+
+def test_deregister_system_job_noop_when_not_found(tmp_path) -> None:
+    service = CronService(tmp_path / "cron" / "jobs.json")
+    # Should not raise even when the job never existed
+    service.deregister_system_job("nonexistent")
+    assert service.list_jobs(include_disabled=True) == []

@@ -50,13 +50,21 @@ class AnthropicProvider(LLMProvider):
         if api_key:
             client_kw["api_key"] = api_key
         if api_base:
-            client_kw["base_url"] = api_base
+            client_kw["base_url"] = self._normalize_base_url(api_base)
         if extra_headers:
             client_kw["default_headers"] = extra_headers
         # Keep retries centralized in LLMProvider._run_with_retry to avoid retry amplification.
         client_kw["max_retries"] = 0
         self._client = AsyncAnthropic(**client_kw)
         self._count_tokens_client: AnthropicCountTokensClient | None = None
+
+    @staticmethod
+    def _normalize_base_url(api_base: str) -> str:
+        """Anthropic SDK appends /v1 to request paths internally."""
+        normalized = api_base.rstrip("/")
+        if normalized.endswith("/v1"):
+            return normalized[: -len("/v1")]
+        return normalized
 
     @classmethod
     def _handle_error(cls, e: Exception) -> LLMResponse:
@@ -233,6 +241,13 @@ class AnthropicProvider(LLMProvider):
                 converted = AnthropicProvider._convert_image_block(item)
                 if converted:
                     result.append(converted)
+                continue
+            if not item.get("type"):
+                # Anthropic requires every content block to declare a "type".
+                # A tool that returned a bare dict lands here; coerce it to a
+                # text block instead of emitting a block the API rejects with
+                # "content.0.type: Field required".
+                result.append({"type": "text", "text": str(item)})
                 continue
             result.append(item)
         return result or "(empty)"
