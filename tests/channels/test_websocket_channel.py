@@ -249,6 +249,66 @@ async def test_push_active_goal_state_noop_without_active_goal(tmp_path) -> None
 
 
 @pytest.mark.asyncio
+async def test_send_goal_state_sync_emits_typed_frame_not_message() -> None:
+    bus = MagicMock()
+    channel = WebSocketChannel({"enabled": True, "allowFrom": ["*"]}, bus)
+    mock_ws = AsyncMock()
+    channel._attach(mock_ws, "chat-1")
+
+    msg = OutboundMessage(
+        channel="websocket",
+        chat_id="chat-1",
+        content="",
+        metadata={"_goal_state_sync": True, "goal_state": {"active": True, "objective": "Ship X"}},
+    )
+    await channel.send(msg)
+
+    mock_ws.send.assert_awaited_once()
+    payload = json.loads(mock_ws.send.call_args[0][0])
+    assert payload["event"] == "goal_state"
+    assert payload["chat_id"] == "chat-1"
+    assert payload["goal_state"] == {"active": True, "objective": "Ship X"}
+
+
+@pytest.mark.asyncio
+async def test_push_active_goal_state_replays_on_subscribe(tmp_path) -> None:
+    from pythinker.session.goal_state import GOAL_STATE_KEY
+    from pythinker.session.manager import SessionManager
+
+    sessions = SessionManager(tmp_path)
+    sess = sessions.get_or_create("websocket:chat-1")
+    sess.metadata[GOAL_STATE_KEY] = {"status": "active", "objective": "Ship X"}
+    sessions.save(sess)
+
+    channel = WebSocketChannel(
+        {"enabled": True, "allowFrom": ["*"]}, MagicMock(), session_manager=sessions
+    )
+    mock_ws = AsyncMock()
+    await channel._push_active_goal_state(mock_ws, "chat-1")
+
+    mock_ws.send.assert_awaited_once()
+    payload = json.loads(mock_ws.send.call_args[0][0])
+    assert payload["event"] == "goal_state"
+    assert payload["chat_id"] == "chat-1"
+    assert payload["goal_state"]["active"] is True
+    assert payload["goal_state"]["objective"] == "Ship X"
+
+
+@pytest.mark.asyncio
+async def test_push_active_goal_state_noop_without_active_goal(tmp_path) -> None:
+    from pythinker.session.manager import SessionManager
+
+    sessions = SessionManager(tmp_path)
+    sessions.save(sessions.get_or_create("websocket:chat-1"))
+    channel = WebSocketChannel(
+        {"enabled": True, "allowFrom": ["*"]}, MagicMock(), session_manager=sessions
+    )
+    mock_ws = AsyncMock()
+    await channel._push_active_goal_state(mock_ws, "chat-1")
+    mock_ws.send.assert_not_awaited()
+
+
+@pytest.mark.asyncio
 async def test_send_missing_connection_is_noop_without_error() -> None:
     bus = MagicMock()
     channel = WebSocketChannel({"enabled": True, "allowFrom": ["*"]}, bus)
