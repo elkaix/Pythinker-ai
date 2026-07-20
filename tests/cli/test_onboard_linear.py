@@ -1333,7 +1333,7 @@ def test_step_workspace_default_accepts(tmp_path):
 )
 @pytest.mark.skipif(
     os.getuid() == 0,
-    reason="chmod 0o500 doesn't restrict the root user",
+    reason="chmod restrictions don't apply to root; permission test is meaningless",
 )
 def test_step_workspace_unwritable_re_prompts(tmp_path, monkeypatch):
     from pythinker.cli.onboard import _step_workspace
