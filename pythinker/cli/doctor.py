@@ -1,4 +1,4 @@
-"`pythinker-ai doctor` — diagnose install, config, and authentication state.
+"""`pythinker-ai doctor` — diagnose install, config, and authentication state.
 
 Every check returns a ``CheckResult``; the runner prints them grouped by
 section and exits non-zero when anything is wrong.  Designed to be the

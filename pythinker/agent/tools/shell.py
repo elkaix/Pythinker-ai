@@ -539,7 +539,7 @@ class ExecTool(Tool):
             return "Error: Command blocked by safety guard (internal/private URL detected)"
 
         if self.restrict_to_workspace:
-            if "..\\\\ " in cmd or "../" in cmd:
+            if "..\\" in cmd or "../" in cmd:
                 return "Error: Command blocked by safety guard (path traversal detected)"
 
             cwd_path = Path(cwd).resolve()
@@ -585,6 +585,6 @@ class ExecTool(Tool):
             r"(?<![A-Za-z])(?:[A-Za-z]:[^\s\"'|><;]*|\\\\[^\s\"'|><;]+(?:\\[^\s\"'|><;]+)*)",
             command
         )
-        posix_paths = re.findall(r"(?:^|[\s|>'\"](/[^\s\"'>;|<]+)", command) # POSIX: /absolute only
-        home_paths = re.findall(r"(?:^|[\s>'\"](~[^\s\"'>;|<]*)", command) # POSIX/Windows home shortcut: ~
+        posix_paths = re.findall(r"(?:^|[\s|>'\"])(/[^\s\"'>;|<]+)", command) # POSIX: /absolute only
+        home_paths = re.findall(r"(?:^|[\s>'\"])(~[^\s\"'>;|<]*)", command) # POSIX/Windows home shortcut: ~
         return win_paths + posix_paths + home_paths
