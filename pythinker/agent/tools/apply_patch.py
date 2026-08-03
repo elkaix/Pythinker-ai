@@ -44,7 +44,7 @@ class _PatchError(ValueError):
     pass
 
 
-_ABSOLUTE_WINDOWS_RE = re.compile(r"^[A-Za-z]:[\\\\]")
+_ABSOLUTE_WINDOWS_RE = re.compile(r"^[A-Za-z]:[\\/]")
 
 
 def _is_file_header(line: str) -> bool:

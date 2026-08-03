@@ -1328,12 +1328,8 @@ def test_step_workspace_default_accepts(tmp_path):
 
 
 @pytest.mark.skipif(
-    sys.platform.startswith("win"),
-    reason="POSIX chmod 0o500 doesn't make a directory unwritable on NTFS",
-)
-@pytest.mark.skipif(
-    os.getuid() == 0,
-    reason="chmod restrictions don't apply to root; permission test is meaningless",
+    sys.platform.startswith("win") or (hasattr(os, "getuid") and os.getuid() == 0),
+    reason="POSIX chmod 0o500 doesn't restrict root or apply on NTFS",
 )
 def test_step_workspace_unwritable_re_prompts(tmp_path, monkeypatch):
     from pythinker.cli.onboard import _step_workspace
