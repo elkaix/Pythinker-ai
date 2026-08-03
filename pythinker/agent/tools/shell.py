@@ -16,16 +16,21 @@ from loguru import logger
 
 from pythinker.agent.tools.base import Tool, tool_parameters
 from pythinker.agent.tools.exec_session import (
+    DEFAULT_EXEC_SESSION_MANAGER,
     DEFAULT_MAX_OUTPUT_CHARS,
     DEFAULT_YIELD_MS,
-    DEFAULT_EXEC_SESSION_MANAGER,
     MAX_OUTPUT_CHARS,
     MAX_YIELD_MS,
     clamp_session_int,
     format_session_poll,
 )
 from pythinker.agent.tools.sandbox import wrap_command
-from pythinker.agent.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
+from pythinker.agent.tools.schema import (
+    BooleanSchema,
+    IntegerSchema,
+    StringSchema,
+    tool_parameters_schema,
+)
 from pythinker.config.paths import get_media_dir
 from pythinker.config.schema import ExecToolConfig
 

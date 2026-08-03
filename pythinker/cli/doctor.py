@@ -11,8 +11,8 @@ import asyncio
 import importlib.util
 import shutil
 import sys
-from importlib import resources
 from dataclasses import dataclass
+from importlib import resources
 from pathlib import Path
 from typing import Callable, Iterable
 

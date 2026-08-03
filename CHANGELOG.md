@@ -6,6 +6,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-08-03
+
 ### Added
 
 - Added `runtime.maxConcurrentSubagents` to cap how many subagents run their
@@ -311,8 +313,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ### Changed
 
-- Project-facing descriptions now use “tiny agent” wording instead of
-  “ultra-lightweight” to match the intended positioning.
+- Project-facing descriptions now use "tiny agent" wording instead of
+  "ultra-lightweight" to match the intended positioning.
 - `web_fetch` now reports common site-side blocks (`401`, `403`, `451`) as
   structured `blockedBySite` tool results and logs them as warnings instead of
   errors.

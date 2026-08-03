@@ -39,8 +39,6 @@ from pythinker.command.builtins.format import (
     _format_task_row,  # noqa: F401  (kept for backwards compatibility)
 )
 from pythinker.command.builtins.init import cmd_init
-from pythinker.command.builtins.pairing import cmd_pairing
-from pythinker.command.builtins.sync import cmd_sync
 from pythinker.command.builtins.lifecycle import (
     _cmd_restart_impl,
     _cmd_upgrade_impl,
@@ -53,6 +51,8 @@ from pythinker.command.builtins.lifecycle import (
     cmd_status,
     cmd_stop,
 )
+from pythinker.command.builtins.pairing import cmd_pairing
+from pythinker.command.builtins.sync import cmd_sync
 from pythinker.command.builtins.tasks import (
     _task_id_from_args,  # noqa: F401  (kept for backwards compatibility)
     _task_output_record_for_session,  # noqa: F401  (kept for backwards compatibility)

@@ -11,8 +11,12 @@ from dataclasses import dataclass
 from typing import Any
 
 from pythinker.agent.tools.base import Tool, tool_parameters
-from pythinker.agent.tools.schema import BooleanSchema, IntegerSchema, StringSchema, tool_parameters_schema
-
+from pythinker.agent.tools.schema import (
+    BooleanSchema,
+    IntegerSchema,
+    StringSchema,
+    tool_parameters_schema,
+)
 
 DEFAULT_YIELD_MS = 1000
 MAX_YIELD_MS = 30_000

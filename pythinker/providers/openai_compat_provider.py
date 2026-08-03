@@ -15,8 +15,6 @@ from typing import TYPE_CHECKING, Any
 import json_repair
 from loguru import logger
 
-AsyncOpenAI: Any = None  # populated lazily by _build_client() on first use
-
 from pythinker.providers._message_sanitize import (
     ALLOWED_MSG_KEYS,
     normalize_tool_call_arguments,
@@ -49,6 +47,8 @@ from pythinker.providers.openai_responses import (
 
 if TYPE_CHECKING:
     from pythinker.providers.registry import ProviderSpec
+
+AsyncOpenAI: Any = None  # populated lazily by _build_client() on first use
 
 _ALLOWED_MSG_KEYS = ALLOWED_MSG_KEYS
 _ALNUM = string.ascii_letters + string.digits
@@ -304,14 +304,14 @@ class OpenAICompatProvider(LLMProvider):
         global AsyncOpenAI
         if AsyncOpenAI is None:
             if os.environ.get("LANGFUSE_SECRET_KEY") and importlib.util.find_spec("langfuse"):
-                from langfuse.openai import AsyncOpenAI as _cls
+                from langfuse.openai import AsyncOpenAI as _cls  # noqa: N813
             else:
                 if os.environ.get("LANGFUSE_SECRET_KEY"):
                     logger.warning(
                         "LANGFUSE_SECRET_KEY is set but langfuse is not installed; "
                         "install with `pip install langfuse` to enable tracing"
                     )
-                from openai import AsyncOpenAI as _cls
+                from openai import AsyncOpenAI as _cls  # noqa: N813
             AsyncOpenAI = _cls
         return AsyncOpenAI(
             api_key=self._api_key_for_client,

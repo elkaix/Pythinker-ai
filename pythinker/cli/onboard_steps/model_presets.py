@@ -82,7 +82,7 @@ def _edit_preset(
     """Run the field-by-field editor for one preset. Returns None on cancel."""
     from pythinker.cli.onboard_views import clack
 
-    clack.note(title, [f"Editing preset fields. Empty input keeps the current value."])
+    clack.note(title, ["Editing preset fields. Empty input keeps the current value."])
 
     model = clack.text("Model id:", default=preset.model).strip()
     if not model:
