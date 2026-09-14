@@ -13,7 +13,6 @@ from pythinker.agent.tools.base import tool_parameters
 from pythinker.agent.tools.filesystem import _FsTool
 from pythinker.agent.tools.schema import BooleanSchema, StringSchema, tool_parameters_schema
 
-
 PatchKind = Literal["add", "delete", "update"]
 
 
