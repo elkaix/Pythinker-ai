@@ -6,7 +6,7 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
-## [2.8.0] - 2026-08-03
+## [2.8.0] - 2026-09-14
 
 ### Added
 
