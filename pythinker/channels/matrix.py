@@ -14,6 +14,7 @@ from pydantic import Field
 try:
     import nh3
     from mistune import create_markdown
+    from mistune.renderers.html import HTMLRenderer as _MistuneHTMLRenderer
     from nio import (
         AsyncClient,
         AsyncClientConfig,
@@ -77,7 +78,7 @@ MATRIX_MEDIA_EVENT_FILTER = (RoomMessageMedia, RoomEncryptedMedia)
 MatrixMediaEvent: TypeAlias = RoomMessageMedia | RoomEncryptedMedia
 
 MATRIX_MARKDOWN = create_markdown(
-    escape=True,
+    renderer=_MistuneHTMLRenderer(escape=True, allow_harmful_protocols=["mxc://"]),
     plugins=["table", "strikethrough", "url", "superscript", "subscript"],
 )
 

@@ -6,6 +6,8 @@ All notable user-visible changes to Pythinker land here. The project follows
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-09-21
+
 ### Added
 
 - Added `runtime.maxConcurrentSubagents` to cap how many subagents run their
